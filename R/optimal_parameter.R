@@ -3,7 +3,8 @@ optimal_parameter <- function(generic_opt,
                               smp_data,
                               smp_domains,
                               transformation,
-                              interval) {
+                              interval,
+                              control) {
   if (transformation != "no" &&
     transformation != "log") {
     # no lambda -> no estimation -> no optmimization
@@ -34,6 +35,7 @@ optimal_parameter <- function(generic_opt,
       smp_domains    = smp_domains,
       transformation = transformation,
       interval       = interval,
+      control        = control,
       maximum        = FALSE
     )$minimum
   } else {
@@ -55,7 +57,8 @@ generic_opt <- function(lambda,
                         fixed,
                         smp_data,
                         smp_domains,
-                        transformation) {
+                        transformation,
+                        control) {
 
 
   # Definition of optimization function for finding the optimal lambda
@@ -66,7 +69,8 @@ generic_opt <- function(lambda,
       smp_data = smp_data,
       smp_domains = smp_domains,
       transformation = transformation,
-      lambda = lambda
+      lambda = lambda,
+      control = control
     )
   }
   return(optimization)
@@ -80,18 +84,19 @@ reml <- function(fixed = fixed,
                  smp_data = smp_data,
                  smp_domains = smp_domains,
                  transformation = transformation,
-                 lambda = lambda) {
+                 lambda = lambda,
+                 control = control) {
   sd_transformed_data <- std_data_transformation(
     fixed = fixed,
     smp_data = smp_data,
-    transformation =
-      transformation,
+    transformation = transformation,
     lambda = lambda
   )
 
+  ## browser()
 
   model_REML <- NULL
-  try(model_REML <- lme(
+  tryCatch({model_REML <- lme(
     fixed = fixed,
     data = sd_transformed_data,
     random =
@@ -100,14 +105,21 @@ reml <- function(fixed = fixed,
         smp_domains, ")"
       )),
     method = "REML",
-    keep.data = FALSE
-  ), silent = TRUE)
+    keep.data = FALSE,
+    control = lmeControl(opt = "optim")
+  )},
+    message = function(e) {
+      model_REML <<- e
+    }
+  #  silent = TRUE)
+  )
   if (is.null(model_REML)) {
-    stop(strwrap(prefix = " ", initial = "",
-                 "The likelihood does not converge. One reason could be that
-                 the interval for the estimation of an optimal transformation
-                 parameter is not appropriate. Try another interval. See also
-                 help(ebp)."))
+    ## stop(strwrap(prefix = " ", initial = "",
+    ##              "The likelihood does not converge. One reason could be that
+    ##              the interval for the estimation of an optimal transformation
+    ##              parameter is not appropriate. Try another interval. See also
+    ##              help(ebp)."))
+    print(model_REML$message)
   } else {
     model_REML <- model_REML
   }

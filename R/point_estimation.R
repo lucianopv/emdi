@@ -15,7 +15,8 @@ point_estim <- function(framework,
                         transformation,
                         interval,
                         L,
-                        keep_data = FALSE) {
+                        keep_data = FALSE,
+                        control = list()) {
 
   # Transformation of data -----------------------------------------------------
 
@@ -29,7 +30,8 @@ point_estim <- function(framework,
     smp_data = framework$smp_data,
     smp_domains = framework$smp_domains,
     transformation = transformation,
-    interval = interval
+    interval = interval,
+    control = control
   )
 
   # Data_transformation function returns transformed data and shift parameter.
@@ -57,9 +59,9 @@ point_estim <- function(framework,
         framework$smp_domains, ")"
       )),
     method = "REML",
-    keep.data = keep_data
+    keep.data = keep_data,
+    control = control
   )
-
 
   # Function model_par extracts the needed parameters theta from the nested
   # error linear regression model. It returns the beta coefficients (betas),

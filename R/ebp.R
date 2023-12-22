@@ -250,7 +250,8 @@ ebp <- function(fixed,
                 na.rm = FALSE,
                 weights = NULL,
                 pop_weights = NULL,
-                aggregate_to = NULL
+                aggregate_to = NULL,
+                control = list()
                 ) {
   ebp_check1(
     fixed = fixed, pop_data = pop_data, pop_domains = pop_domains,
@@ -305,7 +306,8 @@ ebp <- function(fixed,
     transformation = transformation,
     interval = interval,
     L = L,
-    keep_data = TRUE
+    keep_data = TRUE,
+    control = control
   )
 
 
