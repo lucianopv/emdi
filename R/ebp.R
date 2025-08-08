@@ -338,7 +338,8 @@ ebp <- function(fixed,
     ebp_out <- list(
       ind = point_estim$ind,
       y_mcmc = point_estim$y_mcmc,
-      MSE = mse_estimates,
+      MSE = mse_estimates$mses,
+      MSE_objects = mse_estimates$mses_objects,
       transform_param = point_estim[c(
         "optimal_lambda",
         "shift_par"

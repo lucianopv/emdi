@@ -64,8 +64,8 @@ parametric_bootstrap <- function(framework,
     )
     parallelMap::parallelStop()
   } else {
-    mses <-  simplify2array( lapply(
-    # mses <- lapply(
+    ## mses <-  simplify2array( lapply(
+    mses <- lapply(
       X = seq_len(B),
       FUN = mse_estim_wrapper,
       B = B,
@@ -85,13 +85,16 @@ parametric_bootstrap <- function(framework,
       true_indicators = true_indicators,
       control = control
     )
-    )
+    ## )
   }
 
   message("\r", "Bootstrap completed", "\n")
   if (.Platform$OS.type == "windows") {
     flush.console()
   }
+
+  mses_objects <- mses
+  mses <- simplify2array(mses$mses)
 
   mses <- apply(mses, c(1, 2), mean)
   if(is.null(framework$aggregate_to_vec)){
@@ -102,7 +105,10 @@ parametric_bootstrap <- function(framework,
     # mses <- list(Domain = unique(framework$aggregate_to_vec), mses = mses)
   }
 
-  return(mses)
+  return(list(
+    mses = mses,
+    mses_objects = mses_objects
+  ))
 }
 
 
@@ -254,11 +260,11 @@ mse_estim <- function(framework,
   }
 
 
-  ## return(list(bootstrap_point_estim = bootstrap_point_estim,
-  ##             true_indicators = true_indicators,
-  ##             superpop = superpop))
-
-  return((bootstrap_point_estim - true_indicators)^2)
+  return(list(bootstrap_point_estim = bootstrap_point_estim,
+              true_indicators = true_indicators,
+              superpop = superpop,
+              bootstrap_sample = bootstrap_sample,
+              mses = (bootstrap_point_estim - true_indicators)^2))
 } # End mse_estim
 
 
