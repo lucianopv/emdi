@@ -69,10 +69,10 @@ generic_opt <- function(lambda,
       smp_data = smp_data,
       smp_domains = smp_domains,
       transformation = transformation,
-      lambda = lambda,
-      control = control
-    )
-  }
+    lambda = lambda,
+    control = control
+  )
+}
   return(optimization)
 }
 

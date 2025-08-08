@@ -28,7 +28,6 @@ framework_ebp <- function(fixed, pop_data, pop_domains, smp_data, smp_domains,
 
   pop_data <- pop_data[, pop_vars]
 
-
   # Deletion of NA
   if (na.rm == TRUE) {
     pop_data <- na.omit(pop_data)

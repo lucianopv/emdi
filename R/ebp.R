@@ -251,7 +251,8 @@ ebp <- function(fixed,
                 weights = NULL,
                 pop_weights = NULL,
                 aggregate_to = NULL,
-                control = list()
+                true_indicators = NULL,
+                control = NULL
                 ) {
   ebp_check1(
     fixed = fixed, pop_data = pop_data, pop_domains = pop_domains,
@@ -327,13 +328,16 @@ ebp <- function(fixed,
       B = B,
       boot_type = boot_type,
       parallel_mode = parallel_mode,
-      cpus = cpus
+      cpus = cpus,
+      control = control,
+      true_indicators = true_indicators
     )
 
 
 
     ebp_out <- list(
       ind = point_estim$ind,
+      y_mcmc = point_estim$y_mcmc,
       MSE = mse_estimates,
       transform_param = point_estim[c(
         "optimal_lambda",
@@ -359,6 +363,7 @@ ebp <- function(fixed,
   } else {
     ebp_out <- list(
       ind = point_estim$ind,
+      y_mcmc = point_estim$y_mcmc,
       MSE = NULL,
       transform_param = point_estim[c(
         "optimal_lambda",

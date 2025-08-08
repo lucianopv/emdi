@@ -15,7 +15,9 @@ parametric_bootstrap <- function(framework,
                                  B,
                                  boot_type,
                                  parallel_mode,
-                                 cpus) {
+                                 cpus,
+                                 control,
+                                 true_indicators) {
   message("\r", "Bootstrap started                                            ")
   if (boot_type == "wild") {
     res_s <- residuals(point_estim$model)
@@ -23,6 +25,9 @@ parametric_bootstrap <- function(framework,
   } else {
     res_s <- NULL
     fitted_s <- NULL
+    if(is.null(control)) {
+      control <- list()
+    }
   }
 
   start_time <- Sys.time()
@@ -37,7 +42,8 @@ parametric_bootstrap <- function(framework,
       parallel::clusterSetRNGStream()
     }
     parallelMap::parallelLibrary("nlme")
-    mses <- simplify2array(parallelMap::parallelLapply(
+    mses <- simplify2array( parallelMap::parallelLapply(
+    ## mses <- parallelMap::parallelLapply(
       xs              = seq_len(B),
       fun             = mse_estim_wrapper,
       B               = B,
@@ -54,10 +60,12 @@ parametric_bootstrap <- function(framework,
       fitted_s        = fitted_s,
       start_time      = start_time,
       boot_type       = boot_type
-    ))
+    )
+    )
     parallelMap::parallelStop()
   } else {
-    mses <- simplify2array(lapply(
+    mses <-  simplify2array( lapply(
+    # mses <- lapply(
       X = seq_len(B),
       FUN = mse_estim_wrapper,
       B = B,
@@ -73,8 +81,11 @@ parametric_bootstrap <- function(framework,
       res_s = res_s,
       fitted_s = fitted_s,
       start_time = start_time,
-      boot_type = boot_type
-    ))
+      boot_type = boot_type,
+      true_indicators = true_indicators,
+      control = control
+    )
+    )
   }
 
   message("\r", "Bootstrap completed", "\n")
@@ -85,8 +96,10 @@ parametric_bootstrap <- function(framework,
   mses <- apply(mses, c(1, 2), mean)
   if(is.null(framework$aggregate_to_vec)){
     mses <- data.frame(Domain = unique(framework$pop_domains_vec), mses)
+    # mses <- list(Domain = unique(framework$pop_domains_vec), mses = mses)
   }else{
     mses <- data.frame(Domain = unique(framework$aggregate_to_vec), mses)
+    # mses <- list(Domain = unique(framework$aggregate_to_vec), mses = mses)
   }
 
   return(mses)
@@ -112,7 +125,9 @@ mse_estim <- function(framework,
                       transformation,
                       interval,
                       L,
-                      boot_type) {
+                      boot_type,
+                      control,
+                      true_indicators) {
 
 
 
@@ -162,26 +177,34 @@ mse_estim <- function(framework,
     pop_weights_vec <- rep(1, nrow(framework$pop_data))
   }
 
-  # True indicator values
-  true_indicators <- matrix(
-    nrow = N_dom_pop_tmp,
-    data = unlist(lapply(framework$indicator_list,
-      function(f, threshold) {
-        matrix(
-          nrow = N_dom_pop_tmp,
-          data =
-            unlist(mapply(
-              y = split(pop_income_vector, pop_domains_vec_tmp),
-              pop_weights = split(pop_weights_vec, pop_domains_vec_tmp),
-              f,
-              threshold = framework$threshold
-            )),
-          byrow = TRUE
-        )
-      },
-      threshold = framework$threshold
-    ))
-  )
+  if(is.null(true_indicators)){
+    # True indicator values
+    true_indicators <- matrix(
+      nrow = N_dom_pop_tmp,
+      data = unlist(lapply(framework$indicator_list,
+                           function(f, threshold) {
+                             matrix(
+                               nrow = N_dom_pop_tmp,
+                               data =
+                                 unlist(mapply(
+                                   y = split(pop_income_vector, pop_domains_vec_tmp),
+                                   pop_weights = split(pop_weights_vec, pop_domains_vec_tmp),
+                                   f,
+                                   threshold = framework$threshold
+                                 )),
+                               byrow = TRUE
+                             )
+                           },
+                           threshold = framework$threshold
+                           ))
+    ) } else {
+      if(all(!true_indicators$Domain %in% unique(framework$pop_domains_vec))){
+        stop("The domain of the true indicators does not match the domain of the framework.")
+      }
+
+      true_indicators <- as.matrix(true_indicators[,-1])
+
+    }
 
   colnames(true_indicators) <- framework$indicator_names
 
@@ -222,8 +245,18 @@ mse_estim <- function(framework,
       transformation,
     interval = interval,
     L = L,
+    control = control,
     framework = framework
   )[[1]][, -1])
+
+  if(ncol(true_indicators) != ncol(bootstrap_point_estim)){
+        stop("The number of indicators in the true indicators does not match the number of indicators in the framework.")
+  }
+
+
+  ## return(list(bootstrap_point_estim = bootstrap_point_estim,
+  ##             true_indicators = true_indicators,
+  ##             superpop = superpop))
 
   return((bootstrap_point_estim - true_indicators)^2)
 } # End mse_estim
@@ -282,23 +315,23 @@ superpopulation <- function(framework, model_par, gen_model, lambda, shift,
   eps[!framework$obs_dom] <- rnorm(
     sum(!framework$obs_dom), 0,
     sqrt(model_par$sigmae2est +
-      model_par$sigmau2est)
+       model_par$sigmau2est)
   )
   # superpopulation random effect
   vu_tmp <- rnorm(framework$N_dom_pop, 0, sqrt(model_par$sigmau2est))
   vu_pop <- rep(vu_tmp, framework$n_pop)
   #  superpopulation income vector
-  Y_pop_b <- gen_model$mu_fixed + eps + vu_pop
+  Y_pop_b_notrans <- gen_model$mu_fixed + eps + vu_pop
 
   Y_pop_b <- back_transformation(
-    y = Y_pop_b,
+    y = Y_pop_b_notrans,
     transformation = transformation,
     lambda = lambda,
     shift = shift
   )
   Y_pop_b[!is.finite(Y_pop_b)] <- 0
 
-  return(list(pop_income_vector = Y_pop_b, vu_tmp = vu_tmp))
+  return(list(pop_income_vector = Y_pop_b, vu_tmp = vu_tmp, eps = eps, vu_pop = vu_pop, Y_pop_b_notrans = Y_pop_b_notrans))
 }
 
 # Bootstrap function -----------------------------------------------------------
@@ -393,6 +426,8 @@ mse_estim_wrapper <- function(i,
                               fitted_s,
                               start_time,
                               boot_type,
+                              true_indicators,
+                              control,
                               seedvec) {
   tmp <- mse_estim(
     framework = framework,
@@ -406,7 +441,9 @@ mse_estim_wrapper <- function(i,
     transformation = transformation,
     interval = interval,
     L = L,
-    boot_type = boot_type
+    boot_type = boot_type,
+    control = control,
+    true_indicators = true_indicators
   )
 
   if (i %% 10 == 0) {

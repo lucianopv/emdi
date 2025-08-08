@@ -114,7 +114,8 @@ point_estim <- function(framework,
     NULL
   }
   return(list(
-    ind = indicator_prediction,
+    ind = indicator_prediction$point_estimates,
+    y_mcmc = indicator_prediction$y_mcmc,
     optimal_lambda = optimal_lambda,
     shift_par = shift_par,
     model_par = est_par,
@@ -313,6 +314,11 @@ monte_carlo <- function(transformation,
     length(framework$indicator_names)
   ))
 
+  y_mcmc <- array(dim = c(
+    framework$N_pop,
+    L
+  ))
+
   for (l in seq_len(L)) {
 
     # Errors in generating model: individual error term and random effect
@@ -339,6 +345,8 @@ monte_carlo <- function(transformation,
     }else{
       pop_weights_vec <- rep(1, nrow(framework$pop_data))
     }
+
+    y_mcmc[,l] <- population_vector
 
     # Calculation of indicators for each Monte Carlo population
     ests_mcmc[, l, ] <-
@@ -369,7 +377,9 @@ monte_carlo <- function(transformation,
     apply(ests_mcmc, c(3), rowMeans)
   )
   colnames(point_estimates) <- c("Domain", framework$indicator_names)
-  return(point_estimates)
+  return(list("point_estimates" = point_estimates,
+              "y_mcmc" = y_mcmc) # for further use
+  )
 } # End Monte-Carlo
 
 
