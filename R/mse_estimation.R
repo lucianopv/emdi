@@ -94,7 +94,7 @@ parametric_bootstrap <- function(framework,
   }
 
   mses_objects <- mses
-  mses <- simplify2array(mses$mses)
+  mses <- simplify2array(lapply(mses, function(x) x$mses))
 
   mses <- apply(mses, c(1, 2), mean)
   if(is.null(framework$aggregate_to_vec)){
