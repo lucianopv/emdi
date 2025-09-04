@@ -17,6 +17,7 @@ parametric_bootstrap <- function(framework,
                                  parallel_mode,
                                  cpus,
                                  control,
+                                 benchmark,
                                  true_indicators) {
   message("\r", "Bootstrap started                                            ")
   if (boot_type == "wild") {
@@ -83,7 +84,8 @@ parametric_bootstrap <- function(framework,
       start_time = start_time,
       boot_type = boot_type,
       true_indicators = true_indicators,
-      control = control
+      control = control,
+      benchmark = benchmark
     )
     )
   }
@@ -127,6 +129,7 @@ mse_estim <- function(framework,
                       L,
                       boot_type,
                       control,
+                      benchmark,
                       true_indicators) {
 
 
@@ -239,7 +242,7 @@ mse_estim <- function(framework,
   framework$smp_data <- bootstrap_sample
 
   # Prediction of indicators with bootstap sample.
-  bootstrap_point_estim <- as.matrix(point_estim(
+  bootstrap_point_estim <- point_estim(
     fixed = fixed,
     transformation =
       transformation,
@@ -247,7 +250,18 @@ mse_estim <- function(framework,
     L = L,
     control = control,
     framework = framework
-  )[[1]][, -1])
+  )[[1]]
+
+  bootstrap_hcr_point_estim <- bootstrap_point_estim[,c(1,3)]
+  bootstrap_hcr_point_estim <- merge(bootstrap_hcr_point_estim, benchmark, by = "Domain")
+  bootstrap_hcr_point_estim |>
+    dplyr::group_by(Provincia) |>
+    dplyr::mutate(Head_Count = Head_Count + Provincia_dir - sum(Head_Count * weight_pop)) |>
+    dplyr::ungroup() -> bootstrap_hcr_point_estim
+
+  bootstrap_point_estim$Head_Count <- bootstrap_hcr_point_estim$Head_Count
+
+  bootstrap_point_estim <- as.matrix(bootstrap_point_estim[,-1])
 
   if(ncol(true_indicators) != ncol(bootstrap_point_estim)){
         stop("The number of indicators in the true indicators does not match the number of indicators in the framework.")
@@ -428,6 +442,7 @@ mse_estim_wrapper <- function(i,
                               boot_type,
                               true_indicators,
                               control,
+                              benchmark,
                               seedvec) {
   tmp <- mse_estim(
     framework = framework,
@@ -443,7 +458,8 @@ mse_estim_wrapper <- function(i,
     L = L,
     boot_type = boot_type,
     control = control,
-    true_indicators = true_indicators
+    true_indicators = true_indicators,
+    benchmark = benchmark
   )
 
   if (i %% 10 == 0) {
