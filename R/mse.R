@@ -744,10 +744,10 @@ boot_notrans <- function(sigmau2, vardir, combined_data, framework,
   Ui <- rep(NA, M)
 
   for (ii in seq_len(M)) {
-    Li[ii] <- eblup[ii] +
-      quantile(est_value_boot[ii, ] - true_value_boot[ii, ], 0.025, na.rm = TRUE)
-    Ui[ii] <- eblup[ii] +
-      quantile(est_value_boot[ii, ] - true_value_boot[ii, ], 0.975, na.rm = TRUE)
+    Li[ii] <- eblup$eblup_data$FH[ii] +
+      quantile(est_value_boot[ii, ] - true_value_boot[ii, ], 0.025)
+    Ui[ii] <- eblup$eblup_data$FH[ii] +
+      quantile(est_value_boot[ii, ] - true_value_boot[ii, ], 0.975)
   }
 
   conf_int <- data.frame(Li = Li, Ui = Ui)
