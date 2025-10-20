@@ -449,7 +449,6 @@ fh <- function(fixed, vardir, combined_data, domains = NULL, method = "reml",
         MSE_method <- "no mse estimated"
       }
 
-
       if (method != "me") {
         if (!is.null(MSE) && (mse_type == "spatialnonparboot" ||
           mse_type == "spatialnonparbootbc" ||

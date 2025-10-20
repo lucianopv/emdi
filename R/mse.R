@@ -771,7 +771,7 @@ boot_notrans <- function(sigmau2, vardir, combined_data, framework,
   mse_data$Out[framework$obs_dom == TRUE] <- 0
   mse_data$Out[framework$obs_dom == FALSE] <- 1
 
-  return(list(conf_int, mse_data))
+  return(list("conf_int" = conf_int, "mse_data" = mse_data))
 }
 
 
