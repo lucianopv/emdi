@@ -690,7 +690,7 @@ boot_notrans <- function(sigmau2, vardir, combined_data, framework,
 
     if (!is.null(true_indicators)){
       if (true_indicators == "direct"){
-        true_value_boot[, b] <- framework$direct_orig
+        true_value_boot[, b] <- framework$direct
       } else {
         true_value_boot[, b] <- true_indicators
       }
