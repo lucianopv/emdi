@@ -294,7 +294,7 @@ fh <- function(fixed, vardir, combined_data, domains = NULL, method = "reml",
                transformation = "no", backtransformation = NULL,
                eff_smpsize = NULL, correlation = "no", corMatrix = NULL,
                Ci = NULL, tol = 0.0001, maxit = 100,
-               MSE = FALSE, mse_type = "analytical", B = c(50, 0), seed = 123) {
+               MSE = FALSE, mse_type = "analytical", B = c(50, 0), seed = 123, true_indicators = NULL) {
 
   # Agrument checking ----------------------------------------------------------
   fh_combinations(
@@ -339,7 +339,8 @@ fh <- function(fixed, vardir, combined_data, domains = NULL, method = "reml",
     eff_smpsize = eff_smpsize,
     correlation = correlation,
     corMatrix = corMatrix, Ci = Ci, tol = tol,
-    maxit = maxit
+    maxit = maxit,
+    true_indicators = true_indicators
   )
 
 
@@ -432,7 +433,8 @@ fh <- function(fixed, vardir, combined_data, domains = NULL, method = "reml",
           sigmau2 = sigmau2, vardir = vardir, Ci = Ci,
           eblup = eblup, transformation = transformation,
           method = method, interval = interval,
-          mse_type = mse_type, B = B[1]
+          mse_type = mse_type, B = B[1],
+          true_indicators = true_indicators
         )
         MSE <- mse_data$mse_data
         MSE_method <- mse_data$MSE_method
@@ -645,7 +647,8 @@ fh <- function(fixed, vardir, combined_data, domains = NULL, method = "reml",
         method = method, interval = interval,
         MSE = MSE,
         mse_type = mse_type,
-        B = B[1]
+        B = B[1],
+        true_indicators = true_indicators
       )
 
       out <- list(

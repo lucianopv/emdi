@@ -268,7 +268,7 @@ fh_combinations <- function(fixed, vardir, combined_data, domains, method,
                  ''no'',''log'' or ''arcsin''."))
   }
   if ((method == "reml" || method == "ml") && correlation == "no" &&
-    transformation == "no" && MSE == TRUE && mse_type != "analytical") {
+    transformation == "no" && MSE == TRUE && !mse_type %in% c("analytical", "boot")) {
     # stop("For the ''reml'' and ''ml'' variance estimation methods without
     #     incorporating a correlation structure (correlation = ''no'') and
     #     without applying a transformation (transformation = ''no''), the

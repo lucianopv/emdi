@@ -1,7 +1,7 @@
 backtransformed <- function(framework, sigmau2, eblup, transformation,
                             backtransformation,
                             combined_data, method, vardir,
-                            interval, B, MSE, mse_type) {
+                            interval, B, MSE, mse_type, true_indicators) {
 
   # Conduct backtransformation
   backtransformed_estims <- if (transformation == "log") {
@@ -15,7 +15,8 @@ backtransformed <- function(framework, sigmau2, eblup, transformation,
       framework = framework, eblup = eblup, vardir = vardir,
       mse_type = mse_type,
       method = method, interval = interval, MSE = MSE,
-      B = B, backtransformation = backtransformation
+      B = B, backtransformation = backtransformation,
+      true_indicators = true_indicators
     )
   }
 
@@ -150,6 +151,7 @@ arcsin_bt <- function(sigmau2 = sigmau2, combined_data = combined_data,
                       framework = framework, eblup = eblup, vardir = vardir,
                       mse_type = mse_type,
                       method = method, interval = interval, MSE = MSE,
+                      true_indicators = true_indicators,
                       B = B, backtransformation = backtransformation) {
   point_backtransformed <- arcsin_point(
     framework, sigmau2, eblup,
@@ -166,7 +168,8 @@ arcsin_bt <- function(sigmau2 = sigmau2, combined_data = combined_data,
       mse_type = mse_type,
       method = method, interval = interval,
       B = B,
-      backtransformation = backtransformation
+      backtransformation = backtransformation,
+      true_indicators = true_indicators
     )
     mse_method <- mse_backtransformed$mse_method
   } else {
@@ -187,6 +190,7 @@ arcsin_mse <- function(sigmau2 = sigmau2, combined_data = combined_data,
                        framework = framework, eblup = eblup, vardir = vardir,
                        eblup_corr = eblup_corr, mse_type = mse_type,
                        method = method, interval = interval,
+                       true_indicators = true_indicators,
                        B = B, backtransformation = backtransformation) {
   if (mse_type == "boot") {
     mse_backtransformed <- boot_arcsin_2(
@@ -194,6 +198,7 @@ arcsin_mse <- function(sigmau2 = sigmau2, combined_data = combined_data,
       framework = framework, eblup = eblup,
       eblup_corr = eblup_corr,
       method = method, interval = interval,
+      true_indicators = true_indicators,
       B = B, backtransformation = backtransformation
     )
     mse_backtransformed <- mse_backtransformed[[2]]$MSE

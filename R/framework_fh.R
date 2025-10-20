@@ -1,6 +1,6 @@
 framework_FH <- function(combined_data, fixed, vardir, domains,
                          transformation, eff_smpsize, correlation, corMatrix,
-                         Ci, tol, maxit) {
+                         Ci, tol, maxit, true_indicators) {
 
   # Get sample and population data
   obs_dom <- !is.na(combined_data[[paste(lhs(fixed))]])
@@ -58,6 +58,22 @@ framework_FH <- function(combined_data, fixed, vardir, domains,
     Ci <- Ci
   }
 
+  if (!is.null(true_indicators)) {
+    # Check that true indicators are provided for all domains
+    if (length(true_indicators) != M) {
+      stop(strwrap(prefix = " ", initial = "",
+                   paste0("The length of true_indicators must be equal to the
+                          number of domains (", M, ").")))
+    }
+
+    # Check that true indicators are provided for all out-of-sample domains
+    if (any(is.na(true_indicators[!obs_dom]))) {
+      stop(strwrap(prefix = " ", initial = "",
+                   paste0("True indicators must be provided for all
+                          out-of-sample domains.")))
+    }
+  }
+
   framework_out <- list(
     obs_dom = obs_dom,
     N_dom_smp = m,
@@ -75,6 +91,7 @@ framework_FH <- function(combined_data, fixed, vardir, domains,
     m = m,
     M = M,
     p = p,
+    true_indicators = true_indicators,
     correlation = correlation,
     W = corMatrix,
     Ci = Ci,

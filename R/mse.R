@@ -487,7 +487,7 @@ analytical_mse <- function(framework, sigmau2, combined_data,
 
 
 boot_arcsin_2 <- function(sigmau2, vardir, combined_data, framework,
-                          eblup, eblup_corr, B, method,
+                          eblup, eblup_corr, B, method, true_indicators,
                           interval, backtransformation) {
 
 
@@ -528,7 +528,15 @@ boot_arcsin_2 <- function(sigmau2, vardir, combined_data, framework,
 
     ## Back-transformation
     ## true values without correction
-    true_value_boot[, b] <- (sin(true_value_boot_trans))^2
+    if (!is.null(true_indicators)){
+      if (true_indicators == "direct"){
+        true_value_boot[, b] <- framework$direct_orig
+      } else {
+        true_value_boot[, b] <- true_indicators
+      }
+    } else {
+      true_value_boot[, b] <- (sin(true_value_boot_trans))^2
+    }
 
     ystar_trans <- Xbeta_boot[in_sample] + v_boot[in_sample] + e_boot
 
@@ -644,6 +652,127 @@ boot_arcsin_2 <- function(sigmau2, vardir, combined_data, framework,
 
   return(list(conf_int, mse_data))
 }
+
+boot_notrans <- function(sigmau2, vardir, combined_data, framework,
+                       eblup, B, method, true_indicators,
+                       interval) {
+
+
+  M <- framework$M
+  m <- framework$m
+  vardir <- framework$vardir
+  x <- framework$model_X
+
+  ### Bootstrap
+  in_sample <- framework$obs_dom == TRUE
+  out_sample <- framework$obs_dom == FALSE
+
+  # Result matrizes
+  true_value_boot <- matrix(NA, ncol = B, nrow = M)
+  est_value_boot <- matrix(NA, ncol = B, nrow = M)
+
+  for (b in seq_len(B)) {
+    v_boot <- rnorm(M, 0, sqrt(sigmau2))
+    e_boot <- rnorm(m, 0, sqrt(vardir))
+
+    # Get covariates for all domains
+    pred_data_tmp <- framework$combined_data
+    pred_data_tmp <- data.frame(pred_data_tmp, helper = rnorm(1, 0, 1))
+    formula.tools::lhs(framework$formula) <- quote(helper)
+    pred_data <- makeXY(formula = framework$formula, data = pred_data_tmp)
+
+    pred_X <- pred_data$x
+
+    Xbeta_boot <- pred_X %*% eblup$coefficients$coefficients
+
+    ## True Value for bootstraps
+    true_value_boot_trans <- Xbeta_boot + v_boot
+
+    if (!is.null(true_indicators)){
+      if (true_indicators == "direct"){
+        true_value_boot[, b] <- framework$direct_orig
+      } else {
+        true_value_boot[, b] <- true_indicators
+      }
+    } else {
+      true_value_boot[, b] <- true_value_boot_trans
+    }
+
+    ystar_trans <- Xbeta_boot[in_sample] + v_boot[in_sample] + e_boot
+
+    ## Estimation of sigmau2_boot on transformed scale
+    framework2 <- framework
+    framework2$direct <- ystar_trans
+    sigmau2_boot <- wrapper_estsigmau2(
+      framework = framework2, method = method,
+      interval = interval
+    )
+
+    ## Computation of the coefficients'estimator (Bstim)
+    D <- diag(1, m)
+    V <- sigmau2_boot * D %*% t(D) + diag(as.numeric(vardir))
+    Vi <- solve(V)
+    Q <- solve(t(x) %*% Vi %*% x)
+    Beta.hat_boot <- Q %*% t(x) %*% Vi %*% ystar_trans
+
+    ## Computation of the EBLUP
+    res <- ystar_trans - c(x %*% Beta.hat_boot)
+    Sigma.u <- sigmau2_boot * D
+    u.hat <- Sigma.u %*% t(D) %*% Vi %*% res
+
+    ## Estimated Small area mean on transformed scale for the out and in sample
+    # values
+    est_mean_boot_trans <- x %*% Beta.hat_boot + D %*% u.hat
+    pred_out_boot_trans <- pred_X %*% Beta.hat_boot
+
+    est_value_boot_trans <- rep(NA, M)
+    est_value_boot_trans[in_sample] <- est_mean_boot_trans
+    est_value_boot_trans[out_sample] <- pred_out_boot_trans[out_sample]
+
+    gamma_trans <- as.numeric(vardir) / (sigmau2_boot + as.numeric(vardir))
+    est_value_boot_trans_var <- sigmau2_boot * gamma_trans
+    est_value_boot_trans_var_ <- rep(0, M)
+    est_value_boot_trans_var_[in_sample] <- est_value_boot_trans_var
+
+
+    message("b =", b, "\n")
+  } # End of bootstrap runs
+
+  # KI
+  Li <- rep(NA, M)
+  Ui <- rep(NA, M)
+
+  for (ii in seq_len(M)) {
+    Li[ii] <- eblup_corr[ii] +
+      quantile(est_value_boot[ii, ] - true_value_boot[ii, ], 0.025)
+    Ui[ii] <- eblup_corr[ii] +
+      quantile(est_value_boot[ii, ] - true_value_boot[ii, ], 0.975)
+  }
+
+  conf_int <- data.frame(Li = Li, Ui = Ui)
+
+  Quality_MSE <- function(estimator, TrueVal, B) {
+    RMSE <- rep(NA, dim(estimator)[1])
+    for (ii in seq_len(dim(estimator)[1])) {
+      RMSE[ii] <- (1 / B * sum(((estimator[ii, ] - TrueVal[ii, ]))^2))
+    }
+    RMSE
+  }
+
+  mse <- Quality_MSE(est_value_boot, true_value_boot, B)
+
+  mse_data <- data.frame(Domain = framework$combined_data[[framework$domains]])
+  mse_data$Direct <- NA
+  mse_data$Direct[framework$obs_dom == TRUE] <- framework$vardir
+
+  # Small area MSE
+  mse_data$MSE <- mse
+  mse_data$Out[framework$obs_dom == TRUE] <- 0
+  mse_data$Out[framework$obs_dom == FALSE] <- 1
+
+  return(list(conf_int, mse_data))
+}
+
 
 nonparametricboot_spatial <- function(sigmau2, combined_data, framework,
                                       vardir, eblup, B, transformation,
@@ -1619,7 +1748,7 @@ robustboot <- function(framework, combined_data, eblup, mse_type, B, method) {
 
 
 wrapper_MSE <- function(framework, combined_data, sigmau2, vardir, Ci, eblup,
-                        transformation, method, interval, mse_type,
+                        transformation, method, interval, mse_type, true_indicators,
                         B = NULL) {
   mse_data <- if (mse_type == "analytical") {
     analytical_mse(
@@ -1656,11 +1785,26 @@ wrapper_MSE <- function(framework, combined_data, sigmau2, vardir, Ci, eblup,
       mse_type = "pseudo", method = method
     )
   } else if (mse_type == "boot") {
-    robustboot(
+    if(transformation == "no"){
+      boot_notrans(
+        framework = framework,
+        combined_data = combined_data,
+        eblup = eblup,
+        sigmau2 = sigmau2,
+        vardir = vardir,
+        mse_type = "boot",
+        method = method,
+        B = B,
+        interval = interval,
+        true_indicators = true_indicators
+      )
+    } else {
+      robustboot(
       framework = framework, combined_data = combined_data,
       eblup = eblup,
       mse_type = "boot", method = method, B = B
-    )
+      )
+    }
   } else if (mse_type == "spatialnonparboot" ||
     mse_type == "spatialnonparbootbc") {
     nonparametricboot_spatial(
