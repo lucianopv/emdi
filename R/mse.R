@@ -734,6 +734,7 @@ boot_notrans <- function(sigmau2, vardir, combined_data, framework,
     est_value_boot_trans_var_ <- rep(0, M)
     est_value_boot_trans_var_[in_sample] <- est_value_boot_trans_var
 
+    est_value_boot[, b] <- est_value_boot_trans
 
     message("b =", b, "\n")
   } # End of bootstrap runs
