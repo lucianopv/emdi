@@ -58,7 +58,7 @@ framework_FH <- function(combined_data, fixed, vardir, domains,
     Ci <- Ci
   }
 
-  if (!is.null(true_indicators)) {
+  if (!is.null(true_indicators) & true_indicators != "direct") {
     # Check that true indicators are provided for all domains
     if (length(true_indicators) != M) {
       stop(strwrap(prefix = " ", initial = "",
