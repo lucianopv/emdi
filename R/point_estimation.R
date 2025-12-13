@@ -280,8 +280,8 @@ gen_model <- function(fixed,
     # Variance of new random effect
     sigmav2est_all <- model_par$sigmau2est * (1 - gamma)
     
-    # Extract sigmav2est only for population domains that are in sample
-    # Match by domain name to ensure correct mapping between sample and population
+    # Extract sigmav2est only for selected domains that are in sample
+    # Match by domain name to handle selected_domains filtering
     smp_domain_names <- names(table(framework$smp_domains_vec))
     pop_domain_names <- as.character(unique(framework$pop_domains_vec))
     pop_domain_in_smp <- pop_domain_names[framework$dist_obs_dom]
@@ -307,8 +307,8 @@ gen_model <- function(fixed,
     # Variance of new random effect
     sigmav2est_all <- model_par$sigmau2est * (1 - gamma)
     
-    # Extract sigmav2est only for population domains that are in sample
-    # Match by domain name to ensure correct mapping between sample and population
+    # Extract sigmav2est only for selected domains that are in sample
+    # Match by domain name to handle selected_domains filtering
     smp_domain_names <- names(table(framework$smp_domains_vec))
     pop_domain_names <- as.character(unique(framework$pop_domains_vec))
     pop_domain_in_smp <- pop_domain_names[framework$dist_obs_dom]
@@ -425,14 +425,6 @@ monte_carlo <- function(transformation,
     apply(ests_mcmc, c(3), rowMeans)
   )
   colnames(point_estimates) <- c("Domain", framework$indicator_names)
-  
-  # Filter to selected domains if specified
-  if (!is.null(framework$selected_domains)) {
-    point_estimates <- point_estimates[
-      as.character(point_estimates$Domain) %in% as.character(framework$selected_domains),
-    ]
-  }
-  
   return(list("point_estimates" = point_estimates,
               "y_mcmc" = y_mcmc) # for further use
   )
@@ -460,7 +452,7 @@ errors_gen <- function(framework, model_par, gen_model) {
   # new random effect for in-sample-domains
   vu[framework$obs_dom] <- rep(
     rnorm(
-      rep(1, framework$N_dom_smp),
+      rep(1, framework$N_dom_smp_selected),
       0,
       sqrt(gen_model$sigmav2est)
     ),

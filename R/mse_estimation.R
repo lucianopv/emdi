@@ -101,13 +101,6 @@ parametric_bootstrap <- function(framework,
     mses <- data.frame(Domain = unique(framework$aggregate_to_vec), mses)
     # mses <- list(Domain = unique(framework$aggregate_to_vec), mses = mses)
   }
-  
-  # Filter to selected domains if specified
-  if (!is.null(framework$selected_domains)) {
-    mses <- mses[
-      as.character(mses$Domain) %in% as.character(framework$selected_domains),
-    ]
-  }
 
   return(mses)
 }

@@ -105,8 +105,10 @@
 #' for which point and MSE estimates should be computed. If \code{NULL} (default),
 #' estimates are computed for all domains in the population data. The model is
 #' still estimated using all sample data, but predictions are only made for the
-#' specified domains. This can be useful for reducing computation time when only
-#' a subset of domains is of interest. Defaults to \code{NULL}.
+#' specified domains. This can be useful for reducing computation time and memory
+#' usage when only a subset of domains is of interest. Note: Population data is
+#' filtered to selected domains, so random number generation will differ between
+#' runs with different domain selections even with the same seed. Defaults to \code{NULL}.
 #' @return An object of class "ebp", "emdi" that provides estimators for
 #' regional disaggregated indicators and optionally corresponding MSE estimates.
 #' Several generic functions have methods for the returned object. For a full
