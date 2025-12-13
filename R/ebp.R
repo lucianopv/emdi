@@ -101,6 +101,12 @@
 #' population data that indicates the target domain level for which the
 #' results are to be displayed. The variable can be numeric or a factor.
 #' Defaults to \code{NULL}.
+#' @param selected_domains a character vector containing the names of domains
+#' for which point and MSE estimates should be computed. If \code{NULL} (default),
+#' estimates are computed for all domains in the population data. The model is
+#' still estimated using all sample data, but predictions are only made for the
+#' specified domains. This can be useful for reducing computation time when only
+#' a subset of domains is of interest. Defaults to \code{NULL}.
 #' @return An object of class "ebp", "emdi" that provides estimators for
 #' regional disaggregated indicators and optionally corresponding MSE estimates.
 #' Several generic functions have methods for the returned object. For a full
@@ -251,12 +257,14 @@ ebp <- function(fixed,
                 weights = NULL,
                 pop_weights = NULL,
                 aggregate_to = NULL,
+                selected_domains = NULL,
                 true_indicators = NULL,
                 control = NULL
                 ) {
   ebp_check1(
     fixed = fixed, pop_data = pop_data, pop_domains = pop_domains,
-    smp_data = smp_data, smp_domains = smp_domains, L = L
+    smp_data = smp_data, smp_domains = smp_domains, L = L,
+    selected_domains = selected_domains
   )
 
   ebp_check2(
@@ -294,7 +302,8 @@ ebp <- function(fixed,
     threshold = threshold,
     na.rm = na.rm,
     weights = weights,
-    pop_weights = pop_weights
+    pop_weights = pop_weights,
+    selected_domains = selected_domains
   )
 
 

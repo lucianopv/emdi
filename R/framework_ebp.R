@@ -8,7 +8,8 @@
 
 framework_ebp <- function(fixed, pop_data, pop_domains, smp_data, smp_domains,
                           threshold, custom_indicator = NULL, na.rm,
-                           weights, aggregate_to = NULL, pop_weights) {
+                           weights, aggregate_to = NULL, pop_weights,
+                           selected_domains = NULL) {
 
   # Reduction of number of variables
   mod_vars <- all.vars(fixed)
@@ -41,6 +42,12 @@ framework_ebp <- function(fixed, pop_data, pop_domains, smp_data, smp_domains,
 
   # Order of domains
   pop_data <- pop_data[order(pop_data[[pop_domains]]), ]
+
+  # Filter population data if selected_domains is provided
+  if (!is.null(selected_domains)) {
+    pop_data <- pop_data[as.character(pop_data[[pop_domains]]) %in%
+                         as.character(selected_domains), ]
+  }
 
   levels_tmp <- unique(pop_data[[pop_domains]])
   pop_data[[pop_domains]] <- factor(pop_data[[pop_domains]],
@@ -198,6 +205,7 @@ framework_ebp <- function(fixed, pop_data, pop_domains, smp_data, smp_domains,
     indicator_names = indicator_names,
     threshold = threshold,
     weights = weights,
-    pop_weights = pop_weights
+    pop_weights = pop_weights,
+    selected_domains = selected_domains
   ))
 }
