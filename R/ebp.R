@@ -339,7 +339,7 @@ ebp <- function(fixed,
       ind = point_estim$ind,
       y_mcmc = point_estim$y_mcmc,
       MSE = mse_estimates$mses,
-      MSE_objects = mse_estimates$mses_objects,
+      MSE_pop = mse_estimates$pop_boots,
       transform_param = point_estim[c(
         "optimal_lambda",
         "shift_par"

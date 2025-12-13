@@ -65,7 +65,7 @@ parametric_bootstrap <- function(framework,
     parallelMap::parallelStop()
   } else {
     ## mses <-  simplify2array( lapply(
-    mses <- lapply(
+    mses_objects <- lapply(
       X = seq_len(B),
       FUN = mse_estim_wrapper,
       B = B,
@@ -93,8 +93,9 @@ parametric_bootstrap <- function(framework,
     flush.console()
   }
 
-  mses_objects <- mses
-  mses <- simplify2array(lapply(mses, function(x) x$mses))
+  mses <- simplify2array(lapply(mses_objects, function(x) x$mses))
+
+  pop_boots <- simplify2array(lapply(mses_objects, function(x) x$superpop$pop_income_vector))
 
   mses <- apply(mses, c(1, 2), mean)
   if(is.null(framework$aggregate_to_vec)){
@@ -107,7 +108,7 @@ parametric_bootstrap <- function(framework,
 
   return(list(
     mses = mses,
-    mses_objects = mses_objects
+    pop_boots = pop_boots
   ))
 }
 
