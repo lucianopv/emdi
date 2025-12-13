@@ -425,6 +425,14 @@ monte_carlo <- function(transformation,
     apply(ests_mcmc, c(3), rowMeans)
   )
   colnames(point_estimates) <- c("Domain", framework$indicator_names)
+  
+  # Filter to selected domains if specified
+  if (!is.null(framework$selected_domains)) {
+    point_estimates <- point_estimates[
+      as.character(point_estimates$Domain) %in% as.character(framework$selected_domains),
+    ]
+  }
+  
   return(list("point_estimates" = point_estimates,
               "y_mcmc" = y_mcmc) # for further use
   )
@@ -452,7 +460,7 @@ errors_gen <- function(framework, model_par, gen_model) {
   # new random effect for in-sample-domains
   vu[framework$obs_dom] <- rep(
     rnorm(
-      rep(1, framework$N_dom_smp_selected),
+      rep(1, framework$N_dom_smp),
       0,
       sqrt(gen_model$sigmav2est)
     ),
