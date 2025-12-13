@@ -104,10 +104,10 @@ framework_ebp <- function(fixed, pop_data, pop_domains, smp_data, smp_domains,
   obs_dom <- pop_domains_vec %in% unique(smp_domains_vec)
   dist_obs_dom <- unique(pop_domains_vec) %in% unique(smp_domains_vec)
   
-  # Number of out-of-sample domains (selected domains not in sample)
+  # Number of out-of-sample domains among selected/filtered population domains
   # This must be calculated from dist_obs_dom to account for selected_domains
   N_dom_unobs <- sum(!dist_obs_dom)
-  # Number of selected domains that are in sample
+  # Number of domains that are both selected and in sample
   N_dom_smp_selected <- sum(dist_obs_dom)
 
   fw_check3(
