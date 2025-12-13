@@ -3,7 +3,8 @@
 
 
 # Function called in ebp
-ebp_check1 <- function(fixed, pop_data, pop_domains, smp_data, smp_domains, L) {
+ebp_check1 <- function(fixed, pop_data, pop_domains, smp_data, smp_domains, L,
+                       selected_domains = NULL) {
   if (is.null(fixed) || !inherits(fixed, "formula")) {
     stop("Fixed must be a formula object. See also help(ebp).")
   }
@@ -43,6 +44,20 @@ ebp_check1 <- function(fixed, pop_data, pop_domains, smp_data, smp_domains, L) {
     stop(strwrap(prefix = " ", initial = "",
                 "The sample data contains domains that are not contained in the
                 population data."))
+  }
+  if (!is.null(selected_domains)) {
+    if (!is.character(selected_domains) && !is.numeric(selected_domains) &&
+        !is.factor(selected_domains)) {
+      stop(strwrap(prefix = " ", initial = "",
+                   "selected_domains must be a character, numeric, or factor 
+                   vector containing domain names/values. See also help(ebp)."))
+    }
+    if (!all(as.character(selected_domains) %in%
+             unique(as.character(pop_data[[pop_domains]])))) {
+      stop(strwrap(prefix = " ", initial = "",
+                   "selected_domains contains domain names that are not present
+                   in the population data. See also help(ebp)."))
+    }
   }
 }
 

@@ -147,7 +147,21 @@ model_par <- function(framework,
     # Random effect: vector with zeros for all domains, filled with
     rand_eff <- rep(0, length(unique(framework$pop_domains_vec)))
     # random effect for in-sample domains (dist_obs_dom)
-    rand_eff[framework$dist_obs_dom] <- (random.effects(mixed_model)[[1]])
+    # Extract random effects and match by domain name
+    rand_effects_all <- random.effects(mixed_model)[[1]]
+    smp_domain_names <- rownames(rand_effects_all)
+    pop_domain_names <- as.character(unique(framework$pop_domains_vec))
+    
+    # For each population domain that is in sample, get its random effect
+    for (i in seq_along(pop_domain_names)) {
+      if (framework$dist_obs_dom[i]) {
+        # Find the position of this domain in the sample domains
+        smp_idx <- which(smp_domain_names == pop_domain_names[i])
+        if (length(smp_idx) > 0) {
+          rand_eff[i] <- rand_effects_all[smp_idx]
+        }
+      }
+    }
 
     return(list(
       betas = betas,
@@ -224,9 +238,21 @@ model_par <- function(framework,
     betas <- solve(den) %*% num
     # Random effect: vector with zeros for all domains, filled with
     rand_eff <- rep(0, length(unique(framework$pop_domains_vec)))
-    # random effect for in-sample domains (dist_obs_dom)
-    rand_eff[framework$dist_obs_dom] <- gamma_weight * (mean_dep -
-      mean_indep %*% betas)
+    
+    # Map random effects to population domains by matching domain names
+    smp_domain_names <- names(table(framework$smp_domains_vec))
+    pop_domain_names <- as.character(unique(framework$pop_domains_vec))
+    
+    for (i in seq_along(pop_domain_names)) {
+      if (framework$dist_obs_dom[i]) {
+        # Find the position of this domain in the sample domains
+        smp_idx <- which(smp_domain_names == pop_domain_names[i])
+        if (length(smp_idx) > 0) {
+          rand_eff[i] <- gamma_weight[smp_idx] * (mean_dep[smp_idx] -
+            mean_indep[smp_idx, ] %*% betas)
+        }
+      }
+    }
 
 
     return(list(
@@ -252,7 +278,18 @@ gen_model <- function(fixed,
     gamma <- model_par$sigmau2est / (model_par$sigmau2est +
       model_par$sigmae2est / framework$n_smp)
     # Variance of new random effect
-    sigmav2est <- model_par$sigmau2est * (1 - gamma)
+    sigmav2est_all <- model_par$sigmau2est * (1 - gamma)
+    
+    # Extract sigmav2est only for selected domains that are in sample
+    # Match by domain name to handle selected_domains filtering
+    smp_domain_names <- names(table(framework$smp_domains_vec))
+    pop_domain_names <- as.character(unique(framework$pop_domains_vec))
+    pop_domain_in_smp <- pop_domain_names[framework$dist_obs_dom]
+    
+    # Find indices of selected domains in sample domain list
+    sigmav2est_indices <- match(pop_domain_in_smp, smp_domain_names)
+    sigmav2est <- sigmav2est_all[sigmav2est_indices]
+    
     # Random effect in constant part of y for in-sample households
     rand_eff_pop <- rep(model_par$rand_eff, framework$n_pop)
     # Model matrix for population covariate information
@@ -268,7 +305,18 @@ gen_model <- function(fixed,
     # Parameter for calculating variance of new random effect
     gamma <- model_par$gammaw
     # Variance of new random effect
-    sigmav2est <- model_par$sigmau2est * (1 - gamma)
+    sigmav2est_all <- model_par$sigmau2est * (1 - gamma)
+    
+    # Extract sigmav2est only for selected domains that are in sample
+    # Match by domain name to handle selected_domains filtering
+    smp_domain_names <- names(table(framework$smp_domains_vec))
+    pop_domain_names <- as.character(unique(framework$pop_domains_vec))
+    pop_domain_in_smp <- pop_domain_names[framework$dist_obs_dom]
+    
+    # Find indices of selected domains in sample domain list
+    sigmav2est_indices <- match(pop_domain_in_smp, smp_domain_names)
+    sigmav2est <- sigmav2est_all[sigmav2est_indices]
+    
     # Random effect in constant part of y for in-sample households
     rand_eff_pop <- rep(model_par$rand_eff, framework$n_pop) ####### change
     # Model matrix for population covariate information
@@ -404,7 +452,7 @@ errors_gen <- function(framework, model_par, gen_model) {
   # new random effect for in-sample-domains
   vu[framework$obs_dom] <- rep(
     rnorm(
-      rep(1, framework$N_dom_smp),
+      rep(1, framework$N_dom_smp_selected),
       0,
       sqrt(gen_model$sigmav2est)
     ),

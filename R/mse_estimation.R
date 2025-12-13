@@ -346,7 +346,29 @@ bootstrap_par <- function(fixed,
   # Bootstrap sample individual error term
   eps <- rnorm(framework$N_smp, 0, sqrt(model_par$sigmae2est))
   # Bootstrap sample random effect
-  vu_smp <- rep(vu_tmp[framework$dist_obs_dom], framework$n_smp)
+  # Match random effects by domain name to handle selected_domains
+  pop_domain_names <- as.character(unique(framework$pop_domains_vec))
+  smp_domain_names <- names(table(framework$smp_domains_vec))
+  
+  # Create a vector to hold random effects for all sample domains
+  # When selected_domains is used, some sample domains may not be in the
+  # selected set. For these domains, we still need to generate bootstrap
+  # samples (since the model uses all sample data), so we generate new
+  # random effects from the estimated distribution.
+  vu_for_smp <- numeric(length(smp_domain_names))
+  for (i in seq_along(smp_domain_names)) {
+    # Find this sample domain in the population domains
+    pop_idx <- which(pop_domain_names == smp_domain_names[i])
+    if (length(pop_idx) > 0) {
+      # This domain is in the selected population domains
+      vu_for_smp[i] <- vu_tmp[pop_idx]
+    } else {
+      # This domain is not in the selected set, generate new random effect
+      vu_for_smp[i] <- rnorm(1, 0, sqrt(model_par$sigmau2est))
+    }
+  }
+  
+  vu_smp <- rep(vu_for_smp, framework$n_smp)
   # Extraction of design matrix
   X_smp <- model.matrix(fixed, framework$smp_data)
   # Constant part of income vector for bootstrap sample
@@ -385,7 +407,29 @@ bootstrap_par_wild <- function(fixed,
   eps <- abs(res_s) * ws
 
   # Bootstrap sample random effect
-  vu_smp <- rep(vu_tmp[framework$dist_obs_dom], framework$n_smp)
+  # Match random effects by domain name to handle selected_domains
+  pop_domain_names <- as.character(unique(framework$pop_domains_vec))
+  smp_domain_names <- names(table(framework$smp_domains_vec))
+  
+  # Create a vector to hold random effects for all sample domains
+  # When selected_domains is used, some sample domains may not be in the
+  # selected set. For these domains, we still need to generate bootstrap
+  # samples (since the model uses all sample data), so we generate new
+  # random effects from the estimated distribution.
+  vu_for_smp <- numeric(length(smp_domain_names))
+  for (i in seq_along(smp_domain_names)) {
+    # Find this sample domain in the population domains
+    pop_idx <- which(pop_domain_names == smp_domain_names[i])
+    if (length(pop_idx) > 0) {
+      # This domain is in the selected population domains
+      vu_for_smp[i] <- vu_tmp[pop_idx]
+    } else {
+      # This domain is not in the selected set, generate new random effect
+      vu_for_smp[i] <- rnorm(1, 0, sqrt(model_par$sigmau2est))
+    }
+  }
+  
+  vu_smp <- rep(vu_for_smp, framework$n_smp)
 
   # Extraction of design matrix
   X_smp <- model.matrix(fixed, framework$smp_data)

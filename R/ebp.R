@@ -101,6 +101,14 @@
 #' population data that indicates the target domain level for which the
 #' results are to be displayed. The variable can be numeric or a factor.
 #' Defaults to \code{NULL}.
+#' @param selected_domains a character vector containing the names of domains
+#' for which point and MSE estimates should be computed. If \code{NULL} (default),
+#' estimates are computed for all domains in the population data. The model is
+#' still estimated using all sample data, but predictions are only made for the
+#' specified domains. This can be useful for reducing computation time and memory
+#' usage when only a subset of domains is of interest. Note: Population data is
+#' filtered to selected domains, so random number generation will differ between
+#' runs with different domain selections even with the same seed. Defaults to \code{NULL}.
 #' @return An object of class "ebp", "emdi" that provides estimators for
 #' regional disaggregated indicators and optionally corresponding MSE estimates.
 #' Several generic functions have methods for the returned object. For a full
@@ -219,6 +227,18 @@
 #'                         }
 #'     ), na.rm = TRUE, pop_weights = "eqsize"
 #' )
+#'
+#' # Example 6: Estimating indicators for a subset of domains only
+#' # Model is estimated using all sample data, but point and MSE estimation
+#' # is performed only for selected domains
+#' domains_of_interest <- c("94", "95", "96")
+#' emdi_model <- ebp(
+#'   fixed = eqIncome ~ gender + eqsize + cash + self_empl +
+#'     unempl_ben + age_ben + surv_ben + sick_ben + dis_ben + rent + fam_allow +
+#'     house_allow + cap_inv + tax_adj, pop_data = eusilcA_pop,
+#'   pop_domains = "district", smp_data = eusilcA_smp, smp_domains = "district",
+#'   na.rm = TRUE, selected_domains = domains_of_interest
+#' )
 #' }
 #' @export
 #' @importFrom nlme fixed.effects VarCorr lme random.effects
@@ -251,12 +271,14 @@ ebp <- function(fixed,
                 weights = NULL,
                 pop_weights = NULL,
                 aggregate_to = NULL,
+                selected_domains = NULL,
                 true_indicators = NULL,
                 control = NULL
                 ) {
   ebp_check1(
     fixed = fixed, pop_data = pop_data, pop_domains = pop_domains,
-    smp_data = smp_data, smp_domains = smp_domains, L = L
+    smp_data = smp_data, smp_domains = smp_domains, L = L,
+    selected_domains = selected_domains
   )
 
   ebp_check2(
@@ -294,7 +316,8 @@ ebp <- function(fixed,
     threshold = threshold,
     na.rm = na.rm,
     weights = weights,
-    pop_weights = pop_weights
+    pop_weights = pop_weights,
+    selected_domains = selected_domains
   )
 
 
