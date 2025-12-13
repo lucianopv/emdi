@@ -98,8 +98,6 @@ framework_ebp <- function(fixed, pop_data, pop_domains, smp_data, smp_domains,
   N_dom_pop_agg <- length(unique(aggregate_to_vec))
   # Number of domains in the sample
   N_dom_smp <- length(unique(smp_domains_vec))
-  # Number of out-of-sample domains
-  N_dom_unobs <- N_dom_pop - N_dom_smp
   # Number of households in population per domain
   n_pop <- as.vector(table(pop_domains_vec))
   # Number of households in sample per domain
@@ -109,6 +107,12 @@ framework_ebp <- function(fixed, pop_data, pop_domains, smp_data, smp_domains,
   # Indicator variables that indicate if domain is in- or out-of-sample
   obs_dom <- pop_domains_vec %in% unique(smp_domains_vec)
   dist_obs_dom <- unique(pop_domains_vec) %in% unique(smp_domains_vec)
+  
+  # Number of out-of-sample domains (selected domains not in sample)
+  # This must be calculated from dist_obs_dom to account for selected_domains
+  N_dom_unobs <- sum(!dist_obs_dom)
+  # Number of selected domains that are in sample
+  N_dom_smp_selected <- sum(dist_obs_dom)
 
   fw_check3(
     obs_dom = obs_dom, dist_obs_dom = dist_obs_dom, pop_domains = pop_domains,
@@ -201,6 +205,7 @@ framework_ebp <- function(fixed, pop_data, pop_domains, smp_data, smp_domains,
     N_dom_pop_agg = N_dom_pop_agg,
     N_dom_smp = N_dom_smp,
     N_dom_unobs = N_dom_unobs,
+    N_dom_smp_selected = N_dom_smp_selected,
     n_pop = n_pop,
     n_smp = n_smp,
     obs_dom = obs_dom,

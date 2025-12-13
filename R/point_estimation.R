@@ -278,7 +278,18 @@ gen_model <- function(fixed,
     gamma <- model_par$sigmau2est / (model_par$sigmau2est +
       model_par$sigmae2est / framework$n_smp)
     # Variance of new random effect
-    sigmav2est <- model_par$sigmau2est * (1 - gamma)
+    sigmav2est_all <- model_par$sigmau2est * (1 - gamma)
+    
+    # Extract sigmav2est only for selected domains that are in sample
+    # Match by domain name to handle selected_domains filtering
+    smp_domain_names <- names(table(framework$smp_domains_vec))
+    pop_domain_names <- as.character(unique(framework$pop_domains_vec))
+    pop_domain_in_smp <- pop_domain_names[framework$dist_obs_dom]
+    
+    # Find indices of selected domains in sample domain list
+    sigmav2est_indices <- match(pop_domain_in_smp, smp_domain_names)
+    sigmav2est <- sigmav2est_all[sigmav2est_indices]
+    
     # Random effect in constant part of y for in-sample households
     rand_eff_pop <- rep(model_par$rand_eff, framework$n_pop)
     # Model matrix for population covariate information
@@ -294,7 +305,18 @@ gen_model <- function(fixed,
     # Parameter for calculating variance of new random effect
     gamma <- model_par$gammaw
     # Variance of new random effect
-    sigmav2est <- model_par$sigmau2est * (1 - gamma)
+    sigmav2est_all <- model_par$sigmau2est * (1 - gamma)
+    
+    # Extract sigmav2est only for selected domains that are in sample
+    # Match by domain name to handle selected_domains filtering
+    smp_domain_names <- names(table(framework$smp_domains_vec))
+    pop_domain_names <- as.character(unique(framework$pop_domains_vec))
+    pop_domain_in_smp <- pop_domain_names[framework$dist_obs_dom]
+    
+    # Find indices of selected domains in sample domain list
+    sigmav2est_indices <- match(pop_domain_in_smp, smp_domain_names)
+    sigmav2est <- sigmav2est_all[sigmav2est_indices]
+    
     # Random effect in constant part of y for in-sample households
     rand_eff_pop <- rep(model_par$rand_eff, framework$n_pop) ####### change
     # Model matrix for population covariate information
@@ -430,7 +452,7 @@ errors_gen <- function(framework, model_par, gen_model) {
   # new random effect for in-sample-domains
   vu[framework$obs_dom] <- rep(
     rnorm(
-      rep(1, framework$N_dom_smp),
+      rep(1, framework$N_dom_smp_selected),
       0,
       sqrt(gen_model$sigmav2est)
     ),
