@@ -280,8 +280,8 @@ gen_model <- function(fixed,
     # Variance of new random effect
     sigmav2est_all <- model_par$sigmau2est * (1 - gamma)
     
-    # Extract sigmav2est only for selected domains that are in sample
-    # Match by domain name to handle selected_domains filtering
+    # Extract sigmav2est only for population domains that are in sample
+    # Match by domain name to ensure correct mapping between sample and population
     smp_domain_names <- names(table(framework$smp_domains_vec))
     pop_domain_names <- as.character(unique(framework$pop_domains_vec))
     pop_domain_in_smp <- pop_domain_names[framework$dist_obs_dom]
@@ -307,8 +307,8 @@ gen_model <- function(fixed,
     # Variance of new random effect
     sigmav2est_all <- model_par$sigmau2est * (1 - gamma)
     
-    # Extract sigmav2est only for selected domains that are in sample
-    # Match by domain name to handle selected_domains filtering
+    # Extract sigmav2est only for population domains that are in sample
+    # Match by domain name to ensure correct mapping between sample and population
     smp_domain_names <- names(table(framework$smp_domains_vec))
     pop_domain_names <- as.character(unique(framework$pop_domains_vec))
     pop_domain_in_smp <- pop_domain_names[framework$dist_obs_dom]
