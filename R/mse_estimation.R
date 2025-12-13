@@ -351,6 +351,10 @@ bootstrap_par <- function(fixed,
   smp_domain_names <- names(table(framework$smp_domains_vec))
   
   # Create a vector to hold random effects for all sample domains
+  # When selected_domains is used, some sample domains may not be in the
+  # selected set. For these domains, we still need to generate bootstrap
+  # samples (since the model uses all sample data), so we generate new
+  # random effects from the estimated distribution.
   vu_for_smp <- numeric(length(smp_domain_names))
   for (i in seq_along(smp_domain_names)) {
     # Find this sample domain in the population domains
@@ -408,6 +412,10 @@ bootstrap_par_wild <- function(fixed,
   smp_domain_names <- names(table(framework$smp_domains_vec))
   
   # Create a vector to hold random effects for all sample domains
+  # When selected_domains is used, some sample domains may not be in the
+  # selected set. For these domains, we still need to generate bootstrap
+  # samples (since the model uses all sample data), so we generate new
+  # random effects from the estimated distribution.
   vu_for_smp <- numeric(length(smp_domain_names))
   for (i in seq_along(smp_domain_names)) {
     # Find this sample domain in the population domains
