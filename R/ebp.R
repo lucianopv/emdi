@@ -225,6 +225,18 @@
 #'                         }
 #'     ), na.rm = TRUE, pop_weights = "eqsize"
 #' )
+#'
+#' # Example 6: Estimating indicators for a subset of domains only
+#' # Model is estimated using all sample data, but point and MSE estimation
+#' # is performed only for selected domains
+#' domains_of_interest <- c("94", "95", "96")
+#' emdi_model <- ebp(
+#'   fixed = eqIncome ~ gender + eqsize + cash + self_empl +
+#'     unempl_ben + age_ben + surv_ben + sick_ben + dis_ben + rent + fam_allow +
+#'     house_allow + cap_inv + tax_adj, pop_data = eusilcA_pop,
+#'   pop_domains = "district", smp_data = eusilcA_smp, smp_domains = "district",
+#'   na.rm = TRUE, selected_domains = domains_of_interest
+#' )
 #' }
 #' @export
 #' @importFrom nlme fixed.effects VarCorr lme random.effects
