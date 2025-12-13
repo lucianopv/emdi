@@ -43,6 +43,9 @@ framework_ebp <- function(fixed, pop_data, pop_domains, smp_data, smp_domains,
   # Order of domains
   pop_data <- pop_data[order(pop_data[[pop_domains]]), ]
 
+  # Store original pop_domains before filtering for sample data factor levels
+  levels_tmp_all <- unique(pop_data[[pop_domains]])
+  
   # Filter population data if selected_domains is provided
   if (!is.null(selected_domains)) {
     pop_data <- pop_data[as.character(pop_data[[pop_domains]]) %in%
@@ -54,8 +57,9 @@ framework_ebp <- function(fixed, pop_data, pop_domains, smp_data, smp_domains,
                                     levels = levels_tmp)
   pop_domains_vec <- pop_data[[pop_domains]]
 
+  # Use original levels for sample data to ensure model uses all domains
   smp_data[[smp_domains]] <- factor(smp_data[[smp_domains]],
-                                    levels = levels_tmp)
+                                    levels = levels_tmp_all)
 
 
   if(is.null(aggregate_to)){
@@ -67,7 +71,7 @@ framework_ebp <- function(fixed, pop_data, pop_domains, smp_data, smp_domains,
     aggregate_to_vec <- pop_data[[aggregate_to]]
   }
 
-  rm(levels_tmp)
+  rm(levels_tmp, levels_tmp_all)
   smp_data <- smp_data[order(smp_data[[smp_domains]]), ]
 
 
