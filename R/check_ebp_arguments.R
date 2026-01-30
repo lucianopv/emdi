@@ -39,9 +39,12 @@ ebp_check1 <- function(fixed, pop_data, pop_domains, smp_data, smp_domains, L,
                  determining the number of Monte-Carlo simulations. The value
                  must be at least 1. See also help(ebp)."))
   }
-  # Only validate domains when selected_domains is NULL
-  # When selected_domains is provided, population will be filtered later
-  # and sample data may legitimately contain domains outside selected_domains
+  # Only validate sample domains against population when selected_domains is NULL
+  # When selected_domains is provided:
+  # - Users may have pre-filtered their population data before calling ebp()
+  # - Sample data may contain domains from the broader population
+  # - The model uses all sample data, but predictions are only for selected_domains
+  # - Therefore, sample can legitimately contain domains not in the (filtered) population
   if (is.null(selected_domains)) {
     if (!all(unique(as.character(smp_data[[smp_domains]])) %in%
       unique(as.character(pop_data[[pop_domains]])))) {
