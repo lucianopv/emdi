@@ -39,11 +39,16 @@ ebp_check1 <- function(fixed, pop_data, pop_domains, smp_data, smp_domains, L,
                  determining the number of Monte-Carlo simulations. The value
                  must be at least 1. See also help(ebp)."))
   }
-  if (!all(unique(as.character(smp_data[[smp_domains]])) %in%
-    unique(as.character(pop_data[[pop_domains]])))) {
-    stop(strwrap(prefix = " ", initial = "",
-                "The sample data contains domains that are not contained in the
-                population data."))
+  # Only validate domains when selected_domains is NULL
+  # When selected_domains is provided, population will be filtered later
+  # and sample data may legitimately contain domains outside selected_domains
+  if (is.null(selected_domains)) {
+    if (!all(unique(as.character(smp_data[[smp_domains]])) %in%
+      unique(as.character(pop_data[[pop_domains]])))) {
+      stop(strwrap(prefix = " ", initial = "",
+                  "The sample data contains domains that are not contained in the
+                  population data."))
+    }
   }
   if (!is.null(selected_domains)) {
     if (!is.character(selected_domains) && !is.numeric(selected_domains) &&
