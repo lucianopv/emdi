@@ -53,8 +53,12 @@ Imports:
     readODS,
     formula.tools,
     saeRobust,
-    rlang, 
-    spdep
+    rlang,
+    spdep,
+    Rcpp
+LinkingTo:
+    Rcpp,
+    RcppArmadillo
 Suggests:
     testthat,
     R.rsp,
