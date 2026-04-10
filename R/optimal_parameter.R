@@ -106,7 +106,7 @@ reml <- function(fixed = fixed,
       )),
     method = "REML",
     keep.data = FALSE,
-    control = lmeControl(opt = "optim")
+    control = nlme::lmeControl(opt = "optim")
   )},
     message = function(e) {
       model_REML <<- e

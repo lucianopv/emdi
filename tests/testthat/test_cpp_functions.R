@@ -203,3 +203,55 @@ test_that("gen_bootstrap_sample_cpp produces correct dimensions", {
   expect_true(all(is.finite(result)))
   expect_true(all(result >= 0))
 })
+
+test_that("Full ebp() with C++ produces valid results", {
+  data("eusilcA_smp", package = "emdi2")
+  data("eusilcA_pop", package = "emdi2")
+
+  set.seed(42)
+  result <- ebp(
+    fixed = eqIncome ~ gender + eqsize + cash + self_empl +
+      unempl_ben + age_ben + surv_ben + sick_ben + dis_ben +
+      rent + fam_allow + house_allow + cap_inv + tax_adj,
+    pop_data = eusilcA_pop,
+    pop_domains = "district",
+    smp_data = eusilcA_smp,
+    smp_domains = "district",
+    L = 10,
+    MSE = FALSE
+  )
+
+  # Basic sanity checks
+  ind_obj <- estimators(result, indicator = "all")
+  ind <- ind_obj$ind
+  expect_true(all(ind$Mean > 0))
+  expect_true(all(ind$Head_Count >= 0 & ind$Head_Count <= 1))
+  expect_true(all(ind$Gini >= 0 & ind$Gini <= 1))
+  expect_true(all(ind$Poverty_Gap >= 0))
+})
+
+test_that("Full ebp() with MSE and C++ produces valid results", {
+  data("eusilcA_smp", package = "emdi2")
+  data("eusilcA_pop", package = "emdi2")
+
+  set.seed(42)
+  result <- ebp(
+    fixed = eqIncome ~ gender + eqsize,
+    pop_data = eusilcA_pop,
+    pop_domains = "district",
+    smp_data = eusilcA_smp,
+    smp_domains = "district",
+    L = 5,
+    MSE = TRUE,
+    B = 3
+  )
+
+  # MSE should be non-negative
+  mse_obj <- estimators(result, indicator = "all", MSE = TRUE)
+  mse_df <- mse_obj$ind
+  mse_cols <- grep("_MSE$", names(mse_df), value = TRUE)
+  expect_true(length(mse_cols) > 0, info = "No MSE columns found")
+  for (col in mse_cols) {
+    expect_true(all(mse_df[[col]] >= 0), info = paste("MSE column:", col))
+  }
+})
