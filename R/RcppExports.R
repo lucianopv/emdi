@@ -29,6 +29,10 @@ reml_loglik_cpp <- function(lambda, y_raw, X, domain_ids, n_d, transformation) {
     .Call(`_emdi2_reml_loglik_cpp`, lambda, y_raw, X, domain_ids, n_d, transformation)
 }
 
+optimal_parameter_cpp <- function(y, X, domain_ids, n_d, transformation, lower, upper) {
+    .Call(`_emdi2_optimal_parameter_cpp`, y, X, domain_ids, n_d, transformation, lower, upper)
+}
+
 back_transform_cpp <- function(y, transformation, lambda, shift) {
     .Call(`_emdi2_back_transform_cpp`, y, transformation, lambda, shift)
 }

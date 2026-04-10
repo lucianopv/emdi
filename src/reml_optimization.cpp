@@ -234,3 +234,19 @@ double reml_loglik_cpp(double lambda,
 
   return neg_reml(best_log_theta);
 }
+
+// [[Rcpp::export]]
+double optimal_parameter_cpp(const arma::vec& y,
+                              const arma::mat& X,
+                              const arma::ivec& domain_ids,
+                              const arma::ivec& n_d,
+                              const std::string& transformation,
+                              double lower,
+                              double upper) {
+  auto objective = [&](double lambda) {
+    return reml_loglik_cpp(lambda, y, X, domain_ids, n_d, transformation);
+  };
+
+  double optimal_lambda = brent_minimize(objective, lower, upper);
+  return optimal_lambda;
+}

@@ -110,3 +110,95 @@ test_that("reml_loglik_cpp works with dual transformation", {
   )
   expect_equal(cpp_nll, lme_nll, tolerance = 1e-4)
 })
+
+test_that("optimal_parameter_cpp matches R optimal_parameter for box.cox", {
+  data("eusilcA_smp", package = "emdi2")
+  fixed <- eqIncome ~ gender + eqsize
+
+  r_lambda <- optimal_parameter(
+    generic_opt = generic_opt,
+    fixed = fixed,
+    smp_data = eusilcA_smp,
+    smp_domains = "district",
+    transformation = "box.cox",
+    interval = "default",
+    control = list()
+  )
+
+  smp_data_sorted <- eusilcA_smp[order(eusilcA_smp$district), ]
+  y_sorted <- as.numeric(smp_data_sorted$eqIncome)
+  X_sorted <- model.matrix(fixed, smp_data_sorted)
+  domain_ids <- as.integer(as.factor(smp_data_sorted$district))
+  n_d <- as.integer(table(as.factor(smp_data_sorted$district)))
+
+  cpp_lambda <- optimal_parameter_cpp(
+    y = y_sorted, X = X_sorted,
+    domain_ids = domain_ids, n_d = n_d,
+    transformation = "box.cox",
+    lower = -1, upper = 2
+  )
+
+  expect_equal(cpp_lambda, r_lambda, tolerance = 1e-4)
+})
+
+test_that("optimal_parameter_cpp matches R optimal_parameter for dual", {
+  data("eusilcA_smp", package = "emdi2")
+  fixed <- eqIncome ~ gender + eqsize
+
+  r_lambda <- optimal_parameter(
+    generic_opt = generic_opt,
+    fixed = fixed,
+    smp_data = eusilcA_smp,
+    smp_domains = "district",
+    transformation = "dual",
+    interval = "default",
+    control = list()
+  )
+
+  smp_data_sorted <- eusilcA_smp[order(eusilcA_smp$district), ]
+  y_sorted <- as.numeric(smp_data_sorted$eqIncome)
+  X_sorted <- model.matrix(fixed, smp_data_sorted)
+  domain_ids <- as.integer(as.factor(smp_data_sorted$district))
+  n_d <- as.integer(table(as.factor(smp_data_sorted$district)))
+
+  cpp_lambda <- optimal_parameter_cpp(
+    y = y_sorted, X = X_sorted,
+    domain_ids = domain_ids, n_d = n_d,
+    transformation = "dual",
+    lower = 0, upper = 2
+  )
+
+  expect_equal(cpp_lambda, r_lambda, tolerance = 1e-4)
+})
+
+test_that("optimal_parameter_cpp matches R for full-model formula", {
+  data("eusilcA_smp", package = "emdi2")
+  fixed <- eqIncome ~ gender + eqsize + cash + self_empl +
+    unempl_ben + age_ben + surv_ben + sick_ben + dis_ben +
+    rent + fam_allow + house_allow + cap_inv + tax_adj
+
+  r_lambda <- optimal_parameter(
+    generic_opt = generic_opt,
+    fixed = fixed,
+    smp_data = eusilcA_smp,
+    smp_domains = "district",
+    transformation = "box.cox",
+    interval = "default",
+    control = list()
+  )
+
+  smp_data_sorted <- eusilcA_smp[order(eusilcA_smp$district), ]
+  y_sorted <- as.numeric(smp_data_sorted$eqIncome)
+  X_sorted <- model.matrix(fixed, smp_data_sorted)
+  domain_ids <- as.integer(as.factor(smp_data_sorted$district))
+  n_d <- as.integer(table(as.factor(smp_data_sorted$district)))
+
+  cpp_lambda <- optimal_parameter_cpp(
+    y = y_sorted, X = X_sorted,
+    domain_ids = domain_ids, n_d = n_d,
+    transformation = "box.cox",
+    lower = -1, upper = 2
+  )
+
+  expect_equal(cpp_lambda, r_lambda, tolerance = 1e-4)
+})

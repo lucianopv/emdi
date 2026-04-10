@@ -137,6 +137,23 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// optimal_parameter_cpp
+double optimal_parameter_cpp(const arma::vec& y, const arma::mat& X, const arma::ivec& domain_ids, const arma::ivec& n_d, const std::string& transformation, double lower, double upper);
+RcppExport SEXP _emdi2_optimal_parameter_cpp(SEXP ySEXP, SEXP XSEXP, SEXP domain_idsSEXP, SEXP n_dSEXP, SEXP transformationSEXP, SEXP lowerSEXP, SEXP upperSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::vec& >::type y(ySEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type X(XSEXP);
+    Rcpp::traits::input_parameter< const arma::ivec& >::type domain_ids(domain_idsSEXP);
+    Rcpp::traits::input_parameter< const arma::ivec& >::type n_d(n_dSEXP);
+    Rcpp::traits::input_parameter< const std::string& >::type transformation(transformationSEXP);
+    Rcpp::traits::input_parameter< double >::type lower(lowerSEXP);
+    Rcpp::traits::input_parameter< double >::type upper(upperSEXP);
+    rcpp_result_gen = Rcpp::wrap(optimal_parameter_cpp(y, X, domain_ids, n_d, transformation, lower, upper));
+    return rcpp_result_gen;
+END_RCPP
+}
 // back_transform_cpp
 Rcpp::NumericVector back_transform_cpp(const arma::vec& y, const std::string& transformation, double lambda, double shift);
 RcppExport SEXP _emdi2_back_transform_cpp(SEXP ySEXP, SEXP transformationSEXP, SEXP lambdaSEXP, SEXP shiftSEXP) {
@@ -160,6 +177,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_emdi2_monte_carlo_cpp", (DL_FUNC) &_emdi2_monte_carlo_cpp, 20},
     {"_emdi2_std_transform_y_cpp", (DL_FUNC) &_emdi2_std_transform_y_cpp, 3},
     {"_emdi2_reml_loglik_cpp", (DL_FUNC) &_emdi2_reml_loglik_cpp, 6},
+    {"_emdi2_optimal_parameter_cpp", (DL_FUNC) &_emdi2_optimal_parameter_cpp, 7},
     {"_emdi2_back_transform_cpp", (DL_FUNC) &_emdi2_back_transform_cpp, 4},
     {NULL, NULL, 0}
 };
