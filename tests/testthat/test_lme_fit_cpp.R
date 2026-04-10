@@ -39,3 +39,89 @@ test_that("data_transform_cpp handles negative values with shift", {
   expect_equal(as.numeric(cpp_bc$y), as.numeric(r_bc$y), tolerance = 1e-10)
   expect_equal(cpp_bc$shift, r_bc$shift, tolerance = 1e-10)
 })
+
+test_that("lme_fit_cpp matches nlme::lme() for unweighted case", {
+  data("eusilcA_smp", package = "emdi2")
+  fixed <- eqIncome ~ gender + eqsize
+
+  transformation_par <- data_transformation(
+    fixed = fixed, smp_data = eusilcA_smp,
+    transformation = "box.cox", lambda = 0.7
+  )
+
+  model <- nlme::lme(
+    fixed = fixed, data = transformation_par$transformed_data,
+    random = ~ 1 | as.factor(district), method = "REML",
+    keep.data = FALSE, control = list()
+  )
+
+  lme_betas <- nlme::fixed.effects(model)
+  lme_sigma2e <- model$sigma^2
+  lme_sigma2u <- as.numeric(nlme::VarCorr(model)[1, 1])
+  lme_re <- nlme::random.effects(model)[[1]]
+
+  # C++ fit (data must be sorted by domain)
+  smp_sorted <- eusilcA_smp[order(eusilcA_smp$district), ]
+  tp <- data_transformation(fixed = fixed, smp_data = smp_sorted,
+    transformation = "box.cox", lambda = 0.7)
+  y_trans <- as.numeric(tp$transformed_data$eqIncome)
+  X <- model.matrix(fixed, smp_sorted)
+  domain_factor <- as.factor(smp_sorted$district)
+  n_d <- as.integer(table(domain_factor))
+
+  cpp_fit <- lme_fit_cpp(y_trans, X, n_d)
+
+  expect_equal(as.numeric(cpp_fit$betas), as.numeric(lme_betas), tolerance = 1e-6)
+  expect_equal(cpp_fit$sigma2_e, lme_sigma2e, tolerance = 1e-4)
+  expect_equal(cpp_fit$sigma2_u, lme_sigma2u, tolerance = 1e-4)
+
+  # Compare BLUPs - random.effects returns a data.frame with rownames = domain levels
+  lme_re_df <- nlme::random.effects(model)
+  smp_domain_names <- levels(domain_factor)
+  lme_re_ordered <- lme_re_df[smp_domain_names, 1]
+  expect_equal(as.numeric(cpp_fit$rand_eff), as.numeric(lme_re_ordered), tolerance = 1e-4)
+})
+
+test_that("lme_fit_cpp works with log transformation", {
+  data("eusilcA_smp", package = "emdi2")
+  fixed <- eqIncome ~ gender + eqsize
+
+  smp_sorted <- eusilcA_smp[order(eusilcA_smp$district), ]
+  tp <- data_transformation(fixed = fixed, smp_data = smp_sorted,
+    transformation = "log", lambda = NULL)
+  y_trans <- as.numeric(tp$transformed_data$eqIncome)
+  X <- model.matrix(fixed, smp_sorted)
+  n_d <- as.integer(table(as.factor(smp_sorted$district)))
+
+  model <- nlme::lme(fixed = fixed, data = tp$transformed_data,
+    random = ~ 1 | as.factor(district), method = "REML", keep.data = FALSE)
+
+  cpp_fit <- lme_fit_cpp(y_trans, X, n_d)
+
+  expect_equal(cpp_fit$sigma2_e, model$sigma^2, tolerance = 1e-4)
+  expect_equal(cpp_fit$sigma2_u, as.numeric(nlme::VarCorr(model)[1, 1]), tolerance = 1e-4)
+})
+
+test_that("lme_fit_cpp works with full model formula", {
+  data("eusilcA_smp", package = "emdi2")
+  fixed <- eqIncome ~ gender + eqsize + cash + self_empl +
+    unempl_ben + age_ben + surv_ben + sick_ben + dis_ben +
+    rent + fam_allow + house_allow + cap_inv + tax_adj
+
+  smp_sorted <- eusilcA_smp[order(eusilcA_smp$district), ]
+  tp <- data_transformation(fixed = fixed, smp_data = smp_sorted,
+    transformation = "box.cox", lambda = 0.6)
+  y_trans <- as.numeric(tp$transformed_data$eqIncome)
+  X <- model.matrix(fixed, smp_sorted)
+  n_d <- as.integer(table(as.factor(smp_sorted$district)))
+
+  model <- nlme::lme(fixed = fixed, data = tp$transformed_data,
+    random = ~ 1 | as.factor(district), method = "REML", keep.data = FALSE)
+
+  cpp_fit <- lme_fit_cpp(y_trans, X, n_d)
+
+  expect_equal(as.numeric(cpp_fit$betas), as.numeric(nlme::fixed.effects(model)),
+               tolerance = 1e-5)
+  expect_equal(cpp_fit$sigma2_e, model$sigma^2, tolerance = 1e-3)
+  expect_equal(cpp_fit$sigma2_u, as.numeric(nlme::VarCorr(model)[1, 1]), tolerance = 1e-3)
+})
