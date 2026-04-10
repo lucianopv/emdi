@@ -150,6 +150,46 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// parametric_bootstrap_cpp
+arma::mat parametric_bootstrap_cpp(const arma::mat& X_pop, const arma::vec& mu_fixed_orig, const arma::ivec& n_pop, const arma::ivec& obs_dom, const arma::ivec& dist_obs_dom, const arma::vec& pop_weights, int N_pop, int N_dom_pop, const arma::mat& X_smp, const arma::ivec& n_smp, const arma::ivec& smp_domain_ids, const arma::ivec& smp_to_pop_map, int N_smp, int N_dom_smp, const arma::vec& betas_orig, double sigmae2_orig, double sigmau2_orig, int N_dom_smp_selected, int N_dom_unobs, int B, int L, double threshold, const std::string& transformation, double lambda_orig, double shift_orig, double interval_lower, double interval_upper, Rcpp::Nullable<Rcpp::IntegerVector> agg_domain_ids_pop, int N_dom_agg, Rcpp::Nullable<Rcpp::NumericVector> smp_weights);
+RcppExport SEXP _emdi2_parametric_bootstrap_cpp(SEXP X_popSEXP, SEXP mu_fixed_origSEXP, SEXP n_popSEXP, SEXP obs_domSEXP, SEXP dist_obs_domSEXP, SEXP pop_weightsSEXP, SEXP N_popSEXP, SEXP N_dom_popSEXP, SEXP X_smpSEXP, SEXP n_smpSEXP, SEXP smp_domain_idsSEXP, SEXP smp_to_pop_mapSEXP, SEXP N_smpSEXP, SEXP N_dom_smpSEXP, SEXP betas_origSEXP, SEXP sigmae2_origSEXP, SEXP sigmau2_origSEXP, SEXP N_dom_smp_selectedSEXP, SEXP N_dom_unobsSEXP, SEXP BSEXP, SEXP LSEXP, SEXP thresholdSEXP, SEXP transformationSEXP, SEXP lambda_origSEXP, SEXP shift_origSEXP, SEXP interval_lowerSEXP, SEXP interval_upperSEXP, SEXP agg_domain_ids_popSEXP, SEXP N_dom_aggSEXP, SEXP smp_weightsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::mat& >::type X_pop(X_popSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type mu_fixed_orig(mu_fixed_origSEXP);
+    Rcpp::traits::input_parameter< const arma::ivec& >::type n_pop(n_popSEXP);
+    Rcpp::traits::input_parameter< const arma::ivec& >::type obs_dom(obs_domSEXP);
+    Rcpp::traits::input_parameter< const arma::ivec& >::type dist_obs_dom(dist_obs_domSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type pop_weights(pop_weightsSEXP);
+    Rcpp::traits::input_parameter< int >::type N_pop(N_popSEXP);
+    Rcpp::traits::input_parameter< int >::type N_dom_pop(N_dom_popSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type X_smp(X_smpSEXP);
+    Rcpp::traits::input_parameter< const arma::ivec& >::type n_smp(n_smpSEXP);
+    Rcpp::traits::input_parameter< const arma::ivec& >::type smp_domain_ids(smp_domain_idsSEXP);
+    Rcpp::traits::input_parameter< const arma::ivec& >::type smp_to_pop_map(smp_to_pop_mapSEXP);
+    Rcpp::traits::input_parameter< int >::type N_smp(N_smpSEXP);
+    Rcpp::traits::input_parameter< int >::type N_dom_smp(N_dom_smpSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type betas_orig(betas_origSEXP);
+    Rcpp::traits::input_parameter< double >::type sigmae2_orig(sigmae2_origSEXP);
+    Rcpp::traits::input_parameter< double >::type sigmau2_orig(sigmau2_origSEXP);
+    Rcpp::traits::input_parameter< int >::type N_dom_smp_selected(N_dom_smp_selectedSEXP);
+    Rcpp::traits::input_parameter< int >::type N_dom_unobs(N_dom_unobsSEXP);
+    Rcpp::traits::input_parameter< int >::type B(BSEXP);
+    Rcpp::traits::input_parameter< int >::type L(LSEXP);
+    Rcpp::traits::input_parameter< double >::type threshold(thresholdSEXP);
+    Rcpp::traits::input_parameter< const std::string& >::type transformation(transformationSEXP);
+    Rcpp::traits::input_parameter< double >::type lambda_orig(lambda_origSEXP);
+    Rcpp::traits::input_parameter< double >::type shift_orig(shift_origSEXP);
+    Rcpp::traits::input_parameter< double >::type interval_lower(interval_lowerSEXP);
+    Rcpp::traits::input_parameter< double >::type interval_upper(interval_upperSEXP);
+    Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::IntegerVector> >::type agg_domain_ids_pop(agg_domain_ids_popSEXP);
+    Rcpp::traits::input_parameter< int >::type N_dom_agg(N_dom_aggSEXP);
+    Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::NumericVector> >::type smp_weights(smp_weightsSEXP);
+    rcpp_result_gen = Rcpp::wrap(parametric_bootstrap_cpp(X_pop, mu_fixed_orig, n_pop, obs_dom, dist_obs_dom, pop_weights, N_pop, N_dom_pop, X_smp, n_smp, smp_domain_ids, smp_to_pop_map, N_smp, N_dom_smp, betas_orig, sigmae2_orig, sigmau2_orig, N_dom_smp_selected, N_dom_unobs, B, L, threshold, transformation, lambda_orig, shift_orig, interval_lower, interval_upper, agg_domain_ids_pop, N_dom_agg, smp_weights));
+    return rcpp_result_gen;
+END_RCPP
+}
 // std_transform_y_cpp
 arma::vec std_transform_y_cpp(const arma::vec& y_raw, const std::string& transformation, double lambda);
 RcppExport SEXP _emdi2_std_transform_y_cpp(SEXP y_rawSEXP, SEXP transformationSEXP, SEXP lambdaSEXP) {
@@ -220,6 +260,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_emdi2_lme_fit_cpp", (DL_FUNC) &_emdi2_lme_fit_cpp, 3},
     {"_emdi2_model_par_weighted_cpp", (DL_FUNC) &_emdi2_model_par_weighted_cpp, 6},
     {"_emdi2_monte_carlo_cpp", (DL_FUNC) &_emdi2_monte_carlo_cpp, 20},
+    {"_emdi2_parametric_bootstrap_cpp", (DL_FUNC) &_emdi2_parametric_bootstrap_cpp, 30},
     {"_emdi2_std_transform_y_cpp", (DL_FUNC) &_emdi2_std_transform_y_cpp, 3},
     {"_emdi2_reml_loglik_cpp", (DL_FUNC) &_emdi2_reml_loglik_cpp, 6},
     {"_emdi2_optimal_parameter_cpp", (DL_FUNC) &_emdi2_optimal_parameter_cpp, 7},
