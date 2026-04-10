@@ -61,13 +61,14 @@ framework_ebp <- function(fixed, pop_data, pop_domains, smp_data, smp_domains,
   if(is.null(aggregate_to)){
     aggregate_to_vec <- NULL
   }else{
-    levels_tmp <- unique(pop_data[[aggregate_to]])
-    pop_data[[aggregate_to]] <- factor(pop_data[[aggregate_to]],
-                                       levels = levels_tmp)
-    aggregate_to_vec <- pop_data[[aggregate_to]]
+    # Create aggregate_to_vec as a separate vector WITHOUT modifying pop_data.
+    # The aggregate_to column may also be a covariate in the model formula,
+    # and re-factoring it in pop_data would change the reference level in
+    # model.matrix() for population predictions, producing incorrect y_pred.
+    # Use data-appearance order for factor levels (matching original behavior).
+    agg_levels <- unique(pop_data[[aggregate_to]])
+    aggregate_to_vec <- factor(pop_data[[aggregate_to]], levels = agg_levels)
   }
-
-  rm(levels_tmp)
   smp_data <- smp_data[order(smp_data[[smp_domains]]), ]
 
 
