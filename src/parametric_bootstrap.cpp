@@ -20,6 +20,10 @@ Rcpp::NumericVector back_transform_cpp(const arma::vec& y,
 arma::vec compute_domain_indicators_cpp(const arma::vec& y,
                                         const arma::vec& weights,
                                         double threshold);
+arma::vec compute_domain_indicators_selective_cpp(const arma::vec& y,
+                                                    const arma::vec& weights,
+                                                    double threshold,
+                                                    int indicator_mask);
 
 // From reml_optimization.cpp
 double optimal_parameter_cpp(const arma::vec& y, const arma::mat& X,
@@ -73,7 +77,8 @@ arma::mat parametric_bootstrap_cpp(
     double interval_lower, double interval_upper,
     Rcpp::Nullable<Rcpp::IntegerVector> agg_domain_ids_pop = R_NilValue,
     int N_dom_agg = 0,
-    Rcpp::Nullable<Rcpp::NumericVector> smp_weights = R_NilValue
+    Rcpp::Nullable<Rcpp::NumericVector> smp_weights = R_NilValue,
+    int indicator_mask = 0x3FF
 ) {
 
   const int n_indicators = 10;
@@ -216,7 +221,7 @@ arma::mat parametric_bootstrap_cpp(
         const arma::uvec& idx = agg_idx_cache[d];
         arma::vec y_d = Y_pop_b.elem(idx);
         arma::vec w_d = pop_weights.elem(idx);
-        true_indicators.row(d) = compute_domain_indicators_cpp(y_d, w_d, threshold).t();
+        true_indicators.row(d) = compute_domain_indicators_selective_cpp(y_d, w_d, threshold, indicator_mask).t();
       }
     } else {
       int offset = 0;
@@ -224,7 +229,7 @@ arma::mat parametric_bootstrap_cpp(
         int nd = n_pop[d];
         arma::vec y_d = Y_pop_b.subvec(offset, offset + nd - 1);
         arma::vec w_d = pop_weights.subvec(offset, offset + nd - 1);
-        true_indicators.row(d) = compute_domain_indicators_cpp(y_d, w_d, threshold).t();
+        true_indicators.row(d) = compute_domain_indicators_selective_cpp(y_d, w_d, threshold, indicator_mask).t();
         offset += nd;
       }
     }
@@ -480,7 +485,7 @@ arma::mat parametric_bootstrap_cpp(
             const arma::uvec& idx = agg_idx_cache[d];
             arma::vec y_d = y_bt.elem(idx);
             arma::vec w_d = pop_weights.elem(idx);
-            local_mc_sum.row(d) += compute_domain_indicators_cpp(y_d, w_d, threshold).t();
+            local_mc_sum.row(d) += compute_domain_indicators_selective_cpp(y_d, w_d, threshold, indicator_mask).t();
           }
         } else {
           int offset = 0;
@@ -488,7 +493,7 @@ arma::mat parametric_bootstrap_cpp(
             int nd = n_pop[d];
             arma::vec y_d = y_bt.subvec(offset, offset + nd - 1);
             arma::vec w_d = pop_weights.subvec(offset, offset + nd - 1);
-            local_mc_sum.row(d) += compute_domain_indicators_cpp(y_d, w_d, threshold).t();
+            local_mc_sum.row(d) += compute_domain_indicators_selective_cpp(y_d, w_d, threshold, indicator_mask).t();
             offset += nd;
           }
         }

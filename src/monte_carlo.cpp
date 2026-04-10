@@ -20,6 +20,10 @@ Rcpp::NumericVector back_transform_cpp(const arma::vec& y,
 arma::vec compute_domain_indicators_cpp(const arma::vec& y,
                                         const arma::vec& weights,
                                         double threshold);
+arma::vec compute_domain_indicators_selective_cpp(const arma::vec& y,
+                                                    const arma::vec& weights,
+                                                    double threshold,
+                                                    int indicator_mask);
 
 // ---------------------------------------------------------------------------
 // monte_carlo_cpp
@@ -92,7 +96,8 @@ Rcpp::List monte_carlo_cpp(
     const arma::vec&  pop_weights,
     int               n_indicators,
     Rcpp::Nullable<Rcpp::IntegerVector> agg_domain_ids = R_NilValue,
-    int               N_dom_agg = 0
+    int               N_dom_agg = 0,
+    int               indicator_mask = 0x3FF
 ) {
   int N_pop = (int)mu.n_elem;
 
@@ -231,7 +236,7 @@ Rcpp::List monte_carlo_cpp(
           const arma::uvec& idx = agg_idx_cache[d];
           arma::vec y_d = y_bt.elem(idx);
           arma::vec w_d = pop_weights.elem(idx);
-          arma::vec ind = compute_domain_indicators_cpp(y_d, w_d, threshold);
+          arma::vec ind = compute_domain_indicators_selective_cpp(y_d, w_d, threshold, indicator_mask);
           local_sum.row(d) += ind.t();
         }
       } else {
@@ -240,7 +245,7 @@ Rcpp::List monte_carlo_cpp(
           int off = dom_offset[d];
           arma::vec y_d = y_bt.subvec(off, off + nd - 1);
           arma::vec w_d = pop_weights.subvec(off, off + nd - 1);
-          arma::vec ind = compute_domain_indicators_cpp(y_d, w_d, threshold);
+          arma::vec ind = compute_domain_indicators_selective_cpp(y_d, w_d, threshold, indicator_mask);
           local_sum.row(d) += ind.t();
         }
       }

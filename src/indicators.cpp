@@ -6,17 +6,55 @@
 #include <cmath>
 
 // ---------------------------------------------------------------------------
-// Helper: weighted quantile matching R's wtd.quantile()
+// Indicator mask bits (for selective computation)
+// ---------------------------------------------------------------------------
+// Bit 0: Mean           Bit 1: HCR            Bit 2: PGap
+// Bit 3: Gini           Bit 4: QSR
+// Bit 5: Q10  Bit 6: Q25  Bit 7: Q50  Bit 8: Q75  Bit 9: Q90
 //
-// Algorithm:
-//   1. Sort x (and weights) by x.
-//   2. rw = cumsum(weights) / sum(weights)
-//   3. For each prob p:
-//        if p == 0 -> x[0]
-//        if p == 1 -> x[n-1]
-//        else select = first index where rw[select] >= p
-//             if rw[select] == p  -> (x[select] + x[select+1]) / 2
-//             else                -> x[select]
+// MASK_ALL = 0x3FF (all 10 bits set)
+// MASK_NO_SORT = 0x007 (Mean + HCR + PGap only — no sorting needed)
+static const int MASK_ALL     = 0x3FF;
+static const int MASK_MEAN    = 0x001;
+static const int MASK_HCR     = 0x002;
+static const int MASK_PGAP    = 0x004;
+static const int MASK_GINI    = 0x008;
+static const int MASK_QSR     = 0x010;
+static const int MASK_Q10     = 0x020;
+static const int MASK_Q25     = 0x040;
+static const int MASK_Q50     = 0x080;
+static const int MASK_Q75     = 0x100;
+static const int MASK_Q90     = 0x200;
+static const int MASK_QUANTS  = 0x3E0; // all 5 quantiles
+static const int MASK_NEEDS_SORT = 0x3F8; // Gini + QSR + all quantiles
+
+// ---------------------------------------------------------------------------
+// Helper: nth_element-based quantile (O(n) per quantile)
+// For unweighted case: R's type=7 quantile
+// ---------------------------------------------------------------------------
+static double nth_element_quantile(std::vector<double>& x, double p) {
+  int n = (int)x.size();
+  if (n == 1) return x[0];
+  double index = p * (n - 1);
+  int lo = (int)std::floor(index);
+  int hi = (int)std::ceil(index);
+  if (lo == hi) {
+    std::nth_element(x.begin(), x.begin() + lo, x.end());
+    return x[lo];
+  }
+  // Need both lo and hi values
+  std::nth_element(x.begin(), x.begin() + lo, x.end());
+  double val_lo = x[lo];
+  // After nth_element, elements after lo are >= x[lo]
+  // Find min of elements from lo+1 onwards for hi
+  double val_hi = *std::min_element(x.begin() + lo + 1, x.end());
+  double frac = index - lo;
+  return val_lo + frac * (val_hi - val_lo);
+}
+
+// ---------------------------------------------------------------------------
+// Helper: weighted quantile matching R's wtd.quantile()
+// Uses pre-sorted data
 // ---------------------------------------------------------------------------
 static double wtd_quantile_single(const std::vector<double>& x_sorted,
                                    const std::vector<double>& rw,
@@ -25,12 +63,11 @@ static double wtd_quantile_single(const std::vector<double>& x_sorted,
   if (p == 0.0) return x_sorted[0];
   if (p == 1.0) return x_sorted[n - 1];
 
-  // first index where rw >= p
   int sel = -1;
   for (int i = 0; i < n; ++i) {
     if (rw[i] >= p) { sel = i; break; }
   }
-  if (sel == -1) return x_sorted[n - 1]; // safety
+  if (sel == -1) return x_sorted[n - 1];
 
   if (rw[sel] == p && sel + 1 < n) {
     return (x_sorted[sel] + x_sorted[sel + 1]) / 2.0;
@@ -38,7 +75,7 @@ static double wtd_quantile_single(const std::vector<double>& x_sorted,
   return x_sorted[sel];
 }
 
-// Sort x and weights together, return sorted vectors + rw
+// Sort x and weights together, compute cumulative weight fractions
 static void sort_by_x(const arma::vec& x, const arma::vec& w,
                       std::vector<double>& xs, std::vector<double>& ws,
                       std::vector<double>& rw) {
@@ -58,48 +95,7 @@ static void sort_by_x(const arma::vec& x, const arma::vec& w,
   for (int i = 0; i < n; ++i) { cum += ws[i]; rw[i] = cum / sw; }
 }
 
-// Weighted quantile for a vector of probs
-static std::vector<double> wtd_quantile(const arma::vec& x, const arma::vec& w,
-                                         const std::vector<double>& probs) {
-  std::vector<double> xs, ws, rw;
-  sort_by_x(x, w, xs, ws, rw);
-
-  std::vector<double> q(probs.size());
-  for (size_t i = 0; i < probs.size(); ++i)
-    q[i] = wtd_quantile_single(xs, rw, probs[i]);
-  return q;
-}
-
-// ---------------------------------------------------------------------------
-// Helper: unweighted quantile matching R's quantile(type=7)
-// index = p*(n-1); interpolate linearly between floor and ceil elements
-// ---------------------------------------------------------------------------
-static double r_quantile_type7(const std::vector<double>& x_sorted, double p) {
-  int n = (int)x_sorted.size();
-  if (n == 1) return x_sorted[0];
-  double index = p * (n - 1);
-  int lo = (int)std::floor(index);
-  int hi = (int)std::ceil(index);
-  double frac = index - lo;
-  return x_sorted[lo] + frac * (x_sorted[hi] - x_sorted[lo]);
-}
-
-static std::vector<double> unweighted_quantile(const arma::vec& x,
-                                                const std::vector<double>& probs) {
-  int n = (int)x.n_elem;
-  std::vector<double> xs(n);
-  for (int i = 0; i < n; ++i) xs[i] = x[i];
-  std::sort(xs.begin(), xs.end());
-
-  std::vector<double> q(probs.size());
-  for (size_t i = 0; i < probs.size(); ++i)
-    q[i] = r_quantile_type7(xs, probs[i]);
-  return q;
-}
-
-// ---------------------------------------------------------------------------
-// Helper: check if all weights are exactly 1 (unweighted case)
-// ---------------------------------------------------------------------------
+// Check if all weights are exactly 1
 static bool all_weights_one(const arma::vec& w) {
   for (arma::uword i = 0; i < w.n_elem; ++i)
     if (w[i] != 1.0) return false;
@@ -107,40 +103,37 @@ static bool all_weights_one(const arma::vec& w) {
 }
 
 // ---------------------------------------------------------------------------
-// Core computation for a single domain
+// Core computation for a single domain with selective indicator mask.
 //
-// Returns arma::vec of length 10:
-//   [0] Mean
-//   [1] HCR
-//   [2] PGap
-//   [3] Gini
-//   [4] QSR
-//   [5] Q10
-//   [6] Q25
-//   [7] Q50
-//   [8] Q75
-//   [9] Q90
+// When mask omits Gini/QSR/quantiles, sorting is skipped entirely (O(n)).
+// When Gini is not needed but quantiles are, uses nth_element (O(n) per quantile)
+// instead of full sort (O(n log n)).
+//
+// Returns arma::vec of length 10 (unrequested indicators set to 0).
 // ---------------------------------------------------------------------------
-static arma::vec compute_domain_indicators(const arma::vec& y,
-                                            const arma::vec& w,
-                                            double threshold) {
-  arma::vec result(10);
+static arma::vec compute_domain_indicators_masked(const arma::vec& y,
+                                                    const arma::vec& w,
+                                                    double threshold,
+                                                    int mask) {
+  arma::vec result(10, arma::fill::zeros);
   int n = (int)y.n_elem;
   double sw = arma::sum(w);
 
-  // --- Mean ---
-  result[0] = arma::dot(y, w) / sw;
+  // --- Mean (O(n), no sort) ---
+  if (mask & MASK_MEAN) {
+    result[0] = arma::dot(y, w) / sw;
+  }
 
-  // --- HCR ---
-  {
+  // --- HCR (O(n), no sort) ---
+  if (mask & MASK_HCR) {
     double num = 0.0;
     for (int i = 0; i < n; ++i)
       if (y[i] < threshold) num += w[i];
     result[1] = num / sw;
   }
 
-  // --- Poverty Gap ---
-  {
+  // --- Poverty Gap (O(n), no sort) ---
+  if (mask & MASK_PGAP) {
     double pgap = 0.0;
     for (int i = 0; i < n; ++i)
       if (y[i] < threshold)
@@ -148,48 +141,79 @@ static arma::vec compute_domain_indicators(const arma::vec& y,
     result[2] = pgap / sw;
   }
 
-  // --- Gini ---
-  // Matches R:
-  //   pop_weights <- pop_weights[order(y)]
-  //   y <- sort(y)
-  //   auc <- sum((cumsum(c(0, (y * pop_weights)[1:(n-1)])) +
-  //               ((y * pop_weights) / 2)) * pop_weights)
-  //   auc <- (auc / sum(pop_weights)) / sum((y * pop_weights))
-  //   G <- 1 - 2 * auc
-  {
-    std::vector<int> idx(n);
-    std::iota(idx.begin(), idx.end(), 0);
-    std::sort(idx.begin(), idx.end(), [&](int a, int b){ return y[a] < y[b]; });
+  // Early exit if no sort-dependent indicators needed
+  if (!(mask & MASK_NEEDS_SORT)) return result;
 
-    std::vector<double> ys(n), ws_g(n), yw(n);
+  // Determine if we need a full sort (Gini or weighted quantiles) or partial
+  bool need_gini = (mask & MASK_GINI) != 0;
+  bool need_qsr = (mask & MASK_QSR) != 0;
+  bool need_quants = (mask & MASK_QUANTS) != 0;
+  bool is_unweighted = all_weights_one(w);
+
+  // If Gini is needed OR weighted quantiles are needed, do full sort once
+  bool need_full_sort = need_gini || ((need_qsr || need_quants) && !is_unweighted);
+
+  std::vector<double> xs, ws_sorted, rw;
+  std::vector<int> sort_idx;
+
+  if (need_full_sort) {
+    // Full sort (O(n log n))
+    sort_idx.resize(n);
+    std::iota(sort_idx.begin(), sort_idx.end(), 0);
+    std::sort(sort_idx.begin(), sort_idx.end(),
+              [&](int a, int b){ return y[a] < y[b]; });
+
+    xs.resize(n); ws_sorted.resize(n);
     for (int i = 0; i < n; ++i) {
-      ys[i] = y[idx[i]];
-      ws_g[i] = w[idx[i]];
-      yw[i] = ys[i] * ws_g[i];
+      xs[i] = y[sort_idx[i]];
+      ws_sorted[i] = w[sort_idx[i]];
     }
 
-    // cumsum(c(0, yw[0..n-2]))  has length n
-    // element i = sum(yw[0..i-1])  (0-indexed), with element 0 = 0
-    double cum_yw = 0.0;
-    double auc = 0.0;
+    // Compute cumulative weight fractions for weighted quantiles
+    if (!is_unweighted) {
+      rw.resize(n);
+      double cum = 0.0;
+      for (int i = 0; i < n; ++i) { cum += ws_sorted[i]; rw[i] = cum / sw; }
+    }
+  }
+
+  // --- Gini (needs full sort) ---
+  if (need_gini) {
+    std::vector<double> yw(n);
+    for (int i = 0; i < n; ++i) yw[i] = xs[i] * ws_sorted[i];
+
+    double cum_yw = 0.0, auc = 0.0;
     for (int i = 0; i < n; ++i) {
-      // cum_yw is cumsum(c(0,yw))[i]  = sum of yw[0..i-1]
-      auc += (cum_yw + yw[i] / 2.0) * ws_g[i];
+      auc += (cum_yw + yw[i] / 2.0) * ws_sorted[i];
       cum_yw += yw[i];
     }
-
-    double sum_yw = 0.0;
-    for (int i = 0; i < n; ++i) sum_yw += yw[i];
-
+    double sum_yw = cum_yw;
     auc = (auc / sw) / sum_yw;
     result[3] = 1.0 - 2.0 * auc;
   }
 
-  // --- QSR ---
-  // Uses wtd.quantile at probs 0.2 and 0.8
-  {
-    std::vector<double> q20_80 = wtd_quantile(y, w, {0.2, 0.8});
-    double q20 = q20_80[0], q80 = q20_80[1];
+  // --- QSR (needs quantiles at 0.2 and 0.8) ---
+  if (need_qsr) {
+    double q20, q80;
+    if (need_full_sort && !is_unweighted) {
+      // Use sorted data
+      q20 = wtd_quantile_single(xs, rw, 0.2);
+      q80 = wtd_quantile_single(xs, rw, 0.8);
+    } else if (need_full_sort && is_unweighted) {
+      // Sorted, unweighted
+      double idx20 = 0.2 * (n - 1);
+      int lo20 = (int)std::floor(idx20), hi20 = (int)std::ceil(idx20);
+      q20 = xs[lo20] + (idx20 - lo20) * (xs[hi20] - xs[lo20]);
+      double idx80 = 0.8 * (n - 1);
+      int lo80 = (int)std::floor(idx80), hi80 = (int)std::ceil(idx80);
+      q80 = xs[lo80] + (idx80 - lo80) * (xs[hi80] - xs[lo80]);
+    } else {
+      // No full sort — use weighted quantile with its own sort
+      // (this path happens when QSR is requested without Gini, weighted case)
+      sort_by_x(y, w, xs, ws_sorted, rw);
+      q20 = wtd_quantile_single(xs, rw, 0.2);
+      q80 = wtd_quantile_single(xs, rw, 0.8);
+    }
 
     double sum_iq1_wy = 0.0, sum_iq1_w = 0.0;
     double sum_iq4_wy = 0.0, sum_iq4_w = 0.0;
@@ -197,45 +221,74 @@ static arma::vec compute_domain_indicators(const arma::vec& y,
       if (y[i] <= q20) { sum_iq1_wy += w[i] * y[i]; sum_iq1_w += w[i]; }
       if (y[i] > q80)  { sum_iq4_wy += w[i] * y[i]; sum_iq4_w += w[i]; }
     }
-    result[4] = (sum_iq4_wy / sum_iq4_w) / (sum_iq1_wy / sum_iq1_w);
+    double top_mean = (sum_iq4_w > 0) ? sum_iq4_wy / sum_iq4_w : 0.0;
+    double bot_mean = (sum_iq1_w > 0) ? sum_iq1_wy / sum_iq1_w : 1.0;
+    result[4] = top_mean / bot_mean;
   }
 
   // --- Quantiles Q10, Q25, Q50, Q75, Q90 ---
-  {
+  if (need_quants) {
     std::vector<double> probs = {0.10, 0.25, 0.50, 0.75, 0.90};
-    std::vector<double> q;
+    std::vector<double> q(5);
 
-    if (all_weights_one(w)) {
-      q = unweighted_quantile(y, probs);
+    if (is_unweighted && !need_full_sort) {
+      // nth_element approach — O(n) per quantile, no full sort
+      std::vector<double> y_copy(n);
+      for (int i = 0; i < n; ++i) y_copy[i] = y[i];
+      for (int j = 0; j < 5; ++j) {
+        // Make a fresh copy each time (nth_element is destructive)
+        std::vector<double> yc(y_copy.begin(), y_copy.end());
+        q[j] = nth_element_quantile(yc, probs[j]);
+      }
+    } else if (is_unweighted && need_full_sort) {
+      // Already sorted — use type=7 directly
+      for (int j = 0; j < 5; ++j) {
+        double index = probs[j] * (n - 1);
+        int lo = (int)std::floor(index), hi = (int)std::ceil(index);
+        q[j] = xs[lo] + (index - lo) * (xs[hi] - xs[lo]);
+      }
     } else {
-      q = wtd_quantile(y, w, probs);
+      // Weighted — use sorted data
+      if (!need_full_sort) {
+        // Need to sort for weighted quantiles
+        sort_by_x(y, w, xs, ws_sorted, rw);
+      }
+      for (int j = 0; j < 5; ++j) {
+        q[j] = wtd_quantile_single(xs, rw, probs[j]);
+      }
     }
 
-    result[5] = q[0];
-    result[6] = q[1];
-    result[7] = q[2];
-    result[8] = q[3];
-    result[9] = q[4];
+    result[5] = q[0]; result[6] = q[1]; result[7] = q[2];
+    result[8] = q[3]; result[9] = q[4];
   }
 
   return result;
 }
 
 // ---------------------------------------------------------------------------
-// Exported: compute all 10 indicators for a single domain
+// Exported: compute all 10 indicators for a single domain (backward-compatible)
 // ---------------------------------------------------------------------------
 // [[Rcpp::export]]
 arma::vec compute_domain_indicators_cpp(const arma::vec& y,
                                          const arma::vec& weights,
                                          double threshold) {
-  return compute_domain_indicators(y, weights, threshold);
+  return compute_domain_indicators_masked(y, weights, threshold, MASK_ALL);
+}
+
+// ---------------------------------------------------------------------------
+// Exported: compute selected indicators for a single domain
+// indicator_mask: bitmask selecting which indicators to compute
+// ---------------------------------------------------------------------------
+// [[Rcpp::export]]
+arma::vec compute_domain_indicators_selective_cpp(const arma::vec& y,
+                                                    const arma::vec& weights,
+                                                    double threshold,
+                                                    int indicator_mask) {
+  return compute_domain_indicators_masked(y, weights, threshold, indicator_mask);
 }
 
 // ---------------------------------------------------------------------------
 // Exported: compute all indicators for all domains at once
-//
-// domain_ids: integer vector 1..n_domains (contiguous blocks, sorted)
-// Returns arma::mat [n_domains x 10]
 // ---------------------------------------------------------------------------
 // [[Rcpp::export]]
 arma::mat compute_all_indicators_cpp(const arma::vec& y,
@@ -245,20 +298,17 @@ arma::mat compute_all_indicators_cpp(const arma::vec& y,
                                       int n_domains) {
   arma::mat result(n_domains, 10);
 
-  // Find start/end indices for each domain (domains are contiguous 1..n_domains)
   int n = (int)y.n_elem;
   std::vector<int> starts(n_domains, -1), ends(n_domains, -1);
 
-  int current_domain = -1;
   for (int i = 0; i < n; ++i) {
-    int d = domain_ids[i] - 1; // 0-indexed
+    int d = domain_ids[i] - 1;
     if (starts[d] == -1) starts[d] = i;
     ends[d] = i;
   }
 
   for (int d = 0; d < n_domains; ++d) {
     if (starts[d] == -1) {
-      // Empty domain: fill with NA
       for (int j = 0; j < 10; ++j)
         result(d, j) = arma::datum::nan;
       continue;
@@ -266,7 +316,7 @@ arma::mat compute_all_indicators_cpp(const arma::vec& y,
     int s = starts[d], e = ends[d];
     arma::vec y_d = y.subvec(s, e);
     arma::vec w_d = weights.subvec(s, e);
-    arma::vec indicators = compute_domain_indicators(y_d, w_d, threshold);
+    arma::vec indicators = compute_domain_indicators_masked(y_d, w_d, threshold, MASK_ALL);
     result.row(d) = indicators.t();
   }
 
