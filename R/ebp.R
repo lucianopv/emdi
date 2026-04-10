@@ -273,7 +273,8 @@ ebp <- function(fixed,
                 aggregate_to = NULL,
                 selected_domains = NULL,
                 true_indicators = NULL,
-                control = NULL
+                control = NULL,
+                MSE_indicators = "all"
                 ) {
   ebp_check1(
     fixed = fixed, pop_data = pop_data, pop_domains = pop_domains,
@@ -353,7 +354,8 @@ ebp <- function(fixed,
       parallel_mode = parallel_mode,
       cpus = cpus,
       control = control,
-      true_indicators = true_indicators
+      true_indicators = true_indicators,
+      MSE_indicators = MSE_indicators
     )
 
 

@@ -17,7 +17,8 @@ parametric_bootstrap <- function(framework,
                                  parallel_mode,
                                  cpus,
                                  control,
-                                 true_indicators) {
+                                 true_indicators,
+                                 MSE_indicators = "all") {
   message("\r", "Bootstrap started                                            ")
 
   # Check if C++ fast path is available
@@ -83,12 +84,22 @@ parametric_bootstrap <- function(framework,
       smp_weights <- NULL
     }
 
-    # Build indicator mask from indicator_names
+    # Build indicator mask from MSE_indicators
     # Bit 0:Mean, 1:HCR, 2:PGap, 3:Gini, 4:QSR, 5:Q10, 6:Q25, 7:Q50, 8:Q75, 9:Q90
     all_ind_names <- c("Mean", "Head_Count", "Poverty_Gap", "Gini",
                        "Quintile_Share", "Quantile_10", "Quantile_25",
                        "Median", "Quantile_75", "Quantile_90")
-    indicator_mask <- sum(2^(match(framework$indicator_names, all_ind_names) - 1))
+    if (identical(MSE_indicators, "all")) {
+      indicator_mask <- 0x3FFL  # all 10 indicators
+    } else {
+      ind_idx <- match(MSE_indicators, all_ind_names)
+      if (any(is.na(ind_idx))) {
+        bad <- MSE_indicators[is.na(ind_idx)]
+        stop("Unknown MSE_indicators: ", paste(bad, collapse = ", "),
+             ". Valid names: ", paste(all_ind_names, collapse = ", "))
+      }
+      indicator_mask <- sum(2^(ind_idx - 1))
+    }
 
     # Call C++ parametric bootstrap
     mse_mat <- parametric_bootstrap_cpp(
