@@ -25,6 +25,10 @@ lme_fit_cpp <- function(y_transformed, X, n_d) {
     .Call(`_emdi2_lme_fit_cpp`, y_transformed, X, n_d)
 }
 
+model_par_weighted_cpp <- function(y_transformed, X, weights, n_d, sigma2_e, sigma2_u) {
+    .Call(`_emdi2_model_par_weighted_cpp`, y_transformed, X, weights, n_d, sigma2_e, sigma2_u)
+}
+
 monte_carlo_cpp <- function(mu, sigmae2, sigmau2, sigmav2, domain_ids, obs_dom, dist_obs_dom, n_pop, N_dom_pop, N_dom_smp, N_dom_unobs, L, threshold, transformation, lambda, shift, pop_weights, n_indicators, agg_domain_ids = NULL, N_dom_agg = 0L) {
     .Call(`_emdi2_monte_carlo_cpp`, mu, sigmae2, sigmau2, sigmav2, domain_ids, obs_dom, dist_obs_dom, n_pop, N_dom_pop, N_dom_smp, N_dom_unobs, L, threshold, transformation, lambda, shift, pop_weights, n_indicators, agg_domain_ids, N_dom_agg)
 }

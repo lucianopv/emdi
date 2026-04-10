@@ -125,3 +125,53 @@ test_that("lme_fit_cpp works with full model formula", {
   expect_equal(cpp_fit$sigma2_e, model$sigma^2, tolerance = 1e-3)
   expect_equal(cpp_fit$sigma2_u, as.numeric(nlme::VarCorr(model)[1, 1]), tolerance = 1e-3)
 })
+
+test_that("model_par_weighted_cpp matches R model_par weighted case", {
+  data("eusilcA_smp", package = "emdi2")
+  data("eusilcA_pop", package = "emdi2")
+
+  # Create synthetic weights
+  set.seed(123)
+  eusilcA_smp$weight <- runif(nrow(eusilcA_smp), 1.0, 3.0)
+  fixed <- eqIncome ~ gender + eqsize
+
+  framework <- framework_ebp(
+    fixed = fixed, pop_data = eusilcA_pop, pop_domains = "district",
+    smp_data = eusilcA_smp, smp_domains = "district",
+    threshold = 10924.32, custom_indicator = NULL,
+    na.rm = TRUE, pop_weights = NULL, weights = "weight"
+  )
+
+  tp <- data_transformation(fixed = fixed, smp_data = framework$smp_data,
+    transformation = "log", lambda = NULL)
+
+  model <- nlme::lme(fixed = fixed, data = tp$transformed_data,
+    random = ~ 1 | as.factor(district), method = "REML",
+    keep.data = FALSE)
+
+  r_par <- model_par(mixed_model = model, framework = framework,
+    fixed = fixed, transformation_par = tp)
+
+  # C++ version: sort data by domain
+  smp_sorted <- framework$smp_data[order(framework$smp_data$district), ]
+  tp_sorted <- data_transformation(fixed = fixed, smp_data = smp_sorted,
+    transformation = "log", lambda = NULL)
+  y_trans <- as.numeric(tp_sorted$transformed_data$eqIncome)
+  X <- model.matrix(fixed, smp_sorted)
+  n_d_smp <- as.integer(table(as.factor(smp_sorted$district)))
+  w <- as.numeric(tp_sorted$transformed_data$weight)
+
+  # Get sigma2_e, sigma2_u from C++ fit
+  fit <- lme_fit_cpp(y_trans, X, n_d_smp)
+
+  # Compute weighted parameters
+  cpp_par <- model_par_weighted_cpp(y_trans, X, w, n_d_smp,
+    fit$sigma2_e, fit$sigma2_u)
+
+  # Compare betas
+  expect_equal(as.numeric(cpp_par$betas), as.numeric(r_par$betas), tolerance = 1e-4)
+  # Compare gamma_weight
+  expect_equal(as.numeric(cpp_par$gammaw), as.numeric(r_par$gammaw), tolerance = 1e-4)
+  # Compare delta2
+  expect_equal(as.numeric(cpp_par$delta2), as.numeric(r_par$delta2), tolerance = 1e-6)
+})

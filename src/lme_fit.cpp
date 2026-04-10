@@ -252,3 +252,82 @@ Rcpp::List lme_fit_cpp(const arma::vec& y_transformed,
     Rcpp::Named("gamma") = gamma
   );
 }
+
+// ---------------------------------------------------------------------------
+// model_par_weighted_cpp: Compute pseudo-EB weighted model parameters
+// ---------------------------------------------------------------------------
+// [[Rcpp::export]]
+Rcpp::List model_par_weighted_cpp(const arma::vec& y_transformed,
+                                   const arma::mat& X,
+                                   const arma::vec& weights,
+                                   const arma::ivec& n_d,
+                                   double sigma2_e,
+                                   double sigma2_u) {
+  int D = n_d.n_elem;
+  int p = X.n_cols;
+
+  arma::vec weight_sum(D);
+  arma::vec mean_dep(D);
+  arma::mat mean_indep(D, p);
+  arma::vec delta2(D);
+  arma::vec gammaw(D);
+
+  arma::vec num_vec(p, arma::fill::zeros);
+  arma::mat den_mat(p, p, arma::fill::zeros);
+
+  int offset = 0;
+  for (int d = 0; d < D; ++d) {
+    int nd = n_d(d);
+    arma::mat X_d = X.rows(offset, offset + nd - 1);
+    arma::vec y_d = y_transformed.subvec(offset, offset + nd - 1);
+    arma::vec w_d = weights.subvec(offset, offset + nd - 1);
+
+    // Weight sums
+    weight_sum(d) = arma::sum(w_d);
+    mean_dep(d) = arma::dot(w_d, y_d) / weight_sum(d);
+
+    // Weighted means of predictors
+    for (int k = 0; k < p; ++k) {
+      mean_indep(d, k) = arma::dot(w_d, X_d.col(k)) / weight_sum(d);
+    }
+
+    delta2(d) = arma::dot(w_d, w_d) / (weight_sum(d) * weight_sum(d));
+    gammaw(d) = sigma2_u / (sigma2_u + sigma2_e * delta2(d));
+
+    // dep_var_ast = y_d - gamma_weight[d] * mean_dep[d]
+    arma::vec dep_var_ast = y_d - gammaw(d) * mean_dep(d);
+
+    // indep_weight = t(X_d) %*% diag(w_d)  =>  each col of X_d scaled by w_d
+    arma::mat indep_weight = X_d.each_col() % w_d;  // nd x p, rows scaled by w_d
+    // indep_weight is X_d with rows scaled; we need t(X_d) %*% diag(w_d) = (X_d .* w_d).t()
+    arma::mat indep_weight_t = indep_weight.t();  // p x nd
+
+    // indep_var_ast = X_d - outer(ones, gamma_weight[d] * mean_indep[d,])
+    arma::vec gw_mean_indep = gammaw(d) * mean_indep.row(d).t();  // p x 1
+    arma::mat indep_var_ast = X_d.each_row() - gw_mean_indep.t();  // nd x p
+
+    // num += indep_weight_t %*% dep_var_ast  (p x 1)
+    num_vec += indep_weight_t * dep_var_ast;
+
+    // den += indep_weight_t %*% indep_var_ast  (p x p)
+    den_mat += indep_weight_t * indep_var_ast;
+
+    offset += nd;
+  }
+
+  // betas = solve(den, num)
+  arma::vec betas = arma::solve(den_mat, num_vec);
+
+  // rand_eff[d] = gamma_weight[d] * (mean_dep[d] - mean_indep[d,] %*% betas)
+  arma::vec rand_eff(D);
+  for (int d = 0; d < D; ++d) {
+    rand_eff(d) = gammaw(d) * (mean_dep(d) - arma::dot(mean_indep.row(d).t(), betas));
+  }
+
+  return Rcpp::List::create(
+    Rcpp::Named("betas") = betas,
+    Rcpp::Named("rand_eff") = rand_eff,
+    Rcpp::Named("gammaw") = gammaw,
+    Rcpp::Named("delta2") = delta2
+  );
+}
