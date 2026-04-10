@@ -78,6 +78,19 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// data_transform_cpp
+Rcpp::List data_transform_cpp(const arma::vec& y_raw, const std::string& transformation, double lambda);
+RcppExport SEXP _emdi2_data_transform_cpp(SEXP y_rawSEXP, SEXP transformationSEXP, SEXP lambdaSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::vec& >::type y_raw(y_rawSEXP);
+    Rcpp::traits::input_parameter< const std::string& >::type transformation(transformationSEXP);
+    Rcpp::traits::input_parameter< double >::type lambda(lambdaSEXP);
+    rcpp_result_gen = Rcpp::wrap(data_transform_cpp(y_raw, transformation, lambda));
+    return rcpp_result_gen;
+END_RCPP
+}
 // monte_carlo_cpp
 Rcpp::List monte_carlo_cpp(const arma::vec& mu, double sigmae2, double sigmau2, const arma::vec& sigmav2, const arma::ivec& domain_ids, const arma::ivec& obs_dom, const arma::ivec& dist_obs_dom, const arma::ivec& n_pop, int N_dom_pop, int N_dom_smp, int N_dom_unobs, int L, double threshold, const std::string& transformation, double lambda, double shift, const arma::vec& pop_weights, int n_indicators, Rcpp::Nullable<Rcpp::IntegerVector> agg_domain_ids, int N_dom_agg);
 RcppExport SEXP _emdi2_monte_carlo_cpp(SEXP muSEXP, SEXP sigmae2SEXP, SEXP sigmau2SEXP, SEXP sigmav2SEXP, SEXP domain_idsSEXP, SEXP obs_domSEXP, SEXP dist_obs_domSEXP, SEXP n_popSEXP, SEXP N_dom_popSEXP, SEXP N_dom_smpSEXP, SEXP N_dom_unobsSEXP, SEXP LSEXP, SEXP thresholdSEXP, SEXP transformationSEXP, SEXP lambdaSEXP, SEXP shiftSEXP, SEXP pop_weightsSEXP, SEXP n_indicatorsSEXP, SEXP agg_domain_idsSEXP, SEXP N_dom_aggSEXP) {
@@ -174,6 +187,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_emdi2_gen_bootstrap_sample_cpp", (DL_FUNC) &_emdi2_gen_bootstrap_sample_cpp, 10},
     {"_emdi2_compute_domain_indicators_cpp", (DL_FUNC) &_emdi2_compute_domain_indicators_cpp, 3},
     {"_emdi2_compute_all_indicators_cpp", (DL_FUNC) &_emdi2_compute_all_indicators_cpp, 5},
+    {"_emdi2_data_transform_cpp", (DL_FUNC) &_emdi2_data_transform_cpp, 3},
     {"_emdi2_monte_carlo_cpp", (DL_FUNC) &_emdi2_monte_carlo_cpp, 20},
     {"_emdi2_std_transform_y_cpp", (DL_FUNC) &_emdi2_std_transform_y_cpp, 3},
     {"_emdi2_reml_loglik_cpp", (DL_FUNC) &_emdi2_reml_loglik_cpp, 6},
