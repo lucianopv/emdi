@@ -1,9 +1,17 @@
 #include <RcppArmadillo.h>
 // [[Rcpp::depends(RcppArmadillo)]]
 
+#ifdef _OPENMP
+  #include <omp.h>
+#endif
+
 // Forward declarations for functions defined in other translation units.
 
-// From transformations.cpp
+// From transformations.cpp (arma version for internal use, no copy)
+arma::vec back_transform_arma(const arma::vec& y,
+                               const std::string& transformation,
+                               double lambda, double shift);
+// From transformations.cpp (Rcpp version for R-facing API)
 Rcpp::NumericVector back_transform_cpp(const arma::vec& y,
                                        const std::string& transformation,
                                        double lambda, double shift);
@@ -187,11 +195,10 @@ arma::mat parametric_bootstrap_cpp(
     // Y on transformed scale
     arma::vec Y_pop_notrans = mu_fixed_orig + eps_superpop + vu_pop;
 
-    // Back-transform
-    Rcpp::NumericVector Y_pop_rv = back_transform_cpp(Y_pop_notrans,
-                                                       transformation,
-                                                       lambda_orig, shift_orig);
-    arma::vec Y_pop_b = Rcpp::as<arma::vec>(Y_pop_rv);
+    // Back-transform (arma version — no Rcpp copy overhead)
+    arma::vec Y_pop_b = back_transform_arma(Y_pop_notrans,
+                                             transformation,
+                                             lambda_orig, shift_orig);
 
     // Replace non-finite with 0
     for (int i = 0; i < N_pop; i++) {
@@ -259,11 +266,10 @@ arma::mat parametric_bootstrap_cpp(
     arma::vec mu_smp = X_smp * betas_orig;
     arma::vec Y_smp_notrans = mu_smp + eps_smp + vu_smp;
 
-    // Back-transform
-    Rcpp::NumericVector Y_smp_rv = back_transform_cpp(Y_smp_notrans,
-                                                       transformation,
-                                                       lambda_orig, shift_orig);
-    arma::vec Y_smp_b = Rcpp::as<arma::vec>(Y_smp_rv);
+    // Back-transform (arma version — no Rcpp copy overhead)
+    arma::vec Y_smp_b = back_transform_arma(Y_smp_notrans,
+                                             transformation,
+                                             lambda_orig, shift_orig);
 
     // Replace non-finite with 0
     for (int i = 0; i < N_smp; i++) {
@@ -397,101 +403,107 @@ arma::mat parametric_bootstrap_cpp(
       sqrt_sigmav2[i] = std::sqrt(sigmav2_selected[i]);
     }
 
+    // ------------------------------------------------------------------
+    // Pre-generate all random numbers for MC loop (R::rnorm not thread-safe)
+    // ------------------------------------------------------------------
+    arma::mat mc_all_epsilon(N_pop, L);
+    for (int l = 0; l < L; l++) {
+      for (int i = 0; i < N_pop; i++) {
+        mc_all_epsilon(i, l) = R::rnorm(0.0, sqrt_sigmae2_b);
+      }
+    }
+
+    int mc_N_unobs = N_dom_unobs;
+    arma::mat mc_all_vu_unobs(std::max(mc_N_unobs, 1), L);
+    arma::mat mc_all_vu_insmp(std::max(N_dom_smp_selected, 1), L);
+    for (int l = 0; l < L; l++) {
+      int ui = 0;
+      for (int d = 0; d < N_dom_pop; d++) {
+        if (!dist_obs_dom[d]) {
+          mc_all_vu_unobs(ui++, l) = R::rnorm(0.0, sqrt_sigmau2_b);
+        }
+      }
+      int si = 0;
+      for (int d = 0; d < N_dom_pop; d++) {
+        if (dist_obs_dom[d]) {
+          mc_all_vu_insmp(si, l) = R::rnorm(0.0, sqrt_sigmav2[si]);
+          si++;
+        }
+      }
+    }
+
     // MC indicator accumulator
     arma::mat mc_indicator_sum(N_dom_ind, n_indicators, arma::fill::zeros);
 
-    for (int l = 0; l < L; l++) {
+    // ------------------------------------------------------------------
+    // MC loop — OpenMP parallelized over L iterations
+    // ------------------------------------------------------------------
+    #ifdef _OPENMP
+    #pragma omp parallel if(L > 10)
+    {
+    #endif
+      arma::mat local_mc_sum(N_dom_ind, n_indicators, arma::fill::zeros);
+      arma::vec mc_vu_local(N_pop);
 
-      // --- MC epsilon: N_pop draws ---
-      arma::vec mc_epsilon(N_pop);
-      for (int i = 0; i < N_pop; i++) {
-        mc_epsilon[i] = R::rnorm(0.0, sqrt_sigmae2_b);
-      }
+      #ifdef _OPENMP
+      #pragma omp for schedule(static)
+      #endif
+      for (int l = 0; l < L; l++) {
 
-      // --- MC vu: per domain ---
-      // Out-of-sample domains: vu ~ N(0, sigma2_u_b)
-      // In-sample domains: vu ~ N(0, sigmav2_selected)
-      arma::vec mc_vu(N_pop);
-      {
-        int unobs_idx = 0;
-        int smp_sel_idx = 0;
-
-        // Draw out-of-sample domain effects first (matching monte_carlo_cpp order)
-        arma::vec vu_unobs(N_dom_unobs);
+        // Build vu from pre-generated values
         {
-          int ui = 0;
+          int unobs_idx = 0, smp_sel_idx = 0, pos = 0;
           for (int d = 0; d < N_dom_pop; d++) {
-            if (!dist_obs_dom[d]) {
-              vu_unobs[ui++] = R::rnorm(0.0, sqrt_sigmau2_b);
-            }
-          }
-        }
-
-        // Draw in-sample domain effects
-        arma::vec vu_insmp(N_dom_smp_selected);
-        {
-          int si = 0;
-          for (int d = 0; d < N_dom_pop; d++) {
+            double vu_d;
             if (dist_obs_dom[d]) {
-              vu_insmp[si] = R::rnorm(0.0, sqrt_sigmav2[si]);
-              si++;
+              vu_d = mc_all_vu_insmp(smp_sel_idx++, l);
+            } else {
+              vu_d = mc_all_vu_unobs(unobs_idx++, l);
+            }
+            int nd = n_pop[d];
+            for (int j = 0; j < nd; j++) {
+              mc_vu_local[pos++] = vu_d;
             }
           }
         }
 
-        // Assign to population vector
-        unobs_idx = 0;
-        smp_sel_idx = 0;
-        int pos = 0;
-        for (int d = 0; d < N_dom_pop; d++) {
-          double vu_d;
-          if (dist_obs_dom[d]) {
-            vu_d = vu_insmp[smp_sel_idx++];
-          } else {
-            vu_d = vu_unobs[unobs_idx++];
+        arma::vec y_star = mu_b + mc_all_epsilon.col(l) + mc_vu_local;
+        arma::vec y_bt = back_transform_arma(y_star, transformation, lambda_b, shift_b);
+
+        for (int i = 0; i < N_pop; i++) {
+          if (!std::isfinite(y_bt[i])) y_bt[i] = 0.0;
+        }
+
+        // Compute indicators per domain
+        if (use_agg) {
+          for (int d = 0; d < N_dom_ind; d++) {
+            const arma::uvec& idx = agg_idx_cache[d];
+            arma::vec y_d = y_bt.elem(idx);
+            arma::vec w_d = pop_weights.elem(idx);
+            local_mc_sum.row(d) += compute_domain_indicators_cpp(y_d, w_d, threshold).t();
           }
-          int nd = n_pop[d];
-          for (int j = 0; j < nd; j++) {
-            mc_vu[pos++] = vu_d;
+        } else {
+          int offset = 0;
+          for (int d = 0; d < N_dom_pop; d++) {
+            int nd = n_pop[d];
+            arma::vec y_d = y_bt.subvec(offset, offset + nd - 1);
+            arma::vec w_d = pop_weights.subvec(offset, offset + nd - 1);
+            local_mc_sum.row(d) += compute_domain_indicators_cpp(y_d, w_d, threshold).t();
+            offset += nd;
           }
         }
+      } // end omp for
+
+      #ifdef _OPENMP
+      #pragma omp critical
+      #endif
+      {
+        mc_indicator_sum += local_mc_sum;
       }
 
-      // y_pred on transformed scale
-      arma::vec y_star = mu_b + mc_epsilon + mc_vu;
-
-      // Back-transform
-      Rcpp::NumericVector y_bt_rv = back_transform_cpp(y_star, transformation,
-                                                        lambda_b, shift_b);
-      arma::vec y_bt = Rcpp::as<arma::vec>(y_bt_rv);
-
-      // Replace non-finite with 0
-      for (int i = 0; i < N_pop; i++) {
-        if (!std::isfinite(y_bt[i])) y_bt[i] = 0.0;
-      }
-
-      // Compute indicators per domain and accumulate
-      if (use_agg) {
-        for (int d = 0; d < N_dom_ind; d++) {
-          const arma::uvec& idx = agg_idx_cache[d];
-          arma::vec y_d = y_bt.elem(idx);
-          arma::vec w_d = pop_weights.elem(idx);
-          arma::vec ind = compute_domain_indicators_cpp(y_d, w_d, threshold);
-          mc_indicator_sum.row(d) += ind.t();
-        }
-      } else {
-        int offset = 0;
-        for (int d = 0; d < N_dom_pop; d++) {
-          int nd = n_pop[d];
-          arma::vec y_d = y_bt.subvec(offset, offset + nd - 1);
-          arma::vec w_d = pop_weights.subvec(offset, offset + nd - 1);
-          arma::vec ind = compute_domain_indicators_cpp(y_d, w_d, threshold);
-          mc_indicator_sum.row(d) += ind.t();
-          offset += nd;
-        }
-      }
-
-    } // end MC loop
+    #ifdef _OPENMP
+    } // end omp parallel
+    #endif
 
     // =====================================================================
     // Step 10: MSE accumulation
