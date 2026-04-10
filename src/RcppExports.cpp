@@ -121,6 +121,22 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// reml_loglik_cpp
+double reml_loglik_cpp(double lambda, const arma::vec& y_raw, const arma::mat& X, const arma::ivec& domain_ids, const arma::ivec& n_d, const std::string& transformation);
+RcppExport SEXP _emdi2_reml_loglik_cpp(SEXP lambdaSEXP, SEXP y_rawSEXP, SEXP XSEXP, SEXP domain_idsSEXP, SEXP n_dSEXP, SEXP transformationSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< double >::type lambda(lambdaSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type y_raw(y_rawSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type X(XSEXP);
+    Rcpp::traits::input_parameter< const arma::ivec& >::type domain_ids(domain_idsSEXP);
+    Rcpp::traits::input_parameter< const arma::ivec& >::type n_d(n_dSEXP);
+    Rcpp::traits::input_parameter< const std::string& >::type transformation(transformationSEXP);
+    rcpp_result_gen = Rcpp::wrap(reml_loglik_cpp(lambda, y_raw, X, domain_ids, n_d, transformation));
+    return rcpp_result_gen;
+END_RCPP
+}
 // back_transform_cpp
 Rcpp::NumericVector back_transform_cpp(const arma::vec& y, const std::string& transformation, double lambda, double shift);
 RcppExport SEXP _emdi2_back_transform_cpp(SEXP ySEXP, SEXP transformationSEXP, SEXP lambdaSEXP, SEXP shiftSEXP) {
@@ -143,6 +159,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_emdi2_compute_all_indicators_cpp", (DL_FUNC) &_emdi2_compute_all_indicators_cpp, 5},
     {"_emdi2_monte_carlo_cpp", (DL_FUNC) &_emdi2_monte_carlo_cpp, 20},
     {"_emdi2_std_transform_y_cpp", (DL_FUNC) &_emdi2_std_transform_y_cpp, 3},
+    {"_emdi2_reml_loglik_cpp", (DL_FUNC) &_emdi2_reml_loglik_cpp, 6},
     {"_emdi2_back_transform_cpp", (DL_FUNC) &_emdi2_back_transform_cpp, 4},
     {NULL, NULL, 0}
 };

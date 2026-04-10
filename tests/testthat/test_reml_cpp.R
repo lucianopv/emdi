@@ -46,3 +46,67 @@ test_that("std_transform_y_cpp handles negative values with shift", {
   cpp_result <- std_transform_y_cpp(y, "box.cox", 0.5)
   expect_equal(as.numeric(cpp_result), as.numeric(r_result), tolerance = 1e-10)
 })
+
+test_that("reml_loglik_cpp matches lme() REML log-likelihood", {
+  data("eusilcA_smp", package = "emdi2")
+  fixed <- eqIncome ~ gender + eqsize
+
+  for (lam in c(0.3, 0.5, 0.7, 1.0)) {
+    sd_data <- std_data_transformation(
+      fixed = fixed, smp_data = eusilcA_smp,
+      transformation = "box.cox", lambda = lam
+    )
+    model <- nlme::lme(
+      fixed = fixed, data = sd_data,
+      random = ~ 1 | as.factor(district), method = "REML",
+      keep.data = FALSE, control = nlme::lmeControl(opt = "optim")
+    )
+    lme_nll <- -as.numeric(logLik(model))
+
+    # Data must be sorted by domain for C++
+    smp_sorted <- eusilcA_smp[order(eusilcA_smp$district), ]
+    y <- as.numeric(smp_sorted$eqIncome)
+    X <- model.matrix(fixed, smp_sorted)
+    domain_ids <- as.integer(as.factor(smp_sorted$district))
+    n_d <- as.integer(table(as.factor(smp_sorted$district)))
+
+    cpp_nll <- reml_loglik_cpp(
+      lambda = lam, y = y, X = X,
+      domain_ids = domain_ids, n_d = n_d,
+      transformation = "box.cox"
+    )
+
+    expect_equal(cpp_nll, lme_nll, tolerance = 1e-4,
+                 info = paste("box.cox lambda =", lam))
+  }
+})
+
+test_that("reml_loglik_cpp works with dual transformation", {
+  data("eusilcA_smp", package = "emdi2")
+  fixed <- eqIncome ~ gender + eqsize
+
+  lam <- 0.5
+  sd_data <- std_data_transformation(
+    fixed = fixed, smp_data = eusilcA_smp,
+    transformation = "dual", lambda = lam
+  )
+  model <- nlme::lme(
+    fixed = fixed, data = sd_data,
+    random = ~ 1 | as.factor(district), method = "REML",
+    keep.data = FALSE, control = nlme::lmeControl(opt = "optim")
+  )
+  lme_nll <- -as.numeric(logLik(model))
+
+  smp_sorted <- eusilcA_smp[order(eusilcA_smp$district), ]
+  y <- as.numeric(smp_sorted$eqIncome)
+  X <- model.matrix(fixed, smp_sorted)
+  domain_ids <- as.integer(as.factor(smp_sorted$district))
+  n_d <- as.integer(table(as.factor(smp_sorted$district)))
+
+  cpp_nll <- reml_loglik_cpp(
+    lambda = lam, y = y, X = X,
+    domain_ids = domain_ids, n_d = n_d,
+    transformation = "dual"
+  )
+  expect_equal(cpp_nll, lme_nll, tolerance = 1e-4)
+})

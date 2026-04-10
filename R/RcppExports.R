@@ -25,6 +25,10 @@ std_transform_y_cpp <- function(y_raw, transformation, lambda) {
     .Call(`_emdi2_std_transform_y_cpp`, y_raw, transformation, lambda)
 }
 
+reml_loglik_cpp <- function(lambda, y_raw, X, domain_ids, n_d, transformation) {
+    .Call(`_emdi2_reml_loglik_cpp`, lambda, y_raw, X, domain_ids, n_d, transformation)
+}
+
 back_transform_cpp <- function(y, transformation, lambda, shift) {
     .Call(`_emdi2_back_transform_cpp`, y, transformation, lambda, shift)
 }
