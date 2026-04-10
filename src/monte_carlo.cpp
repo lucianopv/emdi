@@ -5,6 +5,28 @@
   #include <omp.h>
 #endif
 
+// ---------------------------------------------------------------------------
+// Control OpenMP threads from R
+// ---------------------------------------------------------------------------
+// [[Rcpp::export]]
+int set_omp_threads(int n) {
+#ifdef _OPENMP
+  omp_set_num_threads(n);
+  return omp_get_max_threads();
+#else
+  return 1;
+#endif
+}
+
+// [[Rcpp::export]]
+int get_omp_threads() {
+#ifdef _OPENMP
+  return omp_get_max_threads();
+#else
+  return 1;
+#endif
+}
+
 // Forward declarations for functions defined in other translation units.
 // back_transform_arma returns arma::vec directly (no copy).
 arma::vec back_transform_arma(const arma::vec& y,
