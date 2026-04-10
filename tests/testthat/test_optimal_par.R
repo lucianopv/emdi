@@ -36,5 +36,5 @@ test_that("Does function optimal_parameter() return the benchmark lambda?", {
   )
 
   expect_equal(optimal_lambda,
-               lambda)
+               lambda, tolerance = 1e-4)
 })

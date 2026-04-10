@@ -25,3 +25,7 @@ Spielplatz/RepLib
 packrat/lib*/
 fh_std_output.xlsx
 
+# C++ build artifacts
+src/*.o
+src/*.so
+src/*.dll
