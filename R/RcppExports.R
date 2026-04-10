@@ -17,8 +17,8 @@ compute_all_indicators_cpp <- function(y, weights, domain_ids, threshold, n_doma
     .Call(`_emdi2_compute_all_indicators_cpp`, y, weights, domain_ids, threshold, n_domains)
 }
 
-monte_carlo_cpp <- function(mu, sigmae2, sigmau2, sigmav2, domain_ids, obs_dom, dist_obs_dom, n_pop, N_dom_pop, N_dom_smp, N_dom_unobs, L, threshold, transformation, lambda, shift, pop_weights, n_indicators) {
-    .Call(`_emdi2_monte_carlo_cpp`, mu, sigmae2, sigmau2, sigmav2, domain_ids, obs_dom, dist_obs_dom, n_pop, N_dom_pop, N_dom_smp, N_dom_unobs, L, threshold, transformation, lambda, shift, pop_weights, n_indicators)
+monte_carlo_cpp <- function(mu, sigmae2, sigmau2, sigmav2, domain_ids, obs_dom, dist_obs_dom, n_pop, N_dom_pop, N_dom_smp, N_dom_unobs, L, threshold, transformation, lambda, shift, pop_weights, n_indicators, agg_domain_ids = NULL, N_dom_agg = 0L) {
+    .Call(`_emdi2_monte_carlo_cpp`, mu, sigmae2, sigmau2, sigmav2, domain_ids, obs_dom, dist_obs_dom, n_pop, N_dom_pop, N_dom_smp, N_dom_unobs, L, threshold, transformation, lambda, shift, pop_weights, n_indicators, agg_domain_ids, N_dom_agg)
 }
 
 back_transform_cpp <- function(y, transformation, lambda, shift) {

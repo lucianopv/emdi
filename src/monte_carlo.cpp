@@ -24,7 +24,7 @@ arma::vec compute_domain_indicators_cpp(const arma::vec& y,
 //   3. Predicting y = mu + epsilon + vu (on the transformed scale).
 //   4. Back-transforming y.
 //   5. Replacing non-finite values with 0.
-//   6. Computing all 10 welfare indicators per domain.
+//   6. Computing all 10 welfare indicators per domain (or aggregated domain).
 //
 // RNG ORDER (must match R errors_gen() exactly for reproducibility):
 //   a. N_pop draws for epsilon (loop over all population units).
@@ -51,12 +51,17 @@ arma::vec compute_domain_indicators_cpp(const arma::vec& y,
 // shift         : shift parameter
 // pop_weights   : survey/calibration weights [N_pop]
 // n_indicators  : number of indicators (should be 10)
+// agg_domain_ids: (optional) 1-based aggregated domain index per obs [N_pop].
+//                 When provided, indicators are computed on aggregated domains.
+// N_dom_agg     : (optional) number of aggregated domains. Required when
+//                 agg_domain_ids is provided.
 //
 // Returns
 // -------
 // A named List with:
-//   "point_estimates" : arma::mat [N_dom_pop x n_indicators] — mean over L iters
-//   "y_mcmc"          : arma::mat [N_pop x L]               — back-transformed y per iter
+//   "point_estimates" : arma::mat [N_dom x n_indicators] — mean over L iters
+//                       (N_dom = N_dom_agg when aggregate, else N_dom_pop)
+//   "y_mcmc"          : arma::mat [N_pop x L] — back-transformed y per iter
 // ---------------------------------------------------------------------------
 // [[Rcpp::export]]
 Rcpp::List monte_carlo_cpp(
@@ -77,7 +82,9 @@ Rcpp::List monte_carlo_cpp(
     double            lambda,
     double            shift,
     const arma::vec&  pop_weights,
-    int               n_indicators
+    int               n_indicators,
+    Rcpp::Nullable<Rcpp::IntegerVector> agg_domain_ids = R_NilValue,
+    int               N_dom_agg = 0
 ) {
   int N_pop = (int)mu.n_elem;
 
@@ -90,8 +97,29 @@ Rcpp::List monte_carlo_cpp(
     sqrt_sigmav2(s) = std::sqrt(sigmav2(s));
   }
 
-  // Accumulator for indicator sums across iterations [N_dom_pop x n_indicators]
-  arma::mat indicator_sum(N_dom_pop, n_indicators, arma::fill::zeros);
+  // Determine whether we aggregate indicators to a coarser domain level
+  bool use_agg = agg_domain_ids.isNotNull() && N_dom_agg > 0;
+  arma::ivec agg_ids;
+  int N_dom_ind; // number of domains for indicator output
+  if (use_agg) {
+    agg_ids = Rcpp::as<arma::ivec>(agg_domain_ids.get());
+    N_dom_ind = N_dom_agg;
+  } else {
+    N_dom_ind = N_dom_pop;
+  }
+
+  // Pre-build index vectors for aggregated domains (observations per agg domain)
+  // so we don't call arma::find() every iteration
+  std::vector<arma::uvec> agg_idx_cache;
+  if (use_agg) {
+    agg_idx_cache.resize(N_dom_ind);
+    for (int d = 0; d < N_dom_ind; d++) {
+      agg_idx_cache[d] = arma::find(agg_ids == (d + 1));
+    }
+  }
+
+  // Accumulator for indicator sums across iterations [N_dom_ind x n_indicators]
+  arma::mat indicator_sum(N_dom_ind, n_indicators, arma::fill::zeros);
 
   // Storage for all MC populations [N_pop x L]
   arma::mat y_mcmc(N_pop, L);
@@ -184,8 +212,18 @@ Rcpp::List monte_carlo_cpp(
     // ------------------------------------------------------------------
     // Step 6: Compute indicators per domain and accumulate
     // ------------------------------------------------------------------
-    {
-      int offset  = 0;
+    if (use_agg) {
+      // Aggregated domains: observations may be non-contiguous
+      for (int d = 0; d < N_dom_ind; d++) {
+        const arma::uvec& idx = agg_idx_cache[d];
+        arma::vec y_d = y_bt.elem(idx);
+        arma::vec w_d = pop_weights.elem(idx);
+        arma::vec ind = compute_domain_indicators_cpp(y_d, w_d, threshold);
+        indicator_sum.row(d) += ind.t();
+      }
+    } else {
+      // Standard: domains are contiguous blocks
+      int offset = 0;
       for (int d = 0; d < N_dom_pop; d++) {
         int nd = n_pop(d);
         arma::vec y_d = y_bt.subvec(offset, offset + nd - 1);

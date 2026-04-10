@@ -366,6 +366,14 @@ monte_carlo <- function(transformation,
   lambda_val <- if (is.null(lambda)) 0 else lambda
   shift_val <- if (is.null(shift)) 0 else shift
 
+  # Prepare optional aggregate domain IDs for C++
+  agg_ids <- NULL
+  N_dom_agg <- 0L
+  if (!is.null(framework$aggregate_to_vec)) {
+    agg_ids <- as.integer(pop_domains_vec_tmp)
+    N_dom_agg <- N_dom_pop_tmp
+  }
+
   # Call C++ Monte Carlo implementation
   result_cpp <- monte_carlo_cpp(
     mu = as.numeric(gen_model$mu),
@@ -385,37 +393,52 @@ monte_carlo <- function(transformation,
     lambda = lambda_val,
     shift = shift_val,
     pop_weights = pop_weights_vec,
-    n_indicators = 10L
+    n_indicators = 10L,
+    agg_domain_ids = agg_ids,
+    N_dom_agg = N_dom_agg
   )
 
-  # If aggregate_to is used, re-compute indicators on the aggregated domains
   if (!is.null(framework$aggregate_to_vec)) {
-    ests_mcmc <- array(dim = c(N_dom_pop_tmp, L,
-                               length(framework$indicator_names)))
-    for (l in seq_len(L)) {
-      ests_mcmc[, l, ] <-
-        matrix(
-          nrow = N_dom_pop_tmp,
-          data = unlist(lapply(framework$indicator_list,
-            function(f, threshold) {
-              matrix(
-                nrow = N_dom_pop_tmp,
-                data = unlist(mapply(
-                  y = split(result_cpp$y_mcmc[, l], pop_domains_vec_tmp),
-                  pop_weights = split(pop_weights_vec, pop_domains_vec_tmp),
-                  f,
-                  threshold = framework$threshold
-                )), byrow = TRUE
-              )
-            },
-            threshold = framework$threshold
-          ))
-        )
+    # C++ already computed indicators on aggregated domains
+    n_std <- 10
+    if (length(framework$indicator_names) > n_std) {
+      # Custom indicators: compute via R using y_mcmc from C++
+      custom_list <- framework$indicator_list[(n_std + 1):length(framework$indicator_list)]
+      n_custom <- length(framework$indicator_names) - n_std
+      custom_ests <- array(dim = c(N_dom_pop_tmp, L, n_custom))
+      for (l in seq_len(L)) {
+        custom_ests[, l, ] <-
+          matrix(
+            nrow = N_dom_pop_tmp,
+            data = unlist(lapply(custom_list,
+              function(f, threshold) {
+                matrix(
+                  nrow = N_dom_pop_tmp,
+                  data = unlist(mapply(
+                    y = split(result_cpp$y_mcmc[, l], pop_domains_vec_tmp),
+                    pop_weights = split(pop_weights_vec, pop_domains_vec_tmp),
+                    f,
+                    threshold = framework$threshold
+                  )), byrow = TRUE
+                )
+              },
+              threshold = framework$threshold
+            ))
+          )
+      }
+      custom_means <- apply(custom_ests, c(3), rowMeans)
+      if (!is.matrix(custom_means)) custom_means <- matrix(custom_means, ncol = n_custom)
+      point_estimates <- data.frame(
+        Domain = unique(pop_domains_vec_tmp),
+        result_cpp$point_estimates[, 1:n_std],
+        custom_means
+      )
+    } else {
+      point_estimates <- data.frame(
+        Domain = unique(pop_domains_vec_tmp),
+        result_cpp$point_estimates[, seq_along(framework$indicator_names)]
+      )
     }
-    point_estimates <- data.frame(
-      Domain = unique(pop_domains_vec_tmp),
-      apply(ests_mcmc, c(3), rowMeans)
-    )
   } else {
     # Standard case: C++ computed standard 10 indicators
     n_std <- 10

@@ -79,8 +79,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // monte_carlo_cpp
-Rcpp::List monte_carlo_cpp(const arma::vec& mu, double sigmae2, double sigmau2, const arma::vec& sigmav2, const arma::ivec& domain_ids, const arma::ivec& obs_dom, const arma::ivec& dist_obs_dom, const arma::ivec& n_pop, int N_dom_pop, int N_dom_smp, int N_dom_unobs, int L, double threshold, const std::string& transformation, double lambda, double shift, const arma::vec& pop_weights, int n_indicators);
-RcppExport SEXP _emdi2_monte_carlo_cpp(SEXP muSEXP, SEXP sigmae2SEXP, SEXP sigmau2SEXP, SEXP sigmav2SEXP, SEXP domain_idsSEXP, SEXP obs_domSEXP, SEXP dist_obs_domSEXP, SEXP n_popSEXP, SEXP N_dom_popSEXP, SEXP N_dom_smpSEXP, SEXP N_dom_unobsSEXP, SEXP LSEXP, SEXP thresholdSEXP, SEXP transformationSEXP, SEXP lambdaSEXP, SEXP shiftSEXP, SEXP pop_weightsSEXP, SEXP n_indicatorsSEXP) {
+Rcpp::List monte_carlo_cpp(const arma::vec& mu, double sigmae2, double sigmau2, const arma::vec& sigmav2, const arma::ivec& domain_ids, const arma::ivec& obs_dom, const arma::ivec& dist_obs_dom, const arma::ivec& n_pop, int N_dom_pop, int N_dom_smp, int N_dom_unobs, int L, double threshold, const std::string& transformation, double lambda, double shift, const arma::vec& pop_weights, int n_indicators, Rcpp::Nullable<Rcpp::IntegerVector> agg_domain_ids, int N_dom_agg);
+RcppExport SEXP _emdi2_monte_carlo_cpp(SEXP muSEXP, SEXP sigmae2SEXP, SEXP sigmau2SEXP, SEXP sigmav2SEXP, SEXP domain_idsSEXP, SEXP obs_domSEXP, SEXP dist_obs_domSEXP, SEXP n_popSEXP, SEXP N_dom_popSEXP, SEXP N_dom_smpSEXP, SEXP N_dom_unobsSEXP, SEXP LSEXP, SEXP thresholdSEXP, SEXP transformationSEXP, SEXP lambdaSEXP, SEXP shiftSEXP, SEXP pop_weightsSEXP, SEXP n_indicatorsSEXP, SEXP agg_domain_idsSEXP, SEXP N_dom_aggSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -102,7 +102,9 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< double >::type shift(shiftSEXP);
     Rcpp::traits::input_parameter< const arma::vec& >::type pop_weights(pop_weightsSEXP);
     Rcpp::traits::input_parameter< int >::type n_indicators(n_indicatorsSEXP);
-    rcpp_result_gen = Rcpp::wrap(monte_carlo_cpp(mu, sigmae2, sigmau2, sigmav2, domain_ids, obs_dom, dist_obs_dom, n_pop, N_dom_pop, N_dom_smp, N_dom_unobs, L, threshold, transformation, lambda, shift, pop_weights, n_indicators));
+    Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::IntegerVector> >::type agg_domain_ids(agg_domain_idsSEXP);
+    Rcpp::traits::input_parameter< int >::type N_dom_agg(N_dom_aggSEXP);
+    rcpp_result_gen = Rcpp::wrap(monte_carlo_cpp(mu, sigmae2, sigmau2, sigmav2, domain_ids, obs_dom, dist_obs_dom, n_pop, N_dom_pop, N_dom_smp, N_dom_unobs, L, threshold, transformation, lambda, shift, pop_weights, n_indicators, agg_domain_ids, N_dom_agg));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -126,7 +128,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_emdi2_gen_bootstrap_sample_cpp", (DL_FUNC) &_emdi2_gen_bootstrap_sample_cpp, 10},
     {"_emdi2_compute_domain_indicators_cpp", (DL_FUNC) &_emdi2_compute_domain_indicators_cpp, 3},
     {"_emdi2_compute_all_indicators_cpp", (DL_FUNC) &_emdi2_compute_all_indicators_cpp, 5},
-    {"_emdi2_monte_carlo_cpp", (DL_FUNC) &_emdi2_monte_carlo_cpp, 18},
+    {"_emdi2_monte_carlo_cpp", (DL_FUNC) &_emdi2_monte_carlo_cpp, 20},
     {"_emdi2_back_transform_cpp", (DL_FUNC) &_emdi2_back_transform_cpp, 4},
     {NULL, NULL, 0}
 };
