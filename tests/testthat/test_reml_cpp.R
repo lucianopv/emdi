@@ -202,3 +202,49 @@ test_that("optimal_parameter_cpp matches R for full-model formula", {
 
   expect_equal(cpp_lambda, r_lambda, tolerance = 1e-4)
 })
+
+test_that("Full ebp() with C++ REML produces valid results", {
+  data("eusilcA_smp", package = "emdi2")
+  data("eusilcA_pop", package = "emdi2")
+
+  set.seed(42)
+  result <- ebp(
+    fixed = eqIncome ~ gender + eqsize + cash + self_empl +
+      unempl_ben + age_ben + surv_ben + sick_ben + dis_ben +
+      rent + fam_allow + house_allow + cap_inv + tax_adj,
+    pop_data = eusilcA_pop,
+    pop_domains = "district",
+    smp_data = eusilcA_smp,
+    smp_domains = "district",
+    L = 10,
+    MSE = FALSE
+  )
+
+  ind <- estimators(result, indicator = "all")
+  expect_true(all(ind$ind$Mean > 0))
+  expect_true(all(ind$ind$Head_Count >= 0 & ind$ind$Head_Count <= 1))
+  expect_true(all(ind$ind$Gini >= 0 & ind$ind$Gini <= 1))
+})
+
+test_that("Full ebp() with MSE and C++ REML works", {
+  data("eusilcA_smp", package = "emdi2")
+  data("eusilcA_pop", package = "emdi2")
+
+  set.seed(42)
+  result <- ebp(
+    fixed = eqIncome ~ gender + eqsize,
+    pop_data = eusilcA_pop,
+    pop_domains = "district",
+    smp_data = eusilcA_smp,
+    smp_domains = "district",
+    L = 5,
+    MSE = TRUE,
+    B = 3
+  )
+
+  mse <- estimators(result, indicator = "all", MSE = TRUE)
+  mse_cols <- grep("_MSE$", names(mse$ind), value = TRUE)
+  for (col in mse_cols) {
+    expect_true(all(mse$ind[[col]] >= 0), info = paste("MSE column:", col))
+  }
+})
