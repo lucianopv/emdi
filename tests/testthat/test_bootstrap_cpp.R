@@ -200,7 +200,6 @@ test_that("parametric_bootstrap_cpp works with aggregate domains (direct call)",
 
 # Tests that will pass after Task 5 wires R function to call C++
 test_that("parametric_bootstrap_cpp produces valid MSE via ebp (log transformation)", {
-  skip("Requires Task 5: wiring R parametric_bootstrap to call C++")
   data("eusilcA_smp", package = "emdi2")
   data("eusilcA_pop", package = "emdi2")
 
@@ -220,7 +219,6 @@ test_that("parametric_bootstrap_cpp produces valid MSE via ebp (log transformati
 })
 
 test_that("parametric_bootstrap_cpp produces valid MSE via ebp (box.cox transformation)", {
-  skip("Requires Task 5: wiring R parametric_bootstrap to call C++")
   data("eusilcA_smp", package = "emdi2")
   data("eusilcA_pop", package = "emdi2")
 

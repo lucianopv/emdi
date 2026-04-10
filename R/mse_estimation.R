@@ -19,6 +19,119 @@ parametric_bootstrap <- function(framework,
                                  control,
                                  true_indicators) {
   message("\r", "Bootstrap started                                            ")
+
+  # Check if C++ fast path is available
+  n_standard <- 10
+  use_cpp <- (boot_type == "parametric" &&
+              length(framework$indicator_names) == n_standard &&
+              is.null(true_indicators) &&
+              cpus <= 1)
+
+  if (use_cpp) {
+    # Resolve interval defaults
+    if (transformation == "box.cox" && any(interval == "default")) {
+      interval <- c(-1, 2)
+    } else if (transformation == "dual" && any(interval == "default")) {
+      interval <- c(0, 2)
+    } else if (transformation == "log.shift" && any(interval == "default")) {
+      span <- range(framework$smp_data[paste(fixed[2])])
+      if ((span[1] + 1) <= 1) lower <- abs(span[1]) + 1 else lower <- 0
+      upper <- diff(span) / 2
+      interval <- c(lower, upper)
+    } else if (any(interval == "default")) {
+      interval <- c(-1, 2)
+    }
+
+    # Build X_pop
+    framework$pop_data[[paste0(fixed[2])]] <- seq_len(nrow(framework$pop_data))
+    X_pop <- model.matrix(fixed, framework$pop_data)
+
+    # Build X_smp
+    X_smp <- model.matrix(fixed, framework$smp_data)
+
+    # Sample domain IDs (integer factor levels)
+    smp_domain_ids <- as.integer(framework$smp_domains_vec)
+
+    # Map sample domains to population domain indices
+    pop_domain_names <- as.character(unique(framework$pop_domains_vec))
+    smp_domain_names <- names(table(framework$smp_domains_vec))
+    smp_to_pop_map <- match(smp_domain_names, pop_domain_names)
+
+    # Handle NULL lambda/shift
+    lambda_orig <- if (is.null(point_estim$optimal_lambda)) 0 else point_estim$optimal_lambda
+    shift_orig <- if (is.null(point_estim$shift_par)) 0 else point_estim$shift_par
+
+    # Population weights
+    if (!is.null(framework$pop_weights)) {
+      pop_weights_vec <- as.numeric(framework$pop_data[[framework$pop_weights]])
+    } else {
+      pop_weights_vec <- rep(1.0, framework$N_pop)
+    }
+
+    # Aggregate domain IDs
+    agg_domain_ids <- NULL
+    N_dom_agg <- 0L
+    if (!is.null(framework$aggregate_to_vec)) {
+      agg_domain_ids <- as.integer(framework$aggregate_to_vec)
+      N_dom_agg <- framework$N_dom_pop_agg
+    }
+
+    # Sample weights
+    if (!is.null(framework$weights)) {
+      smp_weights <- as.numeric(framework$smp_data[[framework$weights]])
+    } else {
+      smp_weights <- NULL
+    }
+
+    # Call C++ parametric bootstrap
+    mse_mat <- parametric_bootstrap_cpp(
+      X_pop = X_pop,
+      mu_fixed_orig = as.numeric(point_estim$gen_model$mu_fixed),
+      n_pop = framework$n_pop,
+      obs_dom = as.integer(framework$obs_dom),
+      dist_obs_dom = as.integer(framework$dist_obs_dom),
+      pop_weights = pop_weights_vec,
+      N_pop = framework$N_pop,
+      N_dom_pop = framework$N_dom_pop,
+      X_smp = X_smp,
+      n_smp = framework$n_smp,
+      smp_domain_ids = smp_domain_ids,
+      smp_to_pop_map = as.integer(smp_to_pop_map),
+      N_smp = framework$N_smp,
+      N_dom_smp = framework$N_dom_smp,
+      betas_orig = as.numeric(point_estim$model_par$betas),
+      sigmae2_orig = point_estim$model_par$sigmae2est,
+      sigmau2_orig = point_estim$model_par$sigmau2est,
+      N_dom_smp_selected = framework$N_dom_smp_selected,
+      N_dom_unobs = framework$N_dom_unobs,
+      B = as.integer(B),
+      L = as.integer(L),
+      threshold = framework$threshold,
+      transformation = transformation,
+      lambda_orig = lambda_orig,
+      shift_orig = shift_orig,
+      interval_lower = interval[1],
+      interval_upper = interval[2],
+      agg_domain_ids_pop = agg_domain_ids,
+      N_dom_agg = N_dom_agg,
+      smp_weights = smp_weights
+    )
+
+    # Format result as data.frame
+    if (is.null(framework$aggregate_to_vec)) {
+      mses <- data.frame(Domain = unique(framework$pop_domains_vec), mse_mat)
+    } else {
+      mses <- data.frame(Domain = unique(framework$aggregate_to_vec), mse_mat)
+    }
+    colnames(mses) <- c("Domain", framework$indicator_names)
+
+    message("\r", "Bootstrap completed", "\n")
+    if (.Platform$OS.type == "windows") {
+      flush.console()
+    }
+    return(mses)
+  }
+
   if (boot_type == "wild") {
     res_s <- residuals(point_estim$model)
     fitted_s <- fitted(point_estim$model, level = 1)
