@@ -341,13 +341,12 @@ gen_model <- function(fixed,
 monte_carlo <- function(transformation,
                         L,
                         framework,
-                        lambda,
-                        shift,
+                        lambda = NULL,
+                        shift = NULL,
                         model_par,
                         gen_model) {
 
-  # Preparing matrices for indicators for the Monte-Carlo simulation
-
+  # Handle aggregate_to
   if(!is.null(framework$aggregate_to_vec)){
     N_dom_pop_tmp <- framework$N_dom_pop_agg
     pop_domains_vec_tmp <- framework$aggregate_to_vec
@@ -356,78 +355,113 @@ monte_carlo <- function(transformation,
     pop_domains_vec_tmp <- framework$pop_domains_vec
   }
 
-  ests_mcmc <- array(dim = c(
-    N_dom_pop_tmp,
-    L,
-    length(framework$indicator_names)
-  ))
+  # Population weights
+  if(!is.null(framework$pop_weights)){
+    pop_weights_vec <- framework$pop_data[[framework$pop_weights]]
+  } else {
+    pop_weights_vec <- rep(1, nrow(framework$pop_data))
+  }
 
-  y_mcmc <- array(dim = c(
-    framework$N_pop,
-    L
-  ))
+  # Ensure lambda/shift are numeric (not NULL)
+  lambda_val <- if (is.null(lambda)) 0 else lambda
+  shift_val <- if (is.null(shift)) 0 else shift
 
-  for (l in seq_len(L)) {
+  # Call C++ Monte Carlo implementation
+  result_cpp <- monte_carlo_cpp(
+    mu = as.numeric(gen_model$mu),
+    sigmae2 = model_par$sigmae2est,
+    sigmau2 = model_par$sigmau2est,
+    sigmav2 = gen_model$sigmav2est,
+    domain_ids = as.integer(framework$pop_domains_vec),
+    obs_dom = as.integer(framework$obs_dom),
+    dist_obs_dom = as.integer(framework$dist_obs_dom),
+    n_pop = framework$n_pop,
+    N_dom_pop = framework$N_dom_pop,
+    N_dom_smp = framework$N_dom_smp_selected,
+    N_dom_unobs = framework$N_dom_unobs,
+    L = as.integer(L),
+    threshold = framework$threshold,
+    transformation = transformation,
+    lambda = lambda_val,
+    shift = shift_val,
+    pop_weights = pop_weights_vec,
+    n_indicators = 10L
+  )
 
-    # Errors in generating model: individual error term and random effect
-    # See below for function errors_gen.
-    errors <- errors_gen(
-      framework = framework,
-      model_par = model_par,
-      gen_model = gen_model
-    )
-
-    # Prediction of population vector y
-    # See below for function prediction_y.
-    population_vector <- prediction_y(
-      transformation = transformation,
-      lambda = lambda,
-      shift = shift,
-      gen_model = gen_model,
-      errors_gen = errors,
-      framework = framework
-    )
-
-    if(!is.null(framework$pop_weights)){
-      pop_weights_vec <- framework$pop_data[[framework$pop_weights]]
-    }else{
-      pop_weights_vec <- rep(1, nrow(framework$pop_data))
+  # If aggregate_to is used, re-compute indicators on the aggregated domains
+  if (!is.null(framework$aggregate_to_vec)) {
+    ests_mcmc <- array(dim = c(N_dom_pop_tmp, L,
+                               length(framework$indicator_names)))
+    for (l in seq_len(L)) {
+      ests_mcmc[, l, ] <-
+        matrix(
+          nrow = N_dom_pop_tmp,
+          data = unlist(lapply(framework$indicator_list,
+            function(f, threshold) {
+              matrix(
+                nrow = N_dom_pop_tmp,
+                data = unlist(mapply(
+                  y = split(result_cpp$y_mcmc[, l], pop_domains_vec_tmp),
+                  pop_weights = split(pop_weights_vec, pop_domains_vec_tmp),
+                  f,
+                  threshold = framework$threshold
+                )), byrow = TRUE
+              )
+            },
+            threshold = framework$threshold
+          ))
+        )
     }
-
-    y_mcmc[,l] <- population_vector
-
-    # Calculation of indicators for each Monte Carlo population
-    ests_mcmc[, l, ] <-
-      matrix(
-        nrow = N_dom_pop_tmp,
-        data = unlist(lapply(framework$indicator_list,
-          function(f, threshold) {
-            matrix(
-              nrow = N_dom_pop_tmp,
-              data = unlist(mapply(
-                y = split(population_vector, pop_domains_vec_tmp),
-                pop_weights = split(pop_weights_vec, pop_domains_vec_tmp),
-                f,
-                threshold = framework$threshold
-              )), byrow = TRUE
-            )
-          },
-          threshold = framework$threshold
-        ))
+    point_estimates <- data.frame(
+      Domain = unique(pop_domains_vec_tmp),
+      apply(ests_mcmc, c(3), rowMeans)
+    )
+  } else {
+    # Standard case: C++ computed standard 10 indicators
+    n_std <- 10
+    if (length(framework$indicator_names) > n_std) {
+      # Custom indicators: compute via R using y_mcmc from C++
+      custom_list <- framework$indicator_list[(n_std + 1):length(framework$indicator_list)]
+      n_custom <- length(framework$indicator_names) - n_std
+      custom_ests <- array(dim = c(N_dom_pop_tmp, L, n_custom))
+      for (l in seq_len(L)) {
+        custom_ests[, l, ] <-
+          matrix(
+            nrow = N_dom_pop_tmp,
+            data = unlist(lapply(custom_list,
+              function(f, threshold) {
+                matrix(
+                  nrow = N_dom_pop_tmp,
+                  data = unlist(mapply(
+                    y = split(result_cpp$y_mcmc[, l], pop_domains_vec_tmp),
+                    pop_weights = split(pop_weights_vec, pop_domains_vec_tmp),
+                    f,
+                    threshold = framework$threshold
+                  )), byrow = TRUE
+                )
+              },
+              threshold = framework$threshold
+            ))
+          )
+      }
+      custom_means <- apply(custom_ests, c(3), rowMeans)
+      if (!is.matrix(custom_means)) custom_means <- matrix(custom_means, ncol = n_custom)
+      point_estimates <- data.frame(
+        Domain = unique(pop_domains_vec_tmp),
+        result_cpp$point_estimates[, 1:n_std],
+        custom_means
       )
-  } # End for loop
-
-
-  # Point estimations of indicators by taking the mean
-
-  point_estimates <- data.frame(
-    Domain = unique(pop_domains_vec_tmp),
-    apply(ests_mcmc, c(3), rowMeans)
-  )
+    } else {
+      point_estimates <- data.frame(
+        Domain = unique(pop_domains_vec_tmp),
+        result_cpp$point_estimates[, seq_along(framework$indicator_names)]
+      )
+    }
+  }
   colnames(point_estimates) <- c("Domain", framework$indicator_names)
+
   return(list("point_estimates" = point_estimates,
-              "y_mcmc" = y_mcmc) # for further use
-  )
+              "y_mcmc" = result_cpp$y_mcmc))
 } # End Monte-Carlo
 
 

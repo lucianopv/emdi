@@ -306,32 +306,28 @@ superpopulation_wild <- function(framework, model_par, gen_model, lambda,
 
 superpopulation <- function(framework, model_par, gen_model, lambda, shift,
                             transformation) {
-  # superpopulation individual errors
-  eps <- vector(length = framework$N_pop)
-  eps[framework$obs_dom] <- rnorm(
-    sum(framework$obs_dom), 0,
-    sqrt(model_par$sigmae2est)
-  )
-  eps[!framework$obs_dom] <- rnorm(
-    sum(!framework$obs_dom), 0,
-    sqrt(model_par$sigmae2est +
-       model_par$sigmau2est)
-  )
-  # superpopulation random effect
-  vu_tmp <- rnorm(framework$N_dom_pop, 0, sqrt(model_par$sigmau2est))
-  vu_pop <- rep(vu_tmp, framework$n_pop)
-  #  superpopulation income vector
-  Y_pop_b_notrans <- gen_model$mu_fixed + eps + vu_pop
+  lambda_val <- if (is.null(lambda)) 0 else lambda
+  shift_val <- if (is.null(shift)) 0 else shift
 
-  Y_pop_b <- back_transformation(
-    y = Y_pop_b_notrans,
+  result <- gen_superpop_cpp(
+    mu_fixed = as.numeric(gen_model$mu_fixed),
+    sigmae2 = model_par$sigmae2est,
+    sigmau2 = model_par$sigmau2est,
+    obs_dom = as.integer(framework$obs_dom),
+    n_pop = framework$n_pop,
+    N_dom_pop = framework$N_dom_pop,
     transformation = transformation,
-    lambda = lambda,
-    shift = shift
+    lambda = lambda_val,
+    shift = shift_val
   )
-  Y_pop_b[!is.finite(Y_pop_b)] <- 0
 
-  return(list(pop_income_vector = Y_pop_b, vu_tmp = vu_tmp, eps = eps, vu_pop = vu_pop, Y_pop_b_notrans = Y_pop_b_notrans))
+  return(list(
+    pop_income_vector = as.numeric(result$pop_income_vector),
+    vu_tmp = as.numeric(result$vu_tmp),
+    eps = as.numeric(result$eps),
+    vu_pop = as.numeric(result$vu_pop),
+    Y_pop_b_notrans = as.numeric(result$Y_pop_b_notrans)
+  ))
 }
 
 # Bootstrap function -----------------------------------------------------------
@@ -343,50 +339,31 @@ bootstrap_par <- function(fixed,
                           lambda,
                           shift,
                           vu_tmp) {
-  # Bootstrap sample individual error term
-  eps <- rnorm(framework$N_smp, 0, sqrt(model_par$sigmae2est))
-  # Bootstrap sample random effect
-  # Match random effects by domain name to handle selected_domains
+  lambda_val <- if (is.null(lambda)) 0 else lambda
+  shift_val <- if (is.null(shift)) 0 else shift
+
+  X_smp <- model.matrix(fixed, framework$smp_data)
+
+  # Map sample domains to population domain indices
   pop_domain_names <- as.character(unique(framework$pop_domains_vec))
   smp_domain_names <- names(table(framework$smp_domains_vec))
-  
-  # Create a vector to hold random effects for all sample domains
-  # When selected_domains is used, some sample domains may not be in the
-  # selected set. For these domains, we still need to generate bootstrap
-  # samples (since the model uses all sample data), so we generate new
-  # random effects from the estimated distribution.
-  vu_for_smp <- numeric(length(smp_domain_names))
-  for (i in seq_along(smp_domain_names)) {
-    # Find this sample domain in the population domains
-    pop_idx <- which(pop_domain_names == smp_domain_names[i])
-    if (length(pop_idx) > 0) {
-      # This domain is in the selected population domains
-      vu_for_smp[i] <- vu_tmp[pop_idx]
-    } else {
-      # This domain is not in the selected set, generate new random effect
-      vu_for_smp[i] <- rnorm(1, 0, sqrt(model_par$sigmau2est))
-    }
-  }
-  
-  vu_smp <- rep(vu_for_smp, framework$n_smp)
-  # Extraction of design matrix
-  X_smp <- model.matrix(fixed, framework$smp_data)
-  # Constant part of income vector for bootstrap sample
-  mu_smp <- X_smp %*% model_par$betas
-  # Transformed bootstrap income vector
-  Y_smp_b <- mu_smp + eps + vu_smp
-  # Back transformation of bootstrap income vector
-  Y_smp_b <- back_transformation(
-    y = Y_smp_b,
-    transformation = transformation,
-    lambda = lambda,
-    shift = shift
-  )
-  Y_smp_b[!is.finite(Y_smp_b)] <- 0
+  smp_to_pop_map <- match(smp_domain_names, pop_domain_names)
 
-  # Inclusion of bootstrap income vector into sample data
+  Y_smp_b <- gen_bootstrap_sample_cpp(
+    X_smp = X_smp,
+    betas = as.numeric(model_par$betas),
+    sigmae2 = model_par$sigmae2est,
+    sigmau2 = model_par$sigmau2est,
+    vu_tmp = vu_tmp,
+    smp_to_pop_map = as.integer(smp_to_pop_map),
+    n_smp = framework$n_smp,
+    transformation = transformation,
+    lambda = lambda_val,
+    shift = shift_val
+  )
+
   bootstrap_smp <- framework$smp_data
-  bootstrap_smp[paste(fixed[2])] <- Y_smp_b
+  bootstrap_smp[paste(fixed[2])] <- as.numeric(Y_smp_b)
 
   return(bootstrap_sample = bootstrap_smp)
 }
