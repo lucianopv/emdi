@@ -108,6 +108,19 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// std_transform_y_cpp
+arma::vec std_transform_y_cpp(const arma::vec& y_raw, const std::string& transformation, double lambda);
+RcppExport SEXP _emdi2_std_transform_y_cpp(SEXP y_rawSEXP, SEXP transformationSEXP, SEXP lambdaSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::vec& >::type y_raw(y_rawSEXP);
+    Rcpp::traits::input_parameter< const std::string& >::type transformation(transformationSEXP);
+    Rcpp::traits::input_parameter< double >::type lambda(lambdaSEXP);
+    rcpp_result_gen = Rcpp::wrap(std_transform_y_cpp(y_raw, transformation, lambda));
+    return rcpp_result_gen;
+END_RCPP
+}
 // back_transform_cpp
 Rcpp::NumericVector back_transform_cpp(const arma::vec& y, const std::string& transformation, double lambda, double shift);
 RcppExport SEXP _emdi2_back_transform_cpp(SEXP ySEXP, SEXP transformationSEXP, SEXP lambdaSEXP, SEXP shiftSEXP) {
@@ -129,6 +142,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_emdi2_compute_domain_indicators_cpp", (DL_FUNC) &_emdi2_compute_domain_indicators_cpp, 3},
     {"_emdi2_compute_all_indicators_cpp", (DL_FUNC) &_emdi2_compute_all_indicators_cpp, 5},
     {"_emdi2_monte_carlo_cpp", (DL_FUNC) &_emdi2_monte_carlo_cpp, 20},
+    {"_emdi2_std_transform_y_cpp", (DL_FUNC) &_emdi2_std_transform_y_cpp, 3},
     {"_emdi2_back_transform_cpp", (DL_FUNC) &_emdi2_back_transform_cpp, 4},
     {NULL, NULL, 0}
 };

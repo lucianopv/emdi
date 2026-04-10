@@ -21,6 +21,10 @@ monte_carlo_cpp <- function(mu, sigmae2, sigmau2, sigmav2, domain_ids, obs_dom, 
     .Call(`_emdi2_monte_carlo_cpp`, mu, sigmae2, sigmau2, sigmav2, domain_ids, obs_dom, dist_obs_dom, n_pop, N_dom_pop, N_dom_smp, N_dom_unobs, L, threshold, transformation, lambda, shift, pop_weights, n_indicators, agg_domain_ids, N_dom_agg)
 }
 
+std_transform_y_cpp <- function(y_raw, transformation, lambda) {
+    .Call(`_emdi2_std_transform_y_cpp`, y_raw, transformation, lambda)
+}
+
 back_transform_cpp <- function(y, transformation, lambda, shift) {
     .Call(`_emdi2_back_transform_cpp`, y, transformation, lambda, shift)
 }
