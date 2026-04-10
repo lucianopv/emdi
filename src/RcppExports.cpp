@@ -11,6 +11,45 @@ Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
 Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
+// gen_superpop_cpp
+Rcpp::List gen_superpop_cpp(const arma::vec& mu_fixed, double sigmae2, double sigmau2, const arma::ivec& obs_dom, const arma::ivec& n_pop, int N_dom_pop, const std::string& transformation, double lambda, double shift);
+RcppExport SEXP _emdi2_gen_superpop_cpp(SEXP mu_fixedSEXP, SEXP sigmae2SEXP, SEXP sigmau2SEXP, SEXP obs_domSEXP, SEXP n_popSEXP, SEXP N_dom_popSEXP, SEXP transformationSEXP, SEXP lambdaSEXP, SEXP shiftSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::vec& >::type mu_fixed(mu_fixedSEXP);
+    Rcpp::traits::input_parameter< double >::type sigmae2(sigmae2SEXP);
+    Rcpp::traits::input_parameter< double >::type sigmau2(sigmau2SEXP);
+    Rcpp::traits::input_parameter< const arma::ivec& >::type obs_dom(obs_domSEXP);
+    Rcpp::traits::input_parameter< const arma::ivec& >::type n_pop(n_popSEXP);
+    Rcpp::traits::input_parameter< int >::type N_dom_pop(N_dom_popSEXP);
+    Rcpp::traits::input_parameter< const std::string& >::type transformation(transformationSEXP);
+    Rcpp::traits::input_parameter< double >::type lambda(lambdaSEXP);
+    Rcpp::traits::input_parameter< double >::type shift(shiftSEXP);
+    rcpp_result_gen = Rcpp::wrap(gen_superpop_cpp(mu_fixed, sigmae2, sigmau2, obs_dom, n_pop, N_dom_pop, transformation, lambda, shift));
+    return rcpp_result_gen;
+END_RCPP
+}
+// gen_bootstrap_sample_cpp
+arma::vec gen_bootstrap_sample_cpp(const arma::mat& X_smp, const arma::vec& betas, double sigmae2, double sigmau2, const arma::vec& vu_tmp, const Rcpp::IntegerVector& smp_to_pop_map, const arma::ivec& n_smp, const std::string& transformation, double lambda, double shift);
+RcppExport SEXP _emdi2_gen_bootstrap_sample_cpp(SEXP X_smpSEXP, SEXP betasSEXP, SEXP sigmae2SEXP, SEXP sigmau2SEXP, SEXP vu_tmpSEXP, SEXP smp_to_pop_mapSEXP, SEXP n_smpSEXP, SEXP transformationSEXP, SEXP lambdaSEXP, SEXP shiftSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::mat& >::type X_smp(X_smpSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type betas(betasSEXP);
+    Rcpp::traits::input_parameter< double >::type sigmae2(sigmae2SEXP);
+    Rcpp::traits::input_parameter< double >::type sigmau2(sigmau2SEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type vu_tmp(vu_tmpSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::IntegerVector& >::type smp_to_pop_map(smp_to_pop_mapSEXP);
+    Rcpp::traits::input_parameter< const arma::ivec& >::type n_smp(n_smpSEXP);
+    Rcpp::traits::input_parameter< const std::string& >::type transformation(transformationSEXP);
+    Rcpp::traits::input_parameter< double >::type lambda(lambdaSEXP);
+    Rcpp::traits::input_parameter< double >::type shift(shiftSEXP);
+    rcpp_result_gen = Rcpp::wrap(gen_bootstrap_sample_cpp(X_smp, betas, sigmae2, sigmau2, vu_tmp, smp_to_pop_map, n_smp, transformation, lambda, shift));
+    return rcpp_result_gen;
+END_RCPP
+}
 // compute_domain_indicators_cpp
 arma::vec compute_domain_indicators_cpp(const arma::vec& y, const arma::vec& weights, double threshold);
 RcppExport SEXP _emdi2_compute_domain_indicators_cpp(SEXP ySEXP, SEXP weightsSEXP, SEXP thresholdSEXP) {
@@ -39,6 +78,34 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// monte_carlo_cpp
+Rcpp::List monte_carlo_cpp(const arma::vec& mu, double sigmae2, double sigmau2, const arma::vec& sigmav2, const arma::ivec& domain_ids, const arma::ivec& obs_dom, const arma::ivec& dist_obs_dom, const arma::ivec& n_pop, int N_dom_pop, int N_dom_smp, int N_dom_unobs, int L, double threshold, const std::string& transformation, double lambda, double shift, const arma::vec& pop_weights, int n_indicators);
+RcppExport SEXP _emdi2_monte_carlo_cpp(SEXP muSEXP, SEXP sigmae2SEXP, SEXP sigmau2SEXP, SEXP sigmav2SEXP, SEXP domain_idsSEXP, SEXP obs_domSEXP, SEXP dist_obs_domSEXP, SEXP n_popSEXP, SEXP N_dom_popSEXP, SEXP N_dom_smpSEXP, SEXP N_dom_unobsSEXP, SEXP LSEXP, SEXP thresholdSEXP, SEXP transformationSEXP, SEXP lambdaSEXP, SEXP shiftSEXP, SEXP pop_weightsSEXP, SEXP n_indicatorsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::vec& >::type mu(muSEXP);
+    Rcpp::traits::input_parameter< double >::type sigmae2(sigmae2SEXP);
+    Rcpp::traits::input_parameter< double >::type sigmau2(sigmau2SEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type sigmav2(sigmav2SEXP);
+    Rcpp::traits::input_parameter< const arma::ivec& >::type domain_ids(domain_idsSEXP);
+    Rcpp::traits::input_parameter< const arma::ivec& >::type obs_dom(obs_domSEXP);
+    Rcpp::traits::input_parameter< const arma::ivec& >::type dist_obs_dom(dist_obs_domSEXP);
+    Rcpp::traits::input_parameter< const arma::ivec& >::type n_pop(n_popSEXP);
+    Rcpp::traits::input_parameter< int >::type N_dom_pop(N_dom_popSEXP);
+    Rcpp::traits::input_parameter< int >::type N_dom_smp(N_dom_smpSEXP);
+    Rcpp::traits::input_parameter< int >::type N_dom_unobs(N_dom_unobsSEXP);
+    Rcpp::traits::input_parameter< int >::type L(LSEXP);
+    Rcpp::traits::input_parameter< double >::type threshold(thresholdSEXP);
+    Rcpp::traits::input_parameter< const std::string& >::type transformation(transformationSEXP);
+    Rcpp::traits::input_parameter< double >::type lambda(lambdaSEXP);
+    Rcpp::traits::input_parameter< double >::type shift(shiftSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type pop_weights(pop_weightsSEXP);
+    Rcpp::traits::input_parameter< int >::type n_indicators(n_indicatorsSEXP);
+    rcpp_result_gen = Rcpp::wrap(monte_carlo_cpp(mu, sigmae2, sigmau2, sigmav2, domain_ids, obs_dom, dist_obs_dom, n_pop, N_dom_pop, N_dom_smp, N_dom_unobs, L, threshold, transformation, lambda, shift, pop_weights, n_indicators));
+    return rcpp_result_gen;
+END_RCPP
+}
 // back_transform_cpp
 Rcpp::NumericVector back_transform_cpp(const arma::vec& y, const std::string& transformation, double lambda, double shift);
 RcppExport SEXP _emdi2_back_transform_cpp(SEXP ySEXP, SEXP transformationSEXP, SEXP lambdaSEXP, SEXP shiftSEXP) {
@@ -55,8 +122,11 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
+    {"_emdi2_gen_superpop_cpp", (DL_FUNC) &_emdi2_gen_superpop_cpp, 9},
+    {"_emdi2_gen_bootstrap_sample_cpp", (DL_FUNC) &_emdi2_gen_bootstrap_sample_cpp, 10},
     {"_emdi2_compute_domain_indicators_cpp", (DL_FUNC) &_emdi2_compute_domain_indicators_cpp, 3},
     {"_emdi2_compute_all_indicators_cpp", (DL_FUNC) &_emdi2_compute_all_indicators_cpp, 5},
+    {"_emdi2_monte_carlo_cpp", (DL_FUNC) &_emdi2_monte_carlo_cpp, 18},
     {"_emdi2_back_transform_cpp", (DL_FUNC) &_emdi2_back_transform_cpp, 4},
     {NULL, NULL, 0}
 };
