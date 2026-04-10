@@ -109,6 +109,16 @@
 #' usage when only a subset of domains is of interest. Note: Population data is
 #' filtered to selected domains, so random number generation will differ between
 #' runs with different domain selections even with the same seed. Defaults to \code{NULL}.
+#' @param MSE_indicators a character vector specifying which indicators to
+#' compute MSE for during the bootstrap. Defaults to \code{"all"} (all 10
+#' standard indicators). When set to a subset, e.g.,
+#' \code{c("Mean", "Head_Count")}, the bootstrap skips expensive sorting
+#' operations for Gini, quantiles, and QSR, which can dramatically reduce
+#' computation time on large datasets. Valid names: \code{"Mean"},
+#' \code{"Head_Count"}, \code{"Poverty_Gap"}, \code{"Gini"},
+#' \code{"Quintile_Share"}, \code{"Quantile_10"}, \code{"Quantile_25"},
+#' \code{"Median"}, \code{"Quantile_75"}, \code{"Quantile_90"}. Note: point
+#' estimates always include all indicators regardless of this parameter.
 #' @return An object of class "ebp", "emdi" that provides estimators for
 #' regional disaggregated indicators and optionally corresponding MSE estimates.
 #' Several generic functions have methods for the returned object. For a full
@@ -228,7 +238,17 @@
 #'     ), na.rm = TRUE, pop_weights = "eqsize"
 #' )
 #'
-#' # Example 6: Estimating indicators for a subset of domains only
+#' # Example 6: MSE only for Mean and Head_Count (faster on large datasets)
+#' emdi_model <- ebp(
+#'   fixed = eqIncome ~ gender + eqsize + cash + self_empl +
+#'     unempl_ben + age_ben + surv_ben + sick_ben + dis_ben + rent + fam_allow +
+#'     house_allow + cap_inv + tax_adj, pop_data = eusilcA_pop,
+#'   pop_domains = "district", smp_data = eusilcA_smp, smp_domains = "district",
+#'   na.rm = TRUE, MSE = TRUE, B = 10, L = 10,
+#'   MSE_indicators = c("Mean", "Head_Count")
+#' )
+#'
+#' # Example 7: Estimating indicators for a subset of domains only
 #' # Model is estimated using all sample data, but point and MSE estimation
 #' # is performed only for selected domains
 #' domains_of_interest <- c("94", "95", "96")
