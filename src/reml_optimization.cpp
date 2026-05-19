@@ -145,6 +145,16 @@ double reml_loglik_cpp(double lambda,
   int p = X.n_cols;
   int D = n_d.n_elem;
 
+  // Defensive: n_d must contain strictly positive counts. The R wrappers
+  // (optimal_parameter.R) now droplevels() before building n_d, but a direct
+  // C++ call with empty domains would hit Armadillo's X.rows(offset, -1)
+  // and crash with the opaque "Mat::rows()" error. Fail fast with a clear
+  // message instead.
+  if (arma::any(n_d <= 0)) {
+    Rcpp::stop("reml_loglik_cpp: n_d contains non-positive counts. "
+               "Drop unused factor levels from smp_domains before calling.");
+  }
+
   // 2. Precompute per-domain sufficient statistics
   struct DomainStats {
     arma::mat S_xx;   // p x p

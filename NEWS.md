@@ -2,6 +2,7 @@
 * Extension of the ebp function to allow for population weights
 * Extension of the ebp function to allow the aggregation of the estimates to different levels  
 * a more flexible use of the custom_indicator agrument within the ebp function
+* Bug fix in `optimal_parameter()` (transformations `box.cox`, `log.shift`, `dual`): the per-domain sample counts `n_d` are now built from `droplevels()` of the domain factor. If `smp_data[[smp_domains]]` carried unused factor levels (e.g. because the survey's `region2` was aligned to the census's level set for out-of-sample-domain coverage in `pop_data`), `table()` previously returned zero counts and the C++ sufficient-stats loop crashed with `Mat::rows(): indices out of bounds`. Added defensive `Rcpp::stop()` guards in `reml_loglik_cpp`, `lme_fit_cpp`, and `model_par_weighted_cpp` so a direct C++ call with ill-formed `n_d` fails fast with a clear message instead of an opaque Armadillo error.
 
 # emdi 2.1.3
 * Improved summary with clearer notation of R2

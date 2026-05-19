@@ -139,6 +139,13 @@ Rcpp::List lme_fit_cpp(const arma::vec& y_transformed,
   int p = X.n_cols;
   int D = n_d.n_elem;
 
+  // Defensive: n_d must contain strictly positive counts (see reml_loglik_cpp
+  // for the rationale — empty domains trigger Armadillo's X.rows(off, off-1)).
+  if (arma::any(n_d <= 0)) {
+    Rcpp::stop("lme_fit_cpp: n_d contains non-positive counts. "
+               "Drop unused factor levels from smp_domains before calling.");
+  }
+
   // 1. Precompute per-domain sufficient statistics
   std::vector<DomainSuffStats> stats(D);
   int offset = 0;
@@ -265,6 +272,12 @@ Rcpp::List model_par_weighted_cpp(const arma::vec& y_transformed,
                                    double sigma2_u) {
   int D = n_d.n_elem;
   int p = X.n_cols;
+
+  // Defensive: see reml_loglik_cpp for rationale (empty domains crash X.rows).
+  if (arma::any(n_d <= 0)) {
+    Rcpp::stop("model_par_weighted_cpp: n_d contains non-positive counts. "
+               "Drop unused factor levels from smp_domains before calling.");
+  }
 
   arma::vec weight_sum(D);
   arma::vec mean_dep(D);

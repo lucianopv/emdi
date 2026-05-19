@@ -32,7 +32,14 @@ optimal_parameter <- function(generic_opt,
     smp_data_sorted <- smp_data[order(smp_data[[smp_domains]]), ]
     y <- as.numeric(smp_data_sorted[[as.character(fixed[[2]])]])
     X <- model.matrix(fixed, smp_data_sorted)
-    domain_factor <- as.factor(smp_data_sorted[[smp_domains]])
+    # droplevels: if smp_domains carries unused factor levels (e.g. survey
+    # region2 aligned to census levels for OOS-domain coverage in pop_data),
+    # table() would emit zero counts. The C++ sufficient-stats loop then
+    # tries X.rows(offset, offset - 1) and Armadillo throws Mat::rows().
+    # We only drop levels in the local domain_factor used to build n_d;
+    # smp_data_sorted itself is untouched so the model matrix above and any
+    # downstream factor-level checks see the original factor unchanged.
+    domain_factor <- droplevels(as.factor(smp_data_sorted[[smp_domains]]))
     domain_ids <- as.integer(domain_factor)
     n_d <- as.integer(table(domain_factor))
 
