@@ -147,11 +147,14 @@ model_par <- function(framework,
     # Random effect: vector with zeros for all domains, filled with
     rand_eff <- rep(0, length(unique(framework$pop_domains_vec)))
     # random effect for in-sample domains (dist_obs_dom)
-    # Extract random effects and match by domain name
-    rand_effects_all <- random.effects(mixed_model)[[1]]
-    smp_domain_names <- rownames(rand_effects_all)
+    # Extract random effects and match by domain name.
+    # NB: random.effects(.)[[1]] returns a plain numeric vector with no
+    # rownames; the data.frame returned by random.effects(.) carries them.
+    rand_effects_df <- random.effects(mixed_model)
+    rand_effects_all <- rand_effects_df[[1]]
+    smp_domain_names <- rownames(rand_effects_df)
     pop_domain_names <- as.character(unique(framework$pop_domains_vec))
-    
+
     # For each population domain that is in sample, get its random effect
     for (i in seq_along(pop_domain_names)) {
       if (framework$dist_obs_dom[i]) {
