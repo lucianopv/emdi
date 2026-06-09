@@ -40,3 +40,72 @@ test_that("arcsin_bc cpp engine equals r engine on a realistic mu/var vector", {
   # OOS entries are sin(mu)^2 in both
   expect_equal(bc_cpp[!obs], sin(mu[!obs])^2, tolerance = 1e-12)
 })
+
+# Exact R mirror of the intended C++ algorithm: same pre-generated draws, the
+# closed-form bc integral (via fh_bc_integral_cpp), diagonal REML + EBLUP.
+boot_arcsin_mirror <- function(sigmau2, vardir, beta, X, predX, is_in,
+                               v_boot, e_boot, eblup_corr, bc, interval) {
+  M <- nrow(predX); m <- nrow(X); B <- ncol(v_boot)
+  in_idx <- which(is_in == 1L)
+  Xbeta  <- as.numeric(predX %*% beta)
+  est <- true <- matrix(NA_real_, M, B)
+  for (b in seq_len(B)) {
+    vb <- v_boot[, b]; eb <- e_boot[, b]
+    tt <- pmin(pmax(Xbeta + vb, 0), pi/2)
+    true[, b] <- sin(tt)^2
+    ystar <- Xbeta[in_idx] + vb[in_idx] + eb
+    s2b <- fh_estsigmau2_reml_cpp(ystar, X, as.numeric(vardir),
+                                  interval[1], interval[2], .Machine$double.eps^0.25)
+    vi <- 1/(s2b + vardir)
+    Q  <- solve(t(vi * X) %*% X)
+    bb <- as.numeric(Q %*% (t(X) %*% (vi * ystar)))
+    uh <- s2b * (vi * (ystar - as.numeric(X %*% bb)))
+    est_trans <- numeric(M)
+    est_trans[in_idx] <- as.numeric(X %*% bb) + uh
+    est_trans[-in_idx] <- as.numeric(predX[-in_idx, , drop = FALSE] %*% bb)
+    var_in <- s2b * (vardir/(s2b + vardir))
+    eb_val <- numeric(M)
+    for (d in seq_len(M)) {
+      if (is_in[d] == 1L) {
+        if (bc) eb_val[d] <- fh_bc_integral_cpp(est_trans[d],
+                                                sqrt(var_in[match(d, in_idx)]))
+        else    eb_val[d] <- sin(est_trans[d])^2
+      } else eb_val[d] <- sin(est_trans[d])^2
+    }
+    est[, b] <- eb_val
+  }
+  mse <- rowMeans((est - true)^2)
+  Li <- Ui <- numeric(M)
+  for (d in seq_len(M)) {
+    q <- stats::quantile(est[d, ] - true[d, ], c(0.025, 0.975), names = FALSE)
+    Li[d] <- eblup_corr[d] + q[1]; Ui[d] <- eblup_corr[d] + q[2]
+  }
+  list(mse = mse, Li = Li, Ui = Ui)
+}
+
+test_that("fh_boot_arcsin_cpp matches the exact R mirror (bc and naive)", {
+  set.seed(11)
+  m <- 25; M <- 30; p <- 2; B <- 40
+  X     <- cbind(1, rnorm(m))
+  predX <- cbind(1, rnorm(M))
+  is_in <- c(rep(1L, m), rep(0L, M - m))
+  vardir <- runif(m, 1e-3, 0.02)
+  beta   <- c(0.6, 0.1)
+  sigmau2 <- 0.01
+  eblup_corr <- runif(M, 0.1, 0.6)
+  interval <- c(0, 0.5)
+  v_boot <- matrix(rnorm(M*B, 0, sqrt(sigmau2)), M, B)
+  e_boot <- matrix(rnorm(m*B), m, B) * sqrt(vardir)
+
+  for (bc in c(TRUE, FALSE)) {
+    ref <- boot_arcsin_mirror(sigmau2, vardir, beta, X, predX, is_in,
+                              v_boot, e_boot, eblup_corr, bc, interval)
+    got <- fh_boot_arcsin_cpp(sigmau2, vardir, beta, X, predX, is_in,
+                              v_boot, e_boot, eblup_corr, bc,
+                              interval[1], interval[2])
+    expect_equal(as.numeric(got$mse), ref$mse, tolerance = 1e-7,
+                 info = paste("bc =", bc))
+    expect_equal(as.numeric(got$Li), ref$Li, tolerance = 1e-7)
+    expect_equal(as.numeric(got$Ui), ref$Ui, tolerance = 1e-7)
+  }
+})

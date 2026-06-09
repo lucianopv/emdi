@@ -13,6 +13,10 @@ fh_bc_integral_cpp <- function(mu, sigma) {
     .Call(`_emdi2_fh_bc_integral_cpp`, mu, sigma)
 }
 
+fh_boot_arcsin_cpp <- function(sigmau2, vardir, beta, X, predX, is_in, v_boot, e_boot, eblup_corr, bc, lower, upper) {
+    .Call(`_emdi2_fh_boot_arcsin_cpp`, sigmau2, vardir, beta, X, predX, is_in, v_boot, e_boot, eblup_corr, bc, lower, upper)
+}
+
 fh_eblup_core_cpp <- function(sigmau2, direct, X, vardir) {
     .Call(`_emdi2_fh_eblup_core_cpp`, sigmau2, direct, X, vardir)
 }
