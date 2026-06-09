@@ -88,6 +88,32 @@ test_that("engine switch + wrapper_estsigmau2 cpp/r parity (reml, no correlation
   expect_equal(as.numeric(s2_cpp), as.numeric(s2_r), tolerance = 1e-6)
 })
 
+test_that("fh_mse_pr_cpp matches prasad_rao numeric core (in- and out-of-sample)", {
+  data("eusilcA_smpAgg")
+  fixed  <- Mean ~ Cash
+  X      <- model.matrix(fixed, eusilcA_smpAgg)
+  direct <- eusilcA_smpAgg$Mean
+  vardir <- as.numeric(eusilcA_smpAgg$Var_Mean)
+  s2     <- 0.4 * var(direct)
+  # Use first 5 areas' X rows as pretend OOS covariates.
+  Xoos   <- X[1:5, , drop = FALSE]
+
+  # Dense reference (prasad_rao internals)
+  Vi   <- 1 / (s2 + vardir)
+  Bd   <- vardir / (s2 + vardir)
+  Q    <- solve(t(Vi * X) %*% X)
+  VarA <- 2 / sum(Vi^2)
+  g1   <- vardir * (1 - Bd)
+  g2   <- Bd^2 * rowSums((X %*% Q) * X)
+  g3   <- Bd^2 * VarA / (s2 + vardir)
+  mse_in_ref  <- g1 + g2 + 2 * g3
+  mse_out_ref <- s2 + rowSums((Xoos %*% Q) * Xoos)
+
+  res <- fh_mse_pr_cpp(s2, X, vardir, Xoos)
+  expect_equal(as.numeric(res$mse_in),  unname(mse_in_ref),  tolerance = 1e-9)
+  expect_equal(as.numeric(res$mse_out), unname(mse_out_ref), tolerance = 1e-9)
+})
+
 test_that("eblup_FH cpp engine equals r engine and dense oracle (in-sample; OOS covered in Task 8)", {
   data("eusilcA_popAgg"); data("eusilcA_smpAgg")
   combined <- combine_data(
