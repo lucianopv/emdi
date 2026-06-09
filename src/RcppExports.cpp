@@ -50,6 +50,18 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// fh_bc_integral_cpp
+arma::vec fh_bc_integral_cpp(const arma::vec& mu, const arma::vec& sigma);
+RcppExport SEXP _emdi2_fh_bc_integral_cpp(SEXP muSEXP, SEXP sigmaSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::vec& >::type mu(muSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type sigma(sigmaSEXP);
+    rcpp_result_gen = Rcpp::wrap(fh_bc_integral_cpp(mu, sigma));
+    return rcpp_result_gen;
+END_RCPP
+}
 // fh_eblup_core_cpp
 Rcpp::List fh_eblup_core_cpp(double sigmau2, const arma::vec& direct, const arma::mat& X, const arma::vec& vardir);
 RcppExport SEXP _emdi2_fh_eblup_core_cpp(SEXP sigmau2SEXP, SEXP directSEXP, SEXP XSEXP, SEXP vardirSEXP) {
@@ -349,6 +361,7 @@ END_RCPP
 static const R_CallMethodDef CallEntries[] = {
     {"_emdi2_gen_superpop_cpp", (DL_FUNC) &_emdi2_gen_superpop_cpp, 9},
     {"_emdi2_gen_bootstrap_sample_cpp", (DL_FUNC) &_emdi2_gen_bootstrap_sample_cpp, 10},
+    {"_emdi2_fh_bc_integral_cpp", (DL_FUNC) &_emdi2_fh_bc_integral_cpp, 2},
     {"_emdi2_fh_eblup_core_cpp", (DL_FUNC) &_emdi2_fh_eblup_core_cpp, 4},
     {"_emdi2_fh_mse_pr_cpp", (DL_FUNC) &_emdi2_fh_mse_pr_cpp, 4},
     {"_emdi2_fh_reml_loglik_cpp", (DL_FUNC) &_emdi2_fh_reml_loglik_cpp, 4},

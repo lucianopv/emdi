@@ -9,6 +9,10 @@ gen_bootstrap_sample_cpp <- function(X_smp, betas, sigmae2, sigmau2, vu_tmp, smp
     .Call(`_emdi2_gen_bootstrap_sample_cpp`, X_smp, betas, sigmae2, sigmau2, vu_tmp, smp_to_pop_map, n_smp, transformation, lambda, shift)
 }
 
+fh_bc_integral_cpp <- function(mu, sigma) {
+    .Call(`_emdi2_fh_bc_integral_cpp`, mu, sigma)
+}
+
 fh_eblup_core_cpp <- function(sigmau2, direct, X, vardir) {
     .Call(`_emdi2_fh_eblup_core_cpp`, sigmau2, direct, X, vardir)
 }
