@@ -87,3 +87,39 @@ test_that("engine switch + wrapper_estsigmau2 cpp/r parity (reml, no correlation
               wrapper_estsigmau2(fr, method = "reml", interval = interval))
   expect_equal(as.numeric(s2_cpp), as.numeric(s2_r), tolerance = 1e-6)
 })
+
+test_that("eblup_FH cpp engine equals r engine and dense oracle (in-sample; OOS covered in Task 8)", {
+  data("eusilcA_popAgg"); data("eusilcA_smpAgg")
+  combined <- combine_data(
+    pop_data = eusilcA_popAgg, pop_domains = "Domain",
+    smp_data = eusilcA_smpAgg, smp_domains = "Domain"
+  )
+  fixed <- Mean ~ cash + self_empl   # combined has lowercase cash/self_empl
+  fr <- framework_FH(
+    combined_data = combined, fixed = fixed, vardir = "Var_Mean",
+    domains = "Domain", transformation = "no", eff_smpsize = NULL,
+    correlation = "no", corMatrix = NULL, Ci = NULL, tol = 0.0001, maxit = 100
+  )
+  s2 <- 0.5 * var(fr$direct)
+  e_r   <- withr::with_options(list(emdi.fh_engine = "r"),   eblup_FH(fr, s2, combined))
+  e_cpp <- withr::with_options(list(emdi.fh_engine = "cpp"), eblup_FH(fr, s2, combined))
+
+  expect_equal(as.numeric(e_cpp$coefficients$coefficients),
+               as.numeric(e_r$coefficients$coefficients), tolerance = 1e-9)
+  # Coefficient names must survive the cpp path (fixef()/coef()/confint(parm=) rely on them).
+  expect_equal(rownames(e_cpp$coefficients), rownames(e_r$coefficients))
+  expect_equal(rownames(e_cpp$coefficients), colnames(fr$model_X))
+  expect_equal(as.numeric(e_cpp$random_effects),
+               as.numeric(e_r$random_effects), tolerance = 1e-9)
+  expect_equal(unname(as.matrix(e_cpp$beta_vcov)),
+               unname(as.matrix(e_r$beta_vcov)), tolerance = 1e-9)
+  expect_equal(e_cpp$eblup_data$FH, e_r$eblup_data$FH, tolerance = 1e-9)
+
+  # Independent dense oracle for the in-sample FH values (guards the cpp path).
+  m  <- fr$m; X <- fr$model_X; y <- fr$direct; vd <- as.numeric(fr$vardir)
+  V  <- s2 * diag(m) + diag(vd); Vi <- solve(V)
+  Qd <- solve(t(X) %*% Vi %*% X); bd <- Qd %*% t(X) %*% Vi %*% y
+  ud <- s2 * (Vi %*% (y - c(X %*% bd)))
+  fh_in <- as.numeric(X %*% bd + ud)
+  expect_equal(e_cpp$eblup_data$FH[fr$obs_dom], fh_in, tolerance = 1e-9)
+})

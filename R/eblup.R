@@ -1,17 +1,26 @@
 eblup_FH <- function(framework, sigmau2, combined_data) {
 
   # Estimation of the regression coefficients
-  # Identity matrix mxm
+  # Identity matrix mxm (used by the data-frame / OOS assembly below)
   D <- diag(1, framework$m)
-  # Total variance-covariance matrix - only values on the diagonal due to
-  # independence of error terms
-  V <- sigmau2 * D %*% t(D) + diag(as.numeric(framework$vardir))
-  # Inverse of the total variance
-  Vi <- solve(V)
-  # Inverse of X'ViX
-  Q <- solve(t(framework$model_X) %*% Vi %*% framework$model_X)
-  # Beta by (X'ViX)^-1 X'Viy
-  beta_hat <- Q %*% t(framework$model_X) %*% Vi %*% framework$direct
+
+  if (.fh_use_cpp()) {
+    # Diagonal closed form: beta_hat, Q = (X'V^-1 X)^-1, and u_hat at once.
+    core     <- fh_eblup_core_cpp(sigmau2, framework$direct, framework$model_X,
+                                  as.numeric(framework$vardir))
+    beta_hat <- core$beta_hat
+    rownames(beta_hat) <- colnames(framework$model_X)  # arma drops names; restore for coef()/fixef()/confint()
+    Q        <- core$Q
+    u_hat    <- core$u_hat
+  } else {
+    # Total variance-covariance matrix - diagonal due to independence of errors
+    V  <- sigmau2 * D %*% t(D) + diag(as.numeric(framework$vardir))
+    Vi <- solve(V)
+    Q  <- solve(t(framework$model_X) %*% Vi %*% framework$model_X)
+    beta_hat <- Q %*% t(framework$model_X) %*% Vi %*% framework$direct
+    res <- framework$direct - c(framework$model_X %*% beta_hat)
+    u_hat <- (sigmau2 * D) %*% t(D) %*% Vi %*% res
+  }
 
   # Inference for coefficients
   std_errorbeta <- sqrt(diag(Q))
@@ -24,11 +33,6 @@ eblup_FH <- function(framework, sigmau2, combined_data) {
     t.value = tvalue,
     p.value = pvalue
   )
-
-  # Computation of the EBLUP
-  res <- framework$direct - c(framework$model_X %*% beta_hat)
-  sigmau2Diag <- sigmau2 * D
-  u_hat <- sigmau2Diag %*% t(D) %*% Vi %*% res
 
   # Computation of shrinkage factor
   gamma <- sigmau2 / (sigmau2 + framework$vardir)
