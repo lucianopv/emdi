@@ -44,6 +44,29 @@ test_that("fh_reml_loglik_cpp matches the dense A.reml formula on a sigma2 grid"
   }
 })
 
+test_that("fh_eblup_core_cpp matches dense EBLUP algebra at fixed sigma2", {
+  data("eusilcA_smpAgg")
+  fixed  <- Mean ~ Cash
+  X      <- model.matrix(fixed, eusilcA_smpAgg)
+  direct <- eusilcA_smpAgg$Mean
+  vardir <- as.numeric(eusilcA_smpAgg$Var_Mean)
+  m      <- length(direct)
+  s2     <- 0.5 * var(direct)
+
+  # Dense reference (eblup_FH internal block)
+  V    <- s2 * diag(m) + diag(vardir)
+  Vi   <- solve(V)
+  Qr   <- solve(t(X) %*% Vi %*% X)
+  br   <- Qr %*% t(X) %*% Vi %*% direct
+  resr <- direct - c(X %*% br)
+  ur   <- s2 * (Vi %*% resr)
+
+  core <- fh_eblup_core_cpp(s2, direct, X, vardir)
+  expect_equal(as.numeric(core$beta_hat), as.numeric(br), tolerance = 1e-9)
+  expect_equal(unname(core$Q), unname(Qr), tolerance = 1e-9)
+  expect_equal(as.numeric(core$u_hat),    as.numeric(ur), tolerance = 1e-9)
+})
+
 test_that("engine switch + wrapper_estsigmau2 cpp/r parity (reml, no correlation)", {
   expect_true(is.function(.fh_use_cpp))
   expect_false(withr::with_options(list(emdi.fh_engine = "r"),   .fh_use_cpp()))
