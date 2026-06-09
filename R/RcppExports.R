@@ -13,6 +13,10 @@ fh_reml_loglik_cpp <- function(sigmau2, direct, X, vardir) {
     .Call(`_emdi2_fh_reml_loglik_cpp`, sigmau2, direct, X, vardir)
 }
 
+fh_estsigmau2_reml_cpp <- function(direct, X, vardir, lower, upper, tol) {
+    .Call(`_emdi2_fh_estsigmau2_reml_cpp`, direct, X, vardir, lower, upper, tol)
+}
+
 compute_domain_indicators_cpp <- function(y, weights, threshold) {
     .Call(`_emdi2_compute_domain_indicators_cpp`, y, weights, threshold)
 }

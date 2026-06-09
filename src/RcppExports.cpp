@@ -64,6 +64,22 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// fh_estsigmau2_reml_cpp
+double fh_estsigmau2_reml_cpp(const arma::vec& direct, const arma::mat& X, const arma::vec& vardir, double lower, double upper, double tol);
+RcppExport SEXP _emdi2_fh_estsigmau2_reml_cpp(SEXP directSEXP, SEXP XSEXP, SEXP vardirSEXP, SEXP lowerSEXP, SEXP upperSEXP, SEXP tolSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::vec& >::type direct(directSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type X(XSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type vardir(vardirSEXP);
+    Rcpp::traits::input_parameter< double >::type lower(lowerSEXP);
+    Rcpp::traits::input_parameter< double >::type upper(upperSEXP);
+    Rcpp::traits::input_parameter< double >::type tol(tolSEXP);
+    rcpp_result_gen = Rcpp::wrap(fh_estsigmau2_reml_cpp(direct, X, vardir, lower, upper, tol));
+    return rcpp_result_gen;
+END_RCPP
+}
 // compute_domain_indicators_cpp
 arma::vec compute_domain_indicators_cpp(const arma::vec& y, const arma::vec& weights, double threshold);
 RcppExport SEXP _emdi2_compute_domain_indicators_cpp(SEXP ySEXP, SEXP weightsSEXP, SEXP thresholdSEXP) {
@@ -306,6 +322,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_emdi2_gen_superpop_cpp", (DL_FUNC) &_emdi2_gen_superpop_cpp, 9},
     {"_emdi2_gen_bootstrap_sample_cpp", (DL_FUNC) &_emdi2_gen_bootstrap_sample_cpp, 10},
     {"_emdi2_fh_reml_loglik_cpp", (DL_FUNC) &_emdi2_fh_reml_loglik_cpp, 4},
+    {"_emdi2_fh_estsigmau2_reml_cpp", (DL_FUNC) &_emdi2_fh_estsigmau2_reml_cpp, 6},
     {"_emdi2_compute_domain_indicators_cpp", (DL_FUNC) &_emdi2_compute_domain_indicators_cpp, 3},
     {"_emdi2_compute_domain_indicators_selective_cpp", (DL_FUNC) &_emdi2_compute_domain_indicators_selective_cpp, 4},
     {"_emdi2_compute_all_indicators_cpp", (DL_FUNC) &_emdi2_compute_all_indicators_cpp, 5},
