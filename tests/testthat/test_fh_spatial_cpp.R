@@ -99,3 +99,22 @@ test_that("prasad_rao_spatial cpp engine equals r engine (mse_data, reml and ml)
     expect_equal(m_cpp$Direct, m_r$Direct, info = paste("method =", meth))
   }
 })
+
+test_that("fh() spatial cpp engine reproduces r engine (point + analytical MSE)", {
+  # eusilcA is all-in-sample; spatial analytical-MSE OOS returns NA by design.
+  data("eusilcA_popAgg"); data("eusilcA_smpAgg"); data("eusilcA_prox")
+  combined <- combine_data(eusilcA_popAgg, "Domain", eusilcA_smpAgg, "Domain")
+  run <- function(engine) withr::with_options(list(emdi.fh_engine = engine),
+    fh(Mean ~ cash + self_empl, vardir = "Var_Mean", combined_data = combined,
+       domains = "Domain", method = "reml", correlation = "spatial",
+       corMatrix = as.matrix(eusilcA_prox), MSE = TRUE, mse_type = "analytical"))
+  f_r <- run("r"); f_cpp <- run("cpp")
+  expect_equal(f_cpp$ind$FH, f_r$ind$FH, tolerance = 1e-6)
+  expect_equal(f_cpp$MSE$FH, f_r$MSE$FH, tolerance = 1e-6)
+  expect_equal(as.numeric(f_cpp$model$variance$variance),
+               as.numeric(f_r$model$variance$variance), tolerance = 1e-6)
+  expect_equal(as.numeric(f_cpp$model$variance$correlation),
+               as.numeric(f_r$model$variance$correlation), tolerance = 1e-6)
+  expect_equal(f_cpp$model$variance$convergence, f_r$model$variance$convergence)
+  expect_equal(rownames(f_cpp$model$coefficients), rownames(f_r$model$coefficients))
+})
