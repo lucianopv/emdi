@@ -178,3 +178,56 @@ test_that("eblup_FH cpp engine equals r engine and dense oracle (in-sample; OOS 
   fh_in <- as.numeric(X %*% bd + ud)
   expect_equal(e_cpp$eblup_data$FH[fr$obs_dom], fh_in, tolerance = 1e-9)
 })
+
+test_that("fh() cpp engine reproduces r engine: standard FH, point + analytical MSE", {
+  data("eusilcA_popAgg"); data("eusilcA_smpAgg")
+  combined <- combine_data(eusilcA_popAgg, "Domain", eusilcA_smpAgg, "Domain")
+  run <- function(engine) withr::with_options(list(emdi.fh_engine = engine),
+    fh(Mean ~ cash + self_empl, "Var_Mean", combined, "Domain",
+       method = "reml", MSE = TRUE, mse_type = "analytical"))
+  f_r <- run("r"); f_cpp <- run("cpp")
+  expect_equal(f_cpp$ind$FH, f_r$ind$FH, tolerance = 1e-6)
+  expect_equal(f_cpp$ind$Out, f_r$ind$Out)
+  expect_equal(f_cpp$MSE$FH, f_r$MSE$FH, tolerance = 1e-6)
+  expect_equal(as.numeric(f_cpp$model$variance),
+               as.numeric(f_r$model$variance), tolerance = 1e-6)
+  expect_equal(as.numeric(f_cpp$model$coefficients$coefficients),
+               as.numeric(f_r$model$coefficients$coefficients), tolerance = 1e-6)
+  # Coefficient names preserved through the cpp path (fixef/coef/confint guard).
+  expect_equal(rownames(f_cpp$model$coefficients),
+               rownames(f_r$model$coefficients))
+})
+
+test_that("fh() cpp vs r end-to-end WITH out-of-sample domains (point + analytical MSE)", {
+  data("eusilcA_popAgg"); data("eusilcA_smpAgg")
+  combined <- combine_data(eusilcA_popAgg, "Domain", eusilcA_smpAgg, "Domain")
+  # Hold out 10 in-sample domains -> OOS: NA both the estimate and its variance.
+  hold <- which(!is.na(combined$Mean))[1:10]
+  combined$Mean[hold]     <- NA
+  combined$Var_Mean[hold] <- NA
+
+  run <- function(engine) withr::with_options(list(emdi.fh_engine = engine),
+    fh(Mean ~ cash + self_empl, "Var_Mean", combined, "Domain",
+       method = "reml", MSE = TRUE, mse_type = "analytical"))
+  f_r <- run("r"); f_cpp <- run("cpp")
+
+  expect_equal(f_cpp$ind$FH,  f_r$ind$FH,  tolerance = 1e-6)
+  expect_equal(f_cpp$ind$Out, f_r$ind$Out)
+  expect_equal(f_cpp$MSE$FH,  f_r$MSE$FH,  tolerance = 1e-6)
+  # OOS rows must actually exist and be populated (this is the path eusilcA
+  # could not exercise in Tasks 5/7).
+  oos <- f_r$ind$Out == 1
+  expect_true(any(oos))
+  expect_equal(sum(oos), 10L)
+  expect_false(any(is.na(f_cpp$ind$FH[oos])))
+  expect_false(any(is.na(f_cpp$MSE$FH[oos])))
+})
+
+test_that("fh() default engine (auto) equals forced r engine", {
+  data("eusilcA_popAgg"); data("eusilcA_smpAgg")
+  combined <- combine_data(eusilcA_popAgg, "Domain", eusilcA_smpAgg, "Domain")
+  base <- function(engine) withr::with_options(list(emdi.fh_engine = engine),
+    fh(Mean ~ cash + self_empl, "Var_Mean", combined, "Domain",
+       method = "reml", MSE = TRUE, mse_type = "analytical")$ind$FH)
+  expect_equal(base("auto"), base("r"), tolerance = 1e-6)
+})
