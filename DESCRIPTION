@@ -61,6 +61,7 @@ LinkingTo:
     RcppArmadillo
 Suggests:
     testthat,
+    withr,
     R.rsp,
     simFrame,
     laeken,

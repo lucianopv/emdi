@@ -617,10 +617,18 @@ ybarralohr <- function(direct, x, vardir, Ci, areanumber, p, tol, maxit) {
 
 wrapper_estsigmau2 <- function(framework, method, interval) {
   sigmau2 <- if (method == "reml" && framework$correlation == "no") {
-    Reml(
-      interval = interval, vardir = framework$vardir, x = framework$model_X,
-      direct = framework$direct, areanumber = framework$m
-    )
+    if (.fh_use_cpp()) {
+      fh_estsigmau2_reml_cpp(
+        framework$direct, framework$model_X,
+        as.numeric(framework$vardir),   # arma::vec needs double; guard integer cols
+        interval[1], interval[2], .Machine$double.eps^0.25
+      )
+    } else {
+      Reml(
+        interval = interval, vardir = framework$vardir, x = framework$model_X,
+        direct = framework$direct, areanumber = framework$m
+      )
+    }
   } else if (method == "amrl") {
     AMRL(
       interval = interval, vardir = framework$vardir, x = framework$model_X,

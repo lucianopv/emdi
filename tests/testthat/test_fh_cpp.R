@@ -43,3 +43,24 @@ test_that("fh_reml_loglik_cpp matches the dense A.reml formula on a sigma2 grid"
     )
   }
 })
+
+test_that("engine switch + wrapper_estsigmau2 cpp/r parity (reml, no correlation)", {
+  expect_true(is.function(.fh_use_cpp))
+  expect_false(withr::with_options(list(emdi.fh_engine = "r"),   .fh_use_cpp()))
+  expect_true( withr::with_options(list(emdi.fh_engine = "cpp"), .fh_use_cpp()))
+  expect_true(withr::with_options(list(emdi.fh_engine = "INVALID"), .fh_use_cpp()))
+  expect_true(withr::with_options(list(emdi.fh_engine = 42L),       .fh_use_cpp()))
+
+  data("eusilcA_smpAgg")
+  fr <- framework_FH(
+    combined_data = eusilcA_smpAgg, fixed = Mean ~ Cash, vardir = "Var_Mean",
+    domains = "Domain", transformation = "no", eff_smpsize = NULL,
+    correlation = "no", corMatrix = NULL, Ci = NULL, tol = 0.0001, maxit = 100
+  )
+  interval <- c(0, var(fr$direct))
+  s2_r   <- withr::with_options(list(emdi.fh_engine = "r"),
+              wrapper_estsigmau2(fr, method = "reml", interval = interval))
+  s2_cpp <- withr::with_options(list(emdi.fh_engine = "cpp"),
+              wrapper_estsigmau2(fr, method = "reml", interval = interval))
+  expect_equal(as.numeric(s2_cpp), as.numeric(s2_r), tolerance = 1e-6)
+})
