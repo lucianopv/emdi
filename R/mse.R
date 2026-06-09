@@ -524,6 +524,41 @@ boot_arcsin_2 <- function(sigmau2, vardir, combined_data, framework,
   eff_smpsize <- framework$eff_smpsize
   x <- framework$model_X
 
+  # C++ fast path: standard FH (reml) only. The kernel hardcodes the REML
+  # sigma2_u estimator, so ml / spatial must use the legacy R loop below.
+  if (.fh_use_cpp() && method == "reml" && framework$correlation == "no") {
+    in_sample_d  <- framework$obs_dom == TRUE
+    out_sample_d <- framework$obs_dom == FALSE
+
+    # Full M-domain model matrix, built once (legacy loop rebuilt it B times).
+    # helper: dummy LHS so makeXY builds predX; the draw is unused but kept to
+    # preserve seed-deterministic RNG consumption before v_boot/e_boot.
+    pred_tmp <- data.frame(framework$combined_data, helper = stats::rnorm(1, 0, 1))
+    formula.tools::lhs(framework$formula) <- quote(helper)
+    predX <- makeXY(formula = framework$formula, data = pred_tmp)$x   # M x p
+
+    beta_pt  <- as.numeric(eblup$coefficients$coefficients)
+    vardir_v <- as.numeric(framework$vardir)
+    is_in    <- as.integer(in_sample_d)
+
+    # Pre-generate all bootstrap draws (deterministic given fh()'s seed).
+    v_boot <- matrix(stats::rnorm(M * B, 0, sqrt(sigmau2)), M, B)
+    e_boot <- matrix(stats::rnorm(m * B), m, B) * sqrt(vardir_v)
+
+    bc_flag <- identical(backtransformation, "bc")
+    res <- fh_boot_arcsin_cpp(sigmau2, vardir_v, beta_pt, x, predX, is_in,
+                              v_boot, e_boot, as.numeric(eblup_corr), bc_flag,
+                              interval[1], interval[2])
+
+    conf_int <- data.frame(Li = res$Li, Ui = res$Ui)
+    mse_data <- data.frame(Domain = framework$combined_data[[framework$domains]])
+    mse_data$Direct <- NA
+    mse_data$Direct[in_sample_d] <- framework$vardir
+    mse_data$MSE <- as.numeric(res$mse)
+    mse_data$Out <- as.numeric(out_sample_d)
+    return(list(conf_int, mse_data))
+  }
+
   ### Bootstrap
   in_sample <- framework$obs_dom == TRUE
   out_sample <- framework$obs_dom == FALSE

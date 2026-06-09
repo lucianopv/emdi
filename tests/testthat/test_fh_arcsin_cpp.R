@@ -131,3 +131,29 @@ test_that("fh_boot_arcsin_cpp is thread-count invariant", {
   expect_equal(as.numeric(a$Li),  as.numeric(b$Li),  tolerance = 1e-12)
   expect_equal(as.numeric(a$Ui), as.numeric(b$Ui), tolerance = 1e-12)
 })
+
+test_that("fh() arcsin+boot: cpp deterministic; point matches R; MSE MC-equivalent", {
+  data("eusilcA_popAgg"); data("eusilcA_smpAgg")
+  combined <- combine_data(eusilcA_popAgg, "Domain", eusilcA_smpAgg, "Domain")
+  f0 <- function(engine, B = 100) withr::with_options(
+    list(emdi.fh_engine = engine),
+    fh(MTMED ~ cash + self_empl, vardir = "Var_MTMED", combined_data = combined,
+       domains = "Domain", method = "reml", transformation = "arcsin",
+       backtransformation = "bc", eff_smpsize = "n", MSE = TRUE,
+       mse_type = "boot", B = c(B, 0), seed = 123))
+
+  c1 <- f0("cpp"); c2 <- f0("cpp")
+  expect_equal(c1$MSE$FH, c2$MSE$FH, tolerance = 1e-10)   # deterministic given seed
+
+  r1 <- f0("r")
+  expect_equal(c1$ind$FH, r1$ind$FH, tolerance = 1e-6)    # point back-transform deterministic
+
+  # Bootstrap MSE: cpp and r use INDEPENDENT RNG streams, so per-domain MSE has
+  # ~sqrt(2/B) MC noise (~15-20% at B=100). Assert (a) structural agreement
+  # (correlation) and (b) domain-MEAN MSE agreement (averaging cancels MC noise;
+  # the closed-form integral matches integrate() so there's no systematic bias).
+  ok <- is.finite(c1$MSE$FH) & is.finite(r1$MSE$FH) & r1$MSE$FH > 0
+  expect_gt(stats::cor(c1$MSE$FH[ok], r1$MSE$FH[ok]), 0.95)
+  expect_lt(abs(mean(c1$MSE$FH[ok]) - mean(r1$MSE$FH[ok])) / mean(r1$MSE$FH[ok]), 0.10)
+  expect_true(all(c1$MSE$FH[ok] > 0))
+})
