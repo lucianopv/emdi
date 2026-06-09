@@ -29,6 +29,10 @@ fh_mse_pr_cpp <- function(sigmau2, X, vardir, pred_X) {
     .Call(`_emdi2_fh_mse_pr_cpp`, sigmau2, X, vardir, pred_X)
 }
 
+fh_mse_spatial_cpp <- function(sigmau2, rho, X, vardir, W, method) {
+    .Call(`_emdi2_fh_mse_spatial_cpp`, sigmau2, rho, X, vardir, W, method)
+}
+
 fh_reml_loglik_cpp <- function(sigmau2, direct, X, vardir) {
     .Call(`_emdi2_fh_reml_loglik_cpp`, sigmau2, direct, X, vardir)
 }

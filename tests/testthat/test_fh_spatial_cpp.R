@@ -68,3 +68,17 @@ test_that("eblup_SFH cpp engine equals r engine (point + coef names)", {
   expect_equal(as.numeric(e_cpp$random_effects), as.numeric(e_r$random_effects), tolerance = 1e-7)
   expect_equal(rownames(e_cpp$coefficients), rownames(e_r$coefficients))  # arma name guard
 })
+
+test_that("fh_mse_spatial_cpp matches prasad_rao_spatial in-sample MSE (reml and ml)", {
+  fr <- make_spatial_fr()
+  data("eusilcA_popAgg"); data("eusilcA_smpAgg")
+  combined <- combine_data(eusilcA_popAgg, "Domain", eusilcA_smpAgg, "Domain")
+  s2 <- list(sigmau2 = 0.5 * var(fr$direct), rho = 0.4, convergence = TRUE)
+  for (meth in c("reml", "ml")) {
+    r_mse <- prasad_rao_spatial(fr, s2, combined, method = meth)$FH[fr$obs_dom]
+    cpp   <- fh_mse_spatial_cpp(s2$sigmau2, s2$rho, fr$model_X,
+                                as.numeric(fr$vardir), as.matrix(fr$W), meth)
+    expect_equal(as.numeric(cpp), as.numeric(r_mse), tolerance = 1e-7,
+                 info = paste("method =", meth))
+  }
+})
