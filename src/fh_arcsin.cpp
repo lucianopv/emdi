@@ -3,6 +3,10 @@
 #include <vector>
 #include <algorithm>
 #include <limits>
+#include <string>
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 // [[Rcpp::depends(RcppArmadillo)]]
 
 // fh_arcsin.cpp — back-transform integral for the arcsin EBP/bootstrap.
@@ -148,6 +152,7 @@ Rcpp::List fh_boot_arcsin_cpp(double sigmau2,                  // reserved: v_bo
   if (v_boot.n_rows != M || e_boot.n_rows != m || e_boot.n_cols != B)
     Rcpp::stop("fh_boot_arcsin_cpp: RNG matrix dimension mismatch");
   if (is_in.n_elem != M) Rcpp::stop("fh_boot_arcsin_cpp: length(is_in) != M");
+  if (lower < 0.0) Rcpp::stop("fh_boot_arcsin_cpp: lower must be >= 0");
 
   // in-sample index map (positions in 0..M-1), ascending
   arma::uvec in_idx(m);
@@ -163,48 +168,63 @@ Rcpp::List fh_boot_arcsin_cpp(double sigmau2,                  // reserved: v_bo
   arma::vec Xbeta = predX * beta;                 // M, same every iteration
   arma::mat est(M, B), tru(M, B);
 
-  for (arma::uword b = 0; b < B; ++b) {
-    arma::vec vb = v_boot.col(b);
-    arma::vec eb = e_boot.col(b);
+  bool boot_failed = false;
+  std::string boot_errmsg;
 
-    arma::vec tt = arma::clamp(Xbeta + vb, 0.0, HALF_PI);
-    tru.col(b) = arma::square(arma::sin(tt));
+  #ifdef _OPENMP
+  #pragma omp parallel for schedule(static)
+  #endif
+  for (long b = 0; b < (long) B; ++b) {
+    if (boot_failed) continue;                 // skip remaining work after a failure
+    try {
+      arma::vec vb = v_boot.col(b);
+      arma::vec eb = e_boot.col(b);
 
-    arma::vec ystar(m);
-    for (arma::uword i = 0; i < m; ++i) ystar(i) = Xbeta(in_idx(i)) + vb(in_idx(i)) + eb(i);
+      arma::vec tt = arma::clamp(Xbeta + vb, 0.0, HALF_PI);
+      tru.col(b) = arma::square(arma::sin(tt));
 
-    double s2b = fh_estsigmau2_reml_cpp(ystar, X, vardir, lower, upper, tol);
+      arma::vec ystar(m);
+      for (arma::uword i = 0; i < m; ++i) ystar(i) = Xbeta(in_idx(i)) + vb(in_idx(i)) + eb(i);
 
-    arma::vec vi = 1.0 / (s2b + vardir);
-    arma::mat XtViX(X.n_cols, X.n_cols, arma::fill::zeros);
-    arma::vec XtViy(X.n_cols, arma::fill::zeros);
-    for (arma::uword i = 0; i < m; ++i) {
-      arma::rowvec xi = X.row(i);
-      XtViX += vi(i) * (xi.t() * xi);
-      XtViy += vi(i) * xi.t() * ystar(i);
-    }
-    arma::mat Q = arma::inv_sympd(XtViX);
-    arma::vec bb = Q * XtViy;
-    arma::vec uh = s2b * (vi % (ystar - X * bb));
+      double s2b = fh_estsigmau2_reml_cpp(ystar, X, vardir, lower, upper, tol);
 
-    arma::vec predbeta = predX * bb;
-    arma::vec est_trans = predbeta;               // oos default
-    for (arma::uword i = 0; i < m; ++i)
-      est_trans(in_idx(i)) = arma::as_scalar(X.row(i) * bb) + uh(i);
-
-    arma::vec var_in = s2b * (vardir / (s2b + vardir));  // length m
-
-    arma::vec ev(M);
-    for (arma::uword d = 0; d < M; ++d) {
-      double mud = est_trans(d);
-      if (is_in(d) == 1 && bc) {
-        ev(d) = fh_bc_one(mud, std::sqrt(var_in(rank_of(d))), gx, gw);
-      } else {
-        double s = std::sin(mud); ev(d) = s * s;
+      arma::vec vi = 1.0 / (s2b + vardir);
+      arma::mat XtViX(X.n_cols, X.n_cols, arma::fill::zeros);
+      arma::vec XtViy(X.n_cols, arma::fill::zeros);
+      for (arma::uword i = 0; i < m; ++i) {
+        arma::rowvec xi = X.row(i);
+        XtViX += vi(i) * (xi.t() * xi);
+        XtViy += vi(i) * xi.t() * ystar(i);
       }
+      arma::mat Q = arma::inv_sympd(XtViX);
+      arma::vec bb = Q * XtViy;
+      arma::vec uh = s2b * (vi % (ystar - X * bb));
+
+      arma::vec predbeta = predX * bb;
+      arma::vec est_trans = predbeta;               // oos default
+      for (arma::uword i = 0; i < m; ++i)
+        est_trans(in_idx(i)) = arma::as_scalar(X.row(i) * bb) + uh(i);
+
+      arma::vec var_in = s2b * (vardir / (s2b + vardir));  // length m
+
+      arma::vec ev(M);
+      for (arma::uword d = 0; d < M; ++d) {
+        double mud = est_trans(d);
+        if (is_in(d) == 1 && bc) {
+          ev(d) = fh_bc_one(mud, std::sqrt(var_in(rank_of(d))), gx, gw);
+        } else {
+          double s = std::sin(mud); ev(d) = s * s;
+        }
+      }
+      est.col(b) = ev;
+    } catch (std::exception& e) {
+      #pragma omp critical
+      { boot_failed = true; boot_errmsg = e.what(); }
     }
-    est.col(b) = ev;
   }
+
+  if (boot_failed)
+    Rcpp::stop("fh_boot_arcsin_cpp: bootstrap iteration failed: " + boot_errmsg);
 
   arma::vec mse(M), Li(M), Ui(M);
   for (arma::uword d = 0; d < M; ++d) {

@@ -109,3 +109,25 @@ test_that("fh_boot_arcsin_cpp matches the exact R mirror (bc and naive)", {
     expect_equal(as.numeric(got$Ui), ref$Ui, tolerance = 1e-7)
   }
 })
+
+test_that("fh_boot_arcsin_cpp is thread-count invariant", {
+  set.seed(13)
+  m <- 30; M <- 36; B <- 60
+  X     <- cbind(1, rnorm(m)); predX <- cbind(1, rnorm(M))
+  is_in <- c(rep(1L, m), rep(0L, M - m))
+  vardir <- runif(m, 1e-3, 0.02); beta <- c(0.5, 0.2)
+  s2 <- 0.012; eblup_corr <- runif(M, 0.1, 0.6); interval <- c(0, 0.5)
+  v_boot <- matrix(rnorm(M*B, 0, sqrt(s2)), M, B)
+  e_boot <- matrix(rnorm(m*B), m, B) * sqrt(vardir)
+  old <- get_omp_threads()
+  on.exit(set_omp_threads(old), add = TRUE)
+  set_omp_threads(1)
+  a <- fh_boot_arcsin_cpp(s2, vardir, beta, X, predX, is_in, v_boot, e_boot,
+                          eblup_corr, TRUE, interval[1], interval[2])
+  set_omp_threads(4)
+  b <- fh_boot_arcsin_cpp(s2, vardir, beta, X, predX, is_in, v_boot, e_boot,
+                          eblup_corr, TRUE, interval[1], interval[2])
+  expect_equal(as.numeric(a$mse), as.numeric(b$mse), tolerance = 1e-12)
+  expect_equal(as.numeric(a$Li),  as.numeric(b$Li),  tolerance = 1e-12)
+  expect_equal(as.numeric(a$Ui), as.numeric(b$Ui), tolerance = 1e-12)
+})
