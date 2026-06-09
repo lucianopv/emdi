@@ -82,3 +82,20 @@ test_that("fh_mse_spatial_cpp matches prasad_rao_spatial in-sample MSE (reml and
                  info = paste("method =", meth))
   }
 })
+
+test_that("prasad_rao_spatial cpp engine equals r engine (mse_data, reml and ml)", {
+  fr <- make_spatial_fr()
+  data("eusilcA_popAgg"); data("eusilcA_smpAgg")
+  combined <- combine_data(eusilcA_popAgg, "Domain", eusilcA_smpAgg, "Domain")
+  s2 <- list(sigmau2 = 0.5 * var(fr$direct), rho = 0.4, convergence = TRUE)
+  for (meth in c("reml", "ml")) {
+    m_r   <- withr::with_options(list(emdi.fh_engine = "r"),
+               prasad_rao_spatial(fr, s2, combined, meth))
+    m_cpp <- withr::with_options(list(emdi.fh_engine = "cpp"),
+               prasad_rao_spatial(fr, s2, combined, meth))
+    expect_equal(m_cpp$FH, m_r$FH, tolerance = 1e-7, info = paste("method =", meth))
+    expect_equal(m_cpp$Out, m_r$Out, info = paste("method =", meth))
+    expect_equal(m_cpp$Domain, m_r$Domain, info = paste("method =", meth))
+    expect_equal(m_cpp$Direct, m_r$Direct, info = paste("method =", meth))
+  }
+})

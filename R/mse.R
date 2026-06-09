@@ -251,6 +251,12 @@ yoshimori_lahiri <- function(framework, sigmau2, combined_data, method) {
 
 prasad_rao_spatial <- function(framework, sigmau2, combined_data, method) {
 
+  if (.fh_use_cpp()) {
+    mse <- as.numeric(fh_mse_spatial_cpp(
+      sigmau2$sigmau2, sigmau2$rho, framework$model_X,
+      as.numeric(framework$vardir), as.matrix(framework$W), method))
+  } else {
+
   # MSE components
   g1 <- rep(0, framework$m)
   g2 <- rep(0, framework$m)
@@ -366,8 +372,7 @@ prasad_rao_spatial <- function(framework, sigmau2, combined_data, method) {
     }
     mse <- mse - bMLgrad.g1
   }
-
-
+  }  # end else: legacy R analytical MSE
 
   mse_data <- data.frame(Domain = framework$combined_data[[framework$domains]])
   mse_data$Direct <- NA
