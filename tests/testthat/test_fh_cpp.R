@@ -114,6 +114,35 @@ test_that("fh_mse_pr_cpp matches prasad_rao numeric core (in- and out-of-sample)
   expect_equal(as.numeric(res$mse_out), unname(mse_out_ref), tolerance = 1e-9)
 })
 
+test_that("prasad_rao cpp engine equals r engine (in-sample; OOS covered in Task 8)", {
+  data("eusilcA_popAgg"); data("eusilcA_smpAgg")
+  combined <- combine_data(
+    pop_data = eusilcA_popAgg, pop_domains = "Domain",
+    smp_data = eusilcA_smpAgg, smp_domains = "Domain"
+  )
+  fixed <- Mean ~ cash + self_empl
+  fr <- framework_FH(
+    combined_data = combined, fixed = fixed, vardir = "Var_Mean",
+    domains = "Domain", transformation = "no", eff_smpsize = NULL,
+    correlation = "no", corMatrix = NULL, Ci = NULL, tol = 0.0001, maxit = 100
+  )
+  s2 <- 0.4 * var(fr$direct)
+  set.seed(1)
+  m_r   <- withr::with_options(list(emdi.fh_engine = "r"),   prasad_rao(fr, s2, combined))
+  set.seed(1)
+  m_cpp <- withr::with_options(list(emdi.fh_engine = "cpp"), prasad_rao(fr, s2, combined))
+  expect_equal(m_cpp$FH,  m_r$FH,  tolerance = 1e-9)
+  expect_equal(m_cpp$Out, m_r$Out)
+  expect_equal(m_cpp$Direct, m_r$Direct)
+  expect_equal(m_cpp$Domain, m_r$Domain)
+
+  # Also match an independent dense Prasad-Rao reference for the in-sample MSE.
+  X <- fr$model_X; vd <- as.numeric(fr$vardir)
+  Vi <- 1/(s2+vd); Bd <- vd/(s2+vd); Q <- solve(t(Vi*X)%*%X); VarA <- 2/sum(Vi^2)
+  mse_ref <- vd*(1-Bd) + Bd^2*rowSums((X%*%Q)*X) + 2*Bd^2*VarA/(s2+vd)
+  expect_equal(m_cpp$FH[fr$obs_dom], unname(mse_ref), tolerance = 1e-9)
+})
+
 test_that("eblup_FH cpp engine equals r engine and dense oracle (in-sample; OOS covered in Task 8)", {
   data("eusilcA_popAgg"); data("eusilcA_smpAgg")
   combined <- combine_data(

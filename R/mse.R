@@ -1,4 +1,30 @@
 prasad_rao <- function(framework, sigmau2, combined_data) {
+  if (.fh_use_cpp()) {
+    if (!all(framework$obs_dom == TRUE)) {
+      pred_data_tmp <- combined_data[framework$obs_dom == FALSE, ]
+      pred_data_tmp <- data.frame(pred_data_tmp, helper = rnorm(1, 0, 1))
+      formula.tools::lhs(framework$formula) <- quote(helper)
+      pred_X <- makeXY(formula = framework$formula, data = pred_data_tmp)$x
+    } else {
+      pred_X <- framework$model_X[0, , drop = FALSE]
+    }
+    pr <- fh_mse_pr_cpp(sigmau2, framework$model_X,
+                        as.numeric(framework$vardir), pred_X)
+    mse     <- as.numeric(pr$mse_in)
+    mse_out <- as.numeric(pr$mse_out)
+
+    mse_data <- data.frame(Domain = framework$combined_data[[framework$domains]])
+    mse_data$Direct <- NA
+    mse_data$Direct[framework$obs_dom == TRUE] <- framework$vardir
+    mse_data$FH[framework$obs_dom == TRUE] <- mse
+    mse_data$Out[framework$obs_dom == TRUE] <- 0
+    if (!all(framework$obs_dom == TRUE)) {
+      mse_data$FH[framework$obs_dom == FALSE] <- mse_out
+      mse_data$Out[framework$obs_dom == FALSE] <- 1
+    }
+    return(mse_data)
+  }
+
   g1 <- rep(0, framework$m)
   g2 <- rep(0, framework$m)
   g3 <- rep(0, framework$m)
