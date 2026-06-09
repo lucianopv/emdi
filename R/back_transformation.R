@@ -252,30 +252,27 @@ arcsin_naive <- function(eblup) {
 }
 
 arcsin_bc <- function(framework, mu, var) {
+  obs <- framework$obs_dom == TRUE
+
+  if (.fh_use_cpp()) {
+    int_value <- (sin(mu))^2                        # OOS default
+    int_value[obs] <- fh_bc_integral_cpp(mu[obs], sqrt(as.numeric(var[obs])))
+    return(int_value)
+  }
 
   # Use integral to solve the formula in Slud and Maiti
   int_value <- NULL
-
-  # Can this be vectorized?
   for (i in seq_len(framework$M)) {
     if (framework$obs_dom[i] == TRUE) {
-
-      # Parameters for integration
       mu_dri <- mu[i]
       var_dri <- as.numeric(var[i])
-
       int_value <- c(int_value, integrate(integrand,
-        lower = 0,
-        upper = pi / 2,
-        mu_dri,
-        sqrt(var_dri)
+        lower = 0, upper = pi / 2, mu_dri, sqrt(var_dri)
       )$value)
     } else {
-      # Naive backtransformation for out-of-sample domains
       int_value <- c(int_value, (sin(mu[i]))^2)
     }
   }
-
   return(int_value)
 }
 

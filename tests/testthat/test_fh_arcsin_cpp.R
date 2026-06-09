@@ -25,3 +25,18 @@ test_that("fh_bc_integral_cpp small-sigma guard returns the correct limit", {
   got <- fh_bc_integral_cpp(mu, rep(1e-13, 3))
   expect_equal(as.numeric(got), exp, tolerance = 1e-12)
 })
+
+test_that("arcsin_bc cpp engine equals r engine on a realistic mu/var vector", {
+  set.seed(7)
+  M  <- 40
+  obs <- rep(TRUE, M); obs[1:5] <- FALSE          # 5 OOS
+  fr <- list(M = M, obs_dom = obs)
+  mu  <- runif(M, 0.05, 1.5)
+  # variances >= 1e-3 (sigma >= ~0.03): R integrate() is an accurate oracle here.
+  v   <- rep(NA_real_, M); v[obs] <- runif(sum(obs), 1e-3, 0.05)
+  bc_r   <- withr::with_options(list(emdi.fh_engine = "r"),   arcsin_bc(fr, mu, v))
+  bc_cpp <- withr::with_options(list(emdi.fh_engine = "cpp"), arcsin_bc(fr, mu, v))
+  expect_equal(as.numeric(bc_cpp), as.numeric(bc_r), tolerance = 1e-6)
+  # OOS entries are sin(mu)^2 in both
+  expect_equal(bc_cpp[!obs], sin(mu[!obs])^2, tolerance = 1e-12)
+})
