@@ -41,3 +41,18 @@ test_that("wrapper_estsigmau2 cpp==r for reml spatial", {
   expect_equal(s_cpp$rho,     s_r$rho,     tolerance = 1e-6)
   expect_equal(s_cpp$convergence, s_r$convergence)
 })
+
+test_that("fh_eblup_sfh_cpp matches eblup_SFH numeric core at fixed (sigmau2, rho)", {
+  fr <- make_spatial_fr()
+  data("eusilcA_popAgg"); data("eusilcA_smpAgg")
+  combined <- combine_data(eusilcA_popAgg, "Domain", eusilcA_smpAgg, "Domain")
+  s2 <- list(sigmau2 = 0.5 * var(fr$direct), rho = 0.4, convergence = TRUE)
+  e_r <- withr::with_options(list(emdi.fh_engine = "r"), eblup_SFH(fr, s2, combined))
+  cpp <- fh_eblup_sfh_cpp(s2$sigmau2, s2$rho, fr$direct, fr$model_X,
+                          as.numeric(fr$vardir), as.matrix(fr$W))
+  expect_equal(as.numeric(cpp$beta_hat), as.numeric(e_r$coefficients$coefficients),
+               tolerance = 1e-8)
+  expect_equal(unname(as.matrix(cpp$Q)), unname(as.matrix(e_r$beta_vcov)),
+               tolerance = 1e-7)   # beta_vcov accumulates 3 inversions; 1e-8 is borderline cross-LAPACK
+  expect_equal(as.numeric(cpp$u_hat), as.numeric(e_r$random_effects), tolerance = 1e-8)
+})

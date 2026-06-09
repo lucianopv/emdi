@@ -21,6 +21,10 @@ fh_eblup_core_cpp <- function(sigmau2, direct, X, vardir) {
     .Call(`_emdi2_fh_eblup_core_cpp`, sigmau2, direct, X, vardir)
 }
 
+fh_eblup_sfh_cpp <- function(sigmau2, rho, direct, X, vardir, W) {
+    .Call(`_emdi2_fh_eblup_sfh_cpp`, sigmau2, rho, direct, X, vardir, W)
+}
+
 fh_mse_pr_cpp <- function(sigmau2, X, vardir, pred_X) {
     .Call(`_emdi2_fh_mse_pr_cpp`, sigmau2, X, vardir, pred_X)
 }
