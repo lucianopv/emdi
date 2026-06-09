@@ -30,3 +30,14 @@ test_that("fh_sreml_cpp matches R SREML on non-convergence (maxit = 1)", {
   expect_equal(cpp$sigmau2, r$sigmau2, tolerance = 1e-6)
   expect_equal(cpp$rho,     r$rho,     tolerance = 1e-6)
 })
+
+test_that("wrapper_estsigmau2 cpp==r for reml spatial", {
+  fr <- make_spatial_fr()
+  s_r   <- withr::with_options(list(emdi.fh_engine = "r"),
+             wrapper_estsigmau2(fr, method = "reml", interval = c(0, var(fr$direct))))
+  s_cpp <- withr::with_options(list(emdi.fh_engine = "cpp"),
+             wrapper_estsigmau2(fr, method = "reml", interval = c(0, var(fr$direct))))
+  expect_equal(s_cpp$sigmau2, s_r$sigmau2, tolerance = 1e-6)
+  expect_equal(s_cpp$rho,     s_r$rho,     tolerance = 1e-6)
+  expect_equal(s_cpp$convergence, s_r$convergence)
+})

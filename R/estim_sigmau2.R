@@ -665,11 +665,17 @@ wrapper_estsigmau2 <- function(framework, method, interval) {
       tol = framework$tol, maxit = framework$maxit
     )
   } else if (method == "reml" && framework$correlation == "spatial") {
-    SREML(
-      direct = framework$direct, X = framework$model_X,
-      vardir = framework$vardir, areanumber = framework$m, W = framework$W,
-      tol = framework$tol, maxit = framework$maxit
-    )
+    if (.fh_use_cpp()) {
+      fh_sreml_cpp(framework$direct, framework$model_X,
+                   as.numeric(framework$vardir), as.matrix(framework$W),
+                   as.integer(framework$maxit), framework$tol)
+    } else {
+      SREML(
+        direct = framework$direct, X = framework$model_X,
+        vardir = framework$vardir, areanumber = framework$m, W = framework$W,
+        tol = framework$tol, maxit = framework$maxit
+      )
+    }
   } else if (method == "me") {
     ybarralohr(
       vardir = framework$vardir, direct = framework$direct,
