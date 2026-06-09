@@ -87,19 +87,31 @@ eblup_FH <- function(framework, sigmau2, combined_data) {
 eblup_SFH <- function(framework, sigmau2, combined_data) {
 
   # Estimation of the regression coefficients
-  # Identity matrix mxm
-  D <- diag(1, framework$m)
-  Wt <- t(framework$W)
-  A <- solve((D - sigmau2$rho * Wt) %*% (D - sigmau2$rho * framework$W))
-  G <- sigmau2$sigmau2 * A
-  # Total variance-covariance matrix
-  V <- G + D * framework$vardir
-  # Inverse of the total variance
-  Vi <- solve(V)
-  # Inverse of X'ViX
-  Q <- solve(t(framework$model_X) %*% Vi %*% framework$model_X)
-  # Beta by (X'ViX)^-1 X'Viy
-  beta_hat <- Q %*% t(framework$model_X) %*% Vi %*% framework$direct
+  D <- diag(1, framework$m)   # used by the data-frame / OOS assembly below
+
+  if (.fh_use_cpp()) {
+    core <- fh_eblup_sfh_cpp(sigmau2$sigmau2, sigmau2$rho, framework$direct,
+                             framework$model_X, as.numeric(framework$vardir),
+                             as.matrix(framework$W))
+    beta_hat <- core$beta_hat
+    rownames(beta_hat) <- colnames(framework$model_X)  # arma drops names; restore for coef()/fixef()/confint()
+    Q  <- core$Q
+    V  <- core$V
+    Vi <- core$Vi                       # reuse kernel's inverse (no R re-solve)
+    G  <- V - D * framework$vardir       # = sigma2_u * A, recovered cheaply
+  } else {
+    Wt <- t(framework$W)
+    A <- solve((D - sigmau2$rho * Wt) %*% (D - sigmau2$rho * framework$W))
+    G <- sigmau2$sigmau2 * A
+    # Total variance-covariance matrix
+    V <- G + D * framework$vardir
+    # Inverse of the total variance
+    Vi <- solve(V)
+    # Inverse of X'ViX
+    Q <- solve(t(framework$model_X) %*% Vi %*% framework$model_X)
+    # Beta by (X'ViX)^-1 X'Viy
+    beta_hat <- Q %*% t(framework$model_X) %*% Vi %*% framework$direct
+  }
 
   # Inference for coefficients
   std_errorbeta <- sqrt(diag(Q))
