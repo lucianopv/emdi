@@ -97,10 +97,17 @@
 #' indicates population weights in the populatation data. If a character string
 #' is provided weighted indicators are estimated using population weights.
 #' The variable has to be numeric. Defaults to \code{NULL}.
-#' @param aggregate_to a character string containing the name of a variable from
-#' population data that indicates the target domain level for which the
-#' results are to be displayed. The variable can be numeric or a factor.
-#' Defaults to \code{NULL}.
+#' @param aggregate_to a character string containing the name of a variable
+#' from population data used to group Monte Carlo indicator draws for
+#' output. May be coarser than \code{pop_domains} (the original use case,
+#' e.g. district random effect, state-level output, so every
+#' \code{pop_domains} value maps to exactly one \code{aggregate_to} value)
+#' or finer (e.g. a district random effect with output at an individual
+#' sub-unit nested within each district, so every \code{aggregate_to} value
+#' maps to exactly one \code{pop_domains} value). \code{aggregate_to} and
+#' \code{pop_domains} must form a strict hierarchy in one direction or the
+#' other; this is validated and raises an error otherwise. The variable can
+#' be numeric or a factor. Defaults to \code{NULL}.
 #' @param selected_domains a character vector containing the names of domains
 #' for which point and MSE estimates should be computed. If \code{NULL} (default),
 #' estimates are computed for all domains in the population data. The model is

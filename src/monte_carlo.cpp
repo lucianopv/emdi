@@ -148,8 +148,19 @@ Rcpp::List monte_carlo_cpp(
   std::vector<arma::uvec> agg_idx_cache;
   if (use_agg) {
     agg_idx_cache.resize(N_dom_ind);
+    int N_pop_agg = (int)agg_ids.n_elem;
+    std::vector<int> bucket_count(N_dom_ind, 0);
+    for (int i = 0; i < N_pop_agg; i++) {
+      bucket_count[agg_ids(i) - 1]++;
+    }
     for (int d = 0; d < N_dom_ind; d++) {
-      agg_idx_cache[d] = arma::find(agg_ids == (d + 1));
+      agg_idx_cache[d].set_size(bucket_count[d]);
+    }
+    std::vector<int> fill_pos(N_dom_ind, 0);
+    for (int i = 0; i < N_pop_agg; i++) {
+      int d = agg_ids(i) - 1;
+      agg_idx_cache[d](fill_pos[d]) = i;
+      fill_pos[d]++;
     }
   }
 

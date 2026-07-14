@@ -274,6 +274,23 @@ fw_check1 <- function(pop_data, mod_vars, pop_domains, smp_data, fixed,
                   pop_data. Please provide valid variable name for the
                   aggregation."))
     }
+    # aggregate_to and pop_domains must form a strict hierarchy, in EITHER
+    # direction: aggregate_to coarser than pop_domains (the original use
+    # case, e.g. district random effect -> province-level output, so every
+    # pop_domains value maps to exactly one aggregate_to value) or
+    # aggregate_to finer than pop_domains (e.g. district random effect ->
+    # grid-cell-level output, so every aggregate_to value maps to exactly
+    # one pop_domains value). Only reject when NEITHER direction is clean,
+    # i.e. aggregate_to and pop_domains genuinely cross-cut one another.
+    nest_fine <- tapply(pop_data[[pop_domains]], pop_data[[aggregate_to]],
+                         function(x) length(unique(x)))
+    nest_coarse <- tapply(pop_data[[aggregate_to]], pop_data[[pop_domains]],
+                           function(x) length(unique(x)))
+    if (any(nest_fine > 1) && any(nest_coarse > 1)) {
+      stop("aggregate_to does not nest within pop_domains (nor vice versa): ",
+           "aggregate_to and pop_domains must form a strict hierarchy in ",
+           "one direction or the other.", call. = FALSE)
+    }
   }
 
   if (is.character(pop_weights)) {
