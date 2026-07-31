@@ -75,6 +75,36 @@ static double wtd_quantile_single(const std::vector<double>& x_sorted,
   return x_sorted[sel];
 }
 
+// ---------------------------------------------------------------------------
+// Helper: unweighted step quantile matching R's wtd.quantile()
+// (R/framework_direct.R). With unit weights the cumulative weight fraction is
+// rw[i] = (i + 1) / n, so the selection predicate rw[i] >= p is monotone in i
+// and can be located by binary search -- no rw vector has to be materialised.
+// NOTE: this is the inverse-CDF ("step") rule, deliberately NOT the type-7
+// interpolation used for Quantile_10..Quantile_90. R's qsr() calls
+// wtd.quantile() regardless of weights, while its quants() special-cases
+// unit weights to stats::quantile(); the two must stay distinct here.
+// Uses pre-sorted data.
+// ---------------------------------------------------------------------------
+static double unwtd_step_quantile(const std::vector<double>& x_sorted, double p) {
+  int n = (int)x_sorted.size();
+  if (p == 0.0) return x_sorted[0];
+  if (p == 1.0) return x_sorted[n - 1];
+
+  int lo = 0, hi = n - 1, sel = -1;
+  while (lo <= hi) {
+    int mid = lo + (hi - lo) / 2;
+    if ((double)(mid + 1) / (double)n >= p) { sel = mid; hi = mid - 1; }
+    else lo = mid + 1;
+  }
+  if (sel == -1) return x_sorted[n - 1];
+
+  if ((double)(sel + 1) / (double)n == p && sel + 1 < n) {
+    return (x_sorted[sel] + x_sorted[sel + 1]) / 2.0;
+  }
+  return x_sorted[sel];
+}
+
 // Sort x and weights together, compute cumulative weight fractions
 static void sort_by_x(const arma::vec& x, const arma::vec& w,
                       std::vector<double>& xs, std::vector<double>& ws,
@@ -200,16 +230,17 @@ static arma::vec compute_domain_indicators_masked(const arma::vec& y,
       q20 = wtd_quantile_single(xs, rw, 0.2);
       q80 = wtd_quantile_single(xs, rw, 0.8);
     } else if (need_full_sort && is_unweighted) {
-      // Sorted, unweighted
-      double idx20 = 0.2 * (n - 1);
-      int lo20 = (int)std::floor(idx20), hi20 = (int)std::ceil(idx20);
-      q20 = xs[lo20] + (idx20 - lo20) * (xs[hi20] - xs[lo20]);
-      double idx80 = 0.8 * (n - 1);
-      int lo80 = (int)std::floor(idx80), hi80 = (int)std::ceil(idx80);
-      q80 = xs[lo80] + (idx80 - lo80) * (xs[hi80] - xs[lo80]);
+      // Sorted, unweighted. R's qsr() uses wtd.quantile() (the step rule) even
+      // with unit weights, so the type-7 interpolation used for the Quantile_*
+      // indicators must NOT be applied here -- it shifts the quintile cut and
+      // changes which observations fall in the bottom/top quintile.
+      q20 = unwtd_step_quantile(xs, 0.2);
+      q80 = unwtd_step_quantile(xs, 0.8);
     } else {
-      // No full sort — use weighted quantile with its own sort
-      // (this path happens when QSR is requested without Gini, weighted case)
+      // No full sort — use the weighted quantile with its own sort. Reached
+      // when QSR is requested without Gini; note this covers the UNWEIGHTED
+      // case too, where rw[i] = (i + 1) / n makes wtd_quantile_single() give
+      // the same step rule as unwtd_step_quantile() above.
       sort_by_x(y, w, xs, ws_sorted, rw);
       q20 = wtd_quantile_single(xs, rw, 0.2);
       q80 = wtd_quantile_single(xs, rw, 0.8);

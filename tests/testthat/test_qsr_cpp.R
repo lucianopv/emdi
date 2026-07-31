@@ -1,0 +1,146 @@
+# Regression tests for the C++ Quintile_Share (QSR) kernel.
+#
+# The unweighted branch of the QSR kernel in src/indicators.cpp previously used
+# type-7 linear interpolation for the 0.2/0.8 quantiles. R's qsr() (see
+# R/framework_ebp.R) calls wtd.quantile() (see R/framework_direct.R) regardless
+# of whether the weights are all one, and that is the inverse-CDF ("step") rule.
+# Interpolating shifts the quintile cut, which changes *which* observations fall
+# into the bottom/top quintile -- on eusilcA this moved Quintile_Share by up to
+# 8.5% in 52 of 94 domains. The kernel now uses the step rule (located by binary
+# search) for the unweighted case.
+#
+# Note the asymmetry these tests pin down: qsr() uses the step rule always,
+# while quants() (Quantile_10..Quantile_90) special-cases unit weights to
+# stats::quantile() (type-7). Both conventions must be preserved.
+
+# Reference implementation, mirroring R/framework_ebp.R's qsr() exactly.
+# wtd.quantile() is the package's own internal definition.
+qsr_reference <- function(y, pop_weights) {
+  quant14 <- wtd.quantile(x = y, weights = pop_weights, probs = c(0.2, 0.8))
+  iq1 <- y <= quant14[1]
+  iq4 <- y > quant14[2]
+  as.numeric((sum(pop_weights[iq4] * y[iq4]) / sum(pop_weights[iq4])) /
+               (sum(pop_weights[iq1] * y[iq1]) / sum(pop_weights[iq1])))
+}
+
+MASK_ALL <- 0x3FFL
+MASK_GINI <- 0x008L
+MASK_QSR <- 0x010L
+
+test_that("unweighted QSR kernel matches the R step-quantile reference", {
+  set.seed(20240101)
+  # n = 47 is a case where type-7 and the step rule select different
+  # observations; the multiples of 5 exercise the rw[sel] == p tie branch.
+  for (n in c(7, 20, 33, 47, 99, 100, 101, 250, 500, 1000, 1237, 5000)) {
+    y <- rlnorm(n, meanlog = 10, sdlog = 0.6)
+    w <- rep(1, n)
+    expect_equal(
+      compute_domain_indicators_cpp(y, w, 10859.24)[5],
+      qsr_reference(y, w),
+      tolerance = 1e-12,
+      info = paste("n =", n)
+    )
+  }
+})
+
+test_that("unweighted QSR kernel matches the reference with ties in the data", {
+  set.seed(20240102)
+  for (n in c(50, 137, 1000)) {
+    y <- round(rlnorm(n, meanlog = 6, sdlog = 0.6))  # integer-valued -> many ties
+    w <- rep(1, n)
+    expect_equal(
+      compute_domain_indicators_cpp(y, w, 400)[5],
+      qsr_reference(y, w),
+      tolerance = 1e-12,
+      info = paste("n =", n)
+    )
+  }
+})
+
+test_that("weighted QSR kernel still matches the R step-quantile reference", {
+  set.seed(20240103)
+  for (n in c(37, 100, 1000)) {
+    y <- rlnorm(n, meanlog = 10, sdlog = 0.6)
+    w <- runif(n, 0.5, 5)
+    expect_equal(
+      compute_domain_indicators_cpp(y, w, 10859.24)[5],
+      qsr_reference(y, w),
+      tolerance = 1e-12,
+      info = paste("n =", n)
+    )
+  }
+})
+
+test_that("QSR is invariant to which other indicators are requested", {
+  # need_full_sort is TRUE when Gini is requested and FALSE otherwise, which
+  # routes the unweighted QSR through two different code paths. They must agree.
+  set.seed(20240104)
+  for (n in c(47, 100, 1000)) {
+    y <- rlnorm(n, meanlog = 10, sdlog = 0.6)
+    w <- rep(1, n)
+    with_gini <- compute_domain_indicators_selective_cpp(
+      y, w, 10859.24, bitwOr(MASK_QSR, MASK_GINI))[5]
+    without_gini <- compute_domain_indicators_selective_cpp(
+      y, w, 10859.24, MASK_QSR)[5]
+    expect_equal(with_gini, without_gini, tolerance = 1e-12,
+                 info = paste("n =", n))
+    expect_equal(with_gini, qsr_reference(y, w), tolerance = 1e-12,
+                 info = paste("n =", n))
+  }
+})
+
+test_that("Quantile_10..Quantile_90 keep the type-7 convention for unit weights", {
+  # Guard against the step rule leaking into quants(), which special-cases
+  # unit weights to stats::quantile() (type-7). See R/framework_ebp.R.
+  set.seed(20240105)
+  for (n in c(47, 100, 1000)) {
+    y <- rlnorm(n, meanlog = 10, sdlog = 0.6)
+    w <- rep(1, n)
+    expect_equal(
+      compute_domain_indicators_cpp(y, w, 10859.24)[6:10],
+      as.numeric(quantile(y, probs = c(0.10, 0.25, 0.50, 0.75, 0.90),
+                          names = FALSE)),
+      tolerance = 1e-12,
+      info = paste("n =", n)
+    )
+  }
+})
+
+test_that("multi-domain QSR path matches the reference per domain", {
+  set.seed(20240106)
+  n_dom <- 12
+  sizes <- sample(30:200, n_dom, replace = TRUE)
+  y <- unlist(lapply(sizes, function(k) rlnorm(k, 10, 0.6)))
+  domain_ids <- rep.int(seq_len(n_dom), sizes)
+  w <- rep(1, length(y))
+
+  # domain_ids are 1-based and must be contiguous (see compute_all_indicators_cpp)
+  got <- compute_all_indicators_cpp(y, w, as.integer(domain_ids),
+                                    10859.24, n_dom)[, 5]
+  want <- vapply(seq_len(n_dom), function(d) {
+    yd <- y[domain_ids == d]
+    qsr_reference(yd, rep(1, length(yd)))
+  }, numeric(1))
+  expect_equal(got, want, tolerance = 1e-12)
+})
+
+test_that("ebp() Quintile_Share reproduces the emdi reference implementation", {
+  skip_if_not_installed("emdi")
+  skip_on_cran()
+
+  data("eusilcA_pop", package = "emdi2")
+  data("eusilcA_smp", package = "emdi2")
+  fixed <- eqIncome ~ gender + eqsize + cash + self_empl + unempl_ben +
+    age_ben + surv_ben + sick_ben + dis_ben + rent + fam_allow +
+    house_allow + cap_inv + tax_adj
+
+  args <- list(fixed = fixed, pop_data = eusilcA_pop, pop_domains = "district",
+               smp_data = eusilcA_smp, smp_domains = "district",
+               threshold = 10859.24, transformation = "no", L = 20,
+               MSE = FALSE)
+  got <- do.call(emdi2::ebp, args)
+  want <- do.call(emdi::ebp, args)
+
+  expect_equal(got$ind$Quintile_Share, want$ind$Quintile_Share,
+               tolerance = 1e-8)
+})
