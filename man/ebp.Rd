@@ -19,7 +19,7 @@ ebp(
   seed = 123,
   boot_type = "parametric",
   parallel_mode = ifelse(grepl("windows", .Platform$OS.type), "socket", "multicore"),
-  cpus = 1,
+  cpus = getOption("emdi2.cores", 1L),
   custom_indicator = NULL,
   na.rm = FALSE,
   weights = NULL,
@@ -111,8 +111,14 @@ selection of a suitable mode, depending on the operating system, if the
 number of \code{cpus} is chosen higher than 1. For details, see
 \code{\link[parallelMap]{parallelStart}}.}
 
-\item{cpus}{number determining the kernels that are used for the
-parallelization. Defaults to 1. For details, see
+\item{cpus}{the number of CPU cores \code{ebp} may use. The budget is spent
+on exactly one form of parallelism, never both at once: the C++ fast path
+runs single-process and turns the budget into OpenMP threads, while the R
+fallback (wild bootstrap, custom indicators) turns it into worker processes
+and runs each of them single-threaded. Defaults to
+\code{getOption("emdi2.cores", 1L)}, i.e. one core unless asked otherwise,
+which keeps \code{ebp} safe inside parallel pipelines. Resolved by
+\code{\link{emdi_cores}}; for the worker-process mode, see also
 \code{\link[parallelMap]{parallelStart}}.}
 
 \item{custom_indicator}{a list of functions containing the indicators to be

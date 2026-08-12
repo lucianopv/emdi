@@ -79,8 +79,14 @@
 #' selection of a suitable mode, depending on the operating system, if the
 #' number of \code{cpus} is chosen higher than 1. For details, see
 #' \code{\link[parallelMap]{parallelStart}}.
-#' @param cpus number determining the kernels that are used for the
-#' parallelization. Defaults to 1. For details, see
+#' @param cpus the number of CPU cores \code{ebp} may use. The budget is spent
+#' on exactly one form of parallelism, never both at once: the C++ fast path
+#' runs single-process and turns the budget into OpenMP threads, while the R
+#' fallback (wild bootstrap, custom indicators) turns it into worker processes
+#' and runs each of them single-threaded. Defaults to
+#' \code{getOption("emdi2.cores", 1L)}, i.e. one core unless asked otherwise,
+#' which keeps \code{ebp} safe inside parallel pipelines. Resolved by
+#' \code{\link{emdi_cores}}; for the worker-process mode, see also
 #' \code{\link[parallelMap]{parallelStart}}.
 #' @param custom_indicator a list of functions containing the indicators to be
 #' calculated additionally. Such functions must depend on the target variable
@@ -292,7 +298,7 @@ ebp <- function(fixed,
                 parallel_mode = ifelse(grepl("windows", .Platform$OS.type),
                   "socket", "multicore"
                 ),
-                cpus = 1,
+                cpus = getOption("emdi2.cores", 1L),
                 custom_indicator = NULL,
                 na.rm = FALSE,
                 weights = NULL,
@@ -316,6 +322,30 @@ ebp <- function(fixed,
     na.rm = na.rm, weights = weights, pop_weights = pop_weights
   )
 
+  # Core budget ----------------------------------------------------------------
+
+  # cpus is a budget of cores, not a worker count. emdi_cores() resolves it
+  # against the emdi2.cores option, OMP_NUM_THREADS, R CMD check's core limit
+  # and the machine's core count.
+  cores <- emdi_cores(cpus)
+
+  # Worker processes are started by the R bootstrap fallback only. The C++ fast
+  # path spends the same budget on OpenMP threads inside this one process, so
+  # it must not be given L'Ecuyer streams -- that would silently change the
+  # results as soon as the budget grew above one core.
+  #
+  # The indicator count must be the one framework_ebp() will produce, but the
+  # framework does not exist yet. framework_ebp() appends
+  # names(custom_indicator) to the 10 standard names, so counting the names --
+  # not the list -- reproduces it exactly, including for an unnamed list, which
+  # contributes no names and hence no extra indicators.
+  uses_workers <- isTRUE(MSE) && cores > 1L &&
+    !uses_cpp_bootstrap(
+      boot_type = boot_type,
+      n_indicators = 10L + length(names(custom_indicator)),
+      true_indicators = true_indicators
+    )
+
   # Save function call ---------------------------------------------------------
 
   call <- match.call()
@@ -323,10 +353,15 @@ ebp <- function(fixed,
     call$fixed <- fixed
   }
   # Data manipulation and notational framework ---------------------------------
+  # rng_switched records whether the switch below actually happened, so the
+  # restore at the end of the function cannot disagree with it about whether
+  # RNG_kind exists.
+  rng_switched <- FALSE
   if (!is.null(seed)) {
-    if (cpus > 1 && parallel_mode != "socket") {
+    if (uses_workers && parallel_mode != "socket") {
       RNG_kind <- RNGkind()
       set.seed(seed, kind = "L'Ecuyer")
+      rng_switched <- TRUE
     } else {
       set.seed(seed)
     }
@@ -359,7 +394,8 @@ ebp <- function(fixed,
     interval = interval,
     L = L,
     keep_data = TRUE,
-    control = control
+    control = control,
+    threads = cores
   )
 
 
@@ -379,7 +415,8 @@ ebp <- function(fixed,
       B = B,
       boot_type = boot_type,
       parallel_mode = parallel_mode,
-      cpus = cpus,
+      cpus = cores,
+      threads = cores,
       control = control,
       true_indicators = true_indicators,
       MSE_indicators = MSE_indicators
@@ -441,7 +478,7 @@ ebp <- function(fixed,
     )
   }
 
-  if (cpus > 1 && parallel_mode != "socket") {
+  if (rng_switched) {
     RNGkind(RNG_kind[1]) # restoring RNG type
   }
   class(ebp_out) <- c("ebp", "emdi")
