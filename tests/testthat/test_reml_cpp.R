@@ -111,7 +111,14 @@ test_that("reml_loglik_cpp works with dual transformation", {
   expect_equal(cpp_nll, lme_nll, tolerance = 1e-4)
 })
 
-test_that("optimal_parameter_cpp matches R optimal_parameter for box.cox", {
+# NOTE: the three tests below exercise the R wrapper optimal_parameter(), which
+# on this branch delegates to optimal_parameter_cpp(). They therefore compare the
+# cpp kernel against itself, and check only that the wrapper builds y, X,
+# domain_ids and n_d correctly (sorting, droplevels, model.matrix) -- not that
+# the optimiser agrees with R. The genuine R-vs-C++ comparison is the
+# optimize()/nlme::lme test at the end of this file.
+
+test_that("optimal_parameter() passes box.cox data through to the cpp kernel unchanged", {
   data("eusilcA_smp", package = "emdi2")
   fixed <- eqIncome ~ gender + eqsize
 
@@ -141,7 +148,7 @@ test_that("optimal_parameter_cpp matches R optimal_parameter for box.cox", {
   expect_equal(cpp_lambda, r_lambda, tolerance = 1e-4)
 })
 
-test_that("optimal_parameter_cpp matches R optimal_parameter for dual", {
+test_that("optimal_parameter() passes dual data through to the cpp kernel unchanged", {
   data("eusilcA_smp", package = "emdi2")
   fixed <- eqIncome ~ gender + eqsize
 
@@ -171,7 +178,7 @@ test_that("optimal_parameter_cpp matches R optimal_parameter for dual", {
   expect_equal(cpp_lambda, r_lambda, tolerance = 1e-4)
 })
 
-test_that("optimal_parameter_cpp matches R for full-model formula", {
+test_that("optimal_parameter() passes a full-model formula through to the cpp kernel unchanged", {
   data("eusilcA_smp", package = "emdi2")
   fixed <- eqIncome ~ gender + eqsize + cash + self_empl +
     unempl_ben + age_ben + surv_ben + sick_ben + dis_ben +
@@ -246,5 +253,42 @@ test_that("Full ebp() with MSE and C++ REML works", {
   mse_cols <- grep("_MSE$", names(mse$ind), value = TRUE)
   for (col in mse_cols) {
     expect_true(all(mse$ind[[col]] >= 0), info = paste("MSE column:", col))
+  }
+})
+
+# Genuine R oracle for the lambda search: R's own optimize() over generic_opt,
+# whose likelihood comes from nlme::lme(). This shares no code with
+# optimal_parameter_cpp (closed-form REML via per-domain sufficient statistics
+# and emdi::brent_fmin), so it is an independent check of both the likelihood
+# and the optimiser.
+test_that("optimal_parameter_cpp matches R optimize() over the lme-based REML likelihood", {
+  skip_on_cran()
+  data("eusilcA_smp", package = "emdi2")
+  fixed <- eqIncome ~ gender + eqsize
+
+  smp_sorted <- eusilcA_smp[order(eusilcA_smp$district), ]
+  y <- as.numeric(smp_sorted$eqIncome)
+  X <- model.matrix(fixed, smp_sorted)
+  dom <- droplevels(as.factor(smp_sorted$district))
+  n_d <- as.integer(table(dom))
+
+  for (case in list(list(tr = "box.cox", iv = c(-1, 2)),
+                    list(tr = "dual",    iv = c(0, 2)))) {
+    r_lambda <- stats::optimize(
+      f = generic_opt, interval = case$iv,
+      fixed = fixed, smp_data = eusilcA_smp, smp_domains = "district",
+      transformation = case$tr, control = list()
+    )$minimum
+
+    cpp_lambda <- optimal_parameter_cpp(
+      y = y, X = X, domain_ids = as.integer(dom), n_d = n_d,
+      transformation = case$tr, lower = case$iv[1], upper = case$iv[2]
+    )
+
+    # Agreement is limited by optimize()'s own default tolerance
+    # (.Machine$double.eps^0.25), not by the two likelihood implementations:
+    # observed 1.1e-05 (box.cox) and 5.5e-05 (dual) relative.
+    expect_equal(cpp_lambda, r_lambda, tolerance = 1e-4,
+                 info = paste("transformation =", case$tr))
   }
 })
