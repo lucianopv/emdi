@@ -71,7 +71,9 @@ test_that("fh_jackknife_cpp matches the R jackknife numeric core", {
   expect_true(all(is.finite(got$jack_sigmau2)))
 })
 
-test_that("fh_jackknife_cpp is invariant to the OpenMP thread count", {
+test_that("fh_jackknife_cpp is invariant to the thread count", {
+  nthr <- emdi_cores(4L)
+  skip_if(nthr < 2L, "needs at least 2 cores to be meaningful")
   fr <- framework_FH(
     combined_data = jk_data, fixed = jk_fixed, vardir = "Var_MTMED",
     domains = "Domain", transformation = "no", correlation = "no",
@@ -83,13 +85,8 @@ test_that("fh_jackknife_cpp is invariant to the OpenMP thread count", {
   core <- fh_eblup_core_cpp(s2, direct, X, vardir)
   fh_full <- as.numeric(X %*% core$beta_hat) + as.numeric(core$u_hat)
 
-  old <- get_omp_threads()
-  on.exit(set_omp_threads(old), add = TRUE)
-
-  set_omp_threads(1)
-  a <- fh_jackknife_cpp(direct, X, vardir, s2, fh_full, 0, 1e7, tol)
-  set_omp_threads(4)
-  b <- fh_jackknife_cpp(direct, X, vardir, s2, fh_full, 0, 1e7, tol)
+  a <- fh_jackknife_cpp(direct, X, vardir, s2, fh_full, 0, 1e7, tol, threads = 1L)
+  b <- fh_jackknife_cpp(direct, X, vardir, s2, fh_full, 0, 1e7, tol, threads = nthr)
 
   expect_equal(as.numeric(a$mse), as.numeric(b$mse), tolerance = 1e-12)
 })
@@ -140,4 +137,47 @@ test_that("the cpp jackknife path is taken for reml and skipped for ml", {
   # ml uses a different sigmau2 estimator, so it must stay on the R loop even
   # when the cpp engine is selected.
   expect_gt(count_fw(runner("ml", "cpp")), 1L)
+})
+
+# ---------------------------------------------------------------------------
+# cpus core-budget argument (Task 7)
+# ---------------------------------------------------------------------------
+
+test_that("fh() accepts cpus and returns identical results at 1 and 2", {
+  run <- function(n) suppressMessages(fh(
+    fixed = jk_fixed, vardir = "Var_MTMED", combined_data = jk_data,
+    domains = "Domain", method = "reml", interval = c(0, 1e7),
+    transformation = "arcsin", backtransformation = "naive",
+    eff_smpsize = "n", MSE = TRUE, mse_type = "jackknife", cpus = n))
+  a <- run(1L); b <- run(2L)
+  expect_equal(a$MSE$FH, b$MSE$FH, tolerance = 1e-12)
+  expect_equal(a$ind$FH, b$ind$FH, tolerance = 1e-12)
+})
+
+# The identity check above cannot prove the budget reaches the kernel: the
+# jackknife loop is RNG-free, so 1 and 2 threads give identical results
+# whether or not the thread count is actually forwarded. This reads the value
+# fh_jackknife_cpp() is handed via the real call chain -- arcsin_mse() calls
+# wrapper_MSE() directly (Trap 1 from the task brief: FH.R's own two
+# wrapper_MSE() call sites are NOT on the arcsin+jackknife path).
+test_that("fh() hands the resolved cpus budget to the jackknife kernel", {
+  budget <- emdi_cores(3L)
+  skip_if(budget < 2L, "machine reports a single core")
+  seen <- integer(0)
+  orig <- fh_jackknife_cpp          # capture BEFORE mocking, or this recurses
+  testthat::with_mocked_bindings(
+    {
+      invisible(suppressMessages(fh(
+        fixed = jk_fixed, vardir = "Var_MTMED", combined_data = jk_data,
+        domains = "Domain", method = "reml", interval = c(0, 1e7),
+        transformation = "arcsin", backtransformation = "naive",
+        eff_smpsize = "n", MSE = TRUE, mse_type = "jackknife", cpus = 3L)))
+    },
+    fh_jackknife_cpp = function(..., threads = 1L) {
+      seen <<- c(seen, as.integer(threads))
+      orig(..., threads = threads)
+    },
+    .package = "emdi2"
+  )
+  expect_identical(seen, budget)
 })

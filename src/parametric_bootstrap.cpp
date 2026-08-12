@@ -81,8 +81,10 @@ arma::mat parametric_bootstrap_cpp(
     Rcpp::Nullable<Rcpp::IntegerVector> agg_domain_ids_pop = R_NilValue,
     int N_dom_agg = 0,
     Rcpp::Nullable<Rcpp::NumericVector> smp_weights = R_NilValue,
-    int indicator_mask = 0x3FF
+    int indicator_mask = 0x3FF,
+    int threads = 1
 ) {
+  if (threads < 1) threads = 1;
 
   const int n_indicators = 10;
 
@@ -470,7 +472,10 @@ arma::mat parametric_bootstrap_cpp(
     // MC loop — OpenMP parallelized over L iterations
     // ------------------------------------------------------------------
     #ifdef _OPENMP
-    #pragma omp parallel if(L > 10)
+    // num_threads scopes the count to this region: emdi2 never calls
+    // omp_set_num_threads(), so it cannot alter OpenMP for the rest of the
+    // session or for other packages.
+    #pragma omp parallel if(L > 10) num_threads(threads)
     {
     #endif
       arma::mat local_mc_sum(N_dom_ind, n_indicators, arma::fill::zeros);

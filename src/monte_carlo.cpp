@@ -5,28 +5,6 @@
   #include <omp.h>
 #endif
 
-// ---------------------------------------------------------------------------
-// Control OpenMP threads from R
-// ---------------------------------------------------------------------------
-// [[Rcpp::export]]
-int set_omp_threads(int n) {
-#ifdef _OPENMP
-  omp_set_num_threads(n);
-  return omp_get_max_threads();
-#else
-  return 1;
-#endif
-}
-
-// [[Rcpp::export]]
-int get_omp_threads() {
-#ifdef _OPENMP
-  return omp_get_max_threads();
-#else
-  return 1;
-#endif
-}
-
 // Forward declarations for functions defined in other translation units.
 // back_transform_arma returns arma::vec directly (no copy).
 arma::vec back_transform_arma(const arma::vec& y,
@@ -119,8 +97,11 @@ Rcpp::List monte_carlo_cpp(
     int               n_indicators,
     Rcpp::Nullable<Rcpp::IntegerVector> agg_domain_ids = R_NilValue,
     int               N_dom_agg = 0,
-    int               indicator_mask = 0x3FF
+    int               indicator_mask = 0x3FF,
+    int               threads = 1
 ) {
+  if (threads < 1) threads = 1;
+
   int N_pop = (int)mu.n_elem;
 
   double sqrt_sigmae2 = std::sqrt(sigmae2);
@@ -218,7 +199,10 @@ Rcpp::List monte_carlo_cpp(
   // its own column of y_mcmc, accumulates into thread-local indicator sums.
   // ------------------------------------------------------------------
   #ifdef _OPENMP
-  #pragma omp parallel if(L > 10)
+  // num_threads scopes the count to this region: emdi2 never calls
+  // omp_set_num_threads(), so it cannot alter OpenMP for the rest of the
+  // session or for other packages.
+  #pragma omp parallel if(L > 10) num_threads(threads)
   {
   #endif
     // Thread-local indicator accumulator

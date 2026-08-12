@@ -141,7 +141,8 @@ Rcpp::List fh_boot_arcsin_cpp(double sigmau2,                  // reserved: v_bo
                               const arma::mat& e_boot,        // m x B
                               const arma::vec& eblup_corr,    // length M
                               bool bc,
-                              double lower, double upper) {
+                              double lower, double upper,
+                              int threads = 1) {
   const arma::uword M = predX.n_rows;
   const arma::uword m = X.n_rows;
   const arma::uword B = v_boot.n_cols;
@@ -153,6 +154,8 @@ Rcpp::List fh_boot_arcsin_cpp(double sigmau2,                  // reserved: v_bo
     Rcpp::stop("fh_boot_arcsin_cpp: RNG matrix dimension mismatch");
   if (is_in.n_elem != M) Rcpp::stop("fh_boot_arcsin_cpp: length(is_in) != M");
   if (lower < 0.0) Rcpp::stop("fh_boot_arcsin_cpp: lower must be >= 0");
+
+  if (threads < 1) threads = 1;
 
   // in-sample index map (positions in 0..M-1), ascending
   arma::uvec in_idx(m);
@@ -172,7 +175,7 @@ Rcpp::List fh_boot_arcsin_cpp(double sigmau2,                  // reserved: v_bo
   std::string boot_errmsg;
 
   #ifdef _OPENMP
-  #pragma omp parallel for schedule(static)
+  #pragma omp parallel for schedule(static) num_threads(threads)
   #endif
   for (long b = 0; b < (long) B; ++b) {
     if (boot_failed) continue;                 // skip remaining work after a failure

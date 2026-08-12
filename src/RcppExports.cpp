@@ -63,8 +63,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // fh_boot_arcsin_cpp
-Rcpp::List fh_boot_arcsin_cpp(double sigmau2, const arma::vec& vardir, const arma::vec& beta, const arma::mat& X, const arma::mat& predX, const arma::ivec& is_in, const arma::mat& v_boot, const arma::mat& e_boot, const arma::vec& eblup_corr, bool bc, double lower, double upper);
-RcppExport SEXP _emdi2_fh_boot_arcsin_cpp(SEXP sigmau2SEXP, SEXP vardirSEXP, SEXP betaSEXP, SEXP XSEXP, SEXP predXSEXP, SEXP is_inSEXP, SEXP v_bootSEXP, SEXP e_bootSEXP, SEXP eblup_corrSEXP, SEXP bcSEXP, SEXP lowerSEXP, SEXP upperSEXP) {
+Rcpp::List fh_boot_arcsin_cpp(double sigmau2, const arma::vec& vardir, const arma::vec& beta, const arma::mat& X, const arma::mat& predX, const arma::ivec& is_in, const arma::mat& v_boot, const arma::mat& e_boot, const arma::vec& eblup_corr, bool bc, double lower, double upper, int threads);
+RcppExport SEXP _emdi2_fh_boot_arcsin_cpp(SEXP sigmau2SEXP, SEXP vardirSEXP, SEXP betaSEXP, SEXP XSEXP, SEXP predXSEXP, SEXP is_inSEXP, SEXP v_bootSEXP, SEXP e_bootSEXP, SEXP eblup_corrSEXP, SEXP bcSEXP, SEXP lowerSEXP, SEXP upperSEXP, SEXP threadsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -80,7 +80,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< bool >::type bc(bcSEXP);
     Rcpp::traits::input_parameter< double >::type lower(lowerSEXP);
     Rcpp::traits::input_parameter< double >::type upper(upperSEXP);
-    rcpp_result_gen = Rcpp::wrap(fh_boot_arcsin_cpp(sigmau2, vardir, beta, X, predX, is_in, v_boot, e_boot, eblup_corr, bc, lower, upper));
+    Rcpp::traits::input_parameter< int >::type threads(threadsSEXP);
+    rcpp_result_gen = Rcpp::wrap(fh_boot_arcsin_cpp(sigmau2, vardir, beta, X, predX, is_in, v_boot, e_boot, eblup_corr, bc, lower, upper, threads));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -115,8 +116,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // fh_jackknife_cpp
-Rcpp::List fh_jackknife_cpp(const arma::vec& direct, const arma::mat& X, const arma::vec& vardir, double sigmau2, const arma::vec& fh_full, double lower, double upper, double tol);
-RcppExport SEXP _emdi2_fh_jackknife_cpp(SEXP directSEXP, SEXP XSEXP, SEXP vardirSEXP, SEXP sigmau2SEXP, SEXP fh_fullSEXP, SEXP lowerSEXP, SEXP upperSEXP, SEXP tolSEXP) {
+Rcpp::List fh_jackknife_cpp(const arma::vec& direct, const arma::mat& X, const arma::vec& vardir, double sigmau2, const arma::vec& fh_full, double lower, double upper, double tol, int threads);
+RcppExport SEXP _emdi2_fh_jackknife_cpp(SEXP directSEXP, SEXP XSEXP, SEXP vardirSEXP, SEXP sigmau2SEXP, SEXP fh_fullSEXP, SEXP lowerSEXP, SEXP upperSEXP, SEXP tolSEXP, SEXP threadsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -128,7 +129,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< double >::type lower(lowerSEXP);
     Rcpp::traits::input_parameter< double >::type upper(upperSEXP);
     Rcpp::traits::input_parameter< double >::type tol(tolSEXP);
-    rcpp_result_gen = Rcpp::wrap(fh_jackknife_cpp(direct, X, vardir, sigmau2, fh_full, lower, upper, tol));
+    Rcpp::traits::input_parameter< int >::type threads(threadsSEXP);
+    rcpp_result_gen = Rcpp::wrap(fh_jackknife_cpp(direct, X, vardir, sigmau2, fh_full, lower, upper, tol, threads));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -292,30 +294,9 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// set_omp_threads
-int set_omp_threads(int n);
-RcppExport SEXP _emdi2_set_omp_threads(SEXP nSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< int >::type n(nSEXP);
-    rcpp_result_gen = Rcpp::wrap(set_omp_threads(n));
-    return rcpp_result_gen;
-END_RCPP
-}
-// get_omp_threads
-int get_omp_threads();
-RcppExport SEXP _emdi2_get_omp_threads() {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    rcpp_result_gen = Rcpp::wrap(get_omp_threads());
-    return rcpp_result_gen;
-END_RCPP
-}
 // monte_carlo_cpp
-Rcpp::List monte_carlo_cpp(const arma::vec& mu, double sigmae2, double sigmau2, const arma::vec& sigmav2, const arma::ivec& domain_ids, const arma::ivec& obs_dom, const arma::ivec& dist_obs_dom, const arma::ivec& n_pop, int N_dom_pop, int N_dom_smp, int N_dom_unobs, int L, double threshold, const std::string& transformation, double lambda, double shift, const arma::vec& pop_weights, int n_indicators, Rcpp::Nullable<Rcpp::IntegerVector> agg_domain_ids, int N_dom_agg, int indicator_mask);
-RcppExport SEXP _emdi2_monte_carlo_cpp(SEXP muSEXP, SEXP sigmae2SEXP, SEXP sigmau2SEXP, SEXP sigmav2SEXP, SEXP domain_idsSEXP, SEXP obs_domSEXP, SEXP dist_obs_domSEXP, SEXP n_popSEXP, SEXP N_dom_popSEXP, SEXP N_dom_smpSEXP, SEXP N_dom_unobsSEXP, SEXP LSEXP, SEXP thresholdSEXP, SEXP transformationSEXP, SEXP lambdaSEXP, SEXP shiftSEXP, SEXP pop_weightsSEXP, SEXP n_indicatorsSEXP, SEXP agg_domain_idsSEXP, SEXP N_dom_aggSEXP, SEXP indicator_maskSEXP) {
+Rcpp::List monte_carlo_cpp(const arma::vec& mu, double sigmae2, double sigmau2, const arma::vec& sigmav2, const arma::ivec& domain_ids, const arma::ivec& obs_dom, const arma::ivec& dist_obs_dom, const arma::ivec& n_pop, int N_dom_pop, int N_dom_smp, int N_dom_unobs, int L, double threshold, const std::string& transformation, double lambda, double shift, const arma::vec& pop_weights, int n_indicators, Rcpp::Nullable<Rcpp::IntegerVector> agg_domain_ids, int N_dom_agg, int indicator_mask, int threads);
+RcppExport SEXP _emdi2_monte_carlo_cpp(SEXP muSEXP, SEXP sigmae2SEXP, SEXP sigmau2SEXP, SEXP sigmav2SEXP, SEXP domain_idsSEXP, SEXP obs_domSEXP, SEXP dist_obs_domSEXP, SEXP n_popSEXP, SEXP N_dom_popSEXP, SEXP N_dom_smpSEXP, SEXP N_dom_unobsSEXP, SEXP LSEXP, SEXP thresholdSEXP, SEXP transformationSEXP, SEXP lambdaSEXP, SEXP shiftSEXP, SEXP pop_weightsSEXP, SEXP n_indicatorsSEXP, SEXP agg_domain_idsSEXP, SEXP N_dom_aggSEXP, SEXP indicator_maskSEXP, SEXP threadsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -340,13 +321,14 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::IntegerVector> >::type agg_domain_ids(agg_domain_idsSEXP);
     Rcpp::traits::input_parameter< int >::type N_dom_agg(N_dom_aggSEXP);
     Rcpp::traits::input_parameter< int >::type indicator_mask(indicator_maskSEXP);
-    rcpp_result_gen = Rcpp::wrap(monte_carlo_cpp(mu, sigmae2, sigmau2, sigmav2, domain_ids, obs_dom, dist_obs_dom, n_pop, N_dom_pop, N_dom_smp, N_dom_unobs, L, threshold, transformation, lambda, shift, pop_weights, n_indicators, agg_domain_ids, N_dom_agg, indicator_mask));
+    Rcpp::traits::input_parameter< int >::type threads(threadsSEXP);
+    rcpp_result_gen = Rcpp::wrap(monte_carlo_cpp(mu, sigmae2, sigmau2, sigmav2, domain_ids, obs_dom, dist_obs_dom, n_pop, N_dom_pop, N_dom_smp, N_dom_unobs, L, threshold, transformation, lambda, shift, pop_weights, n_indicators, agg_domain_ids, N_dom_agg, indicator_mask, threads));
     return rcpp_result_gen;
 END_RCPP
 }
 // parametric_bootstrap_cpp
-arma::mat parametric_bootstrap_cpp(const arma::mat& X_pop, const arma::vec& mu_fixed_orig, const arma::ivec& n_pop, const arma::ivec& obs_dom, const arma::ivec& dist_obs_dom, const arma::vec& pop_weights, int N_pop, int N_dom_pop, const arma::mat& X_smp, const arma::ivec& n_smp, const arma::ivec& smp_domain_ids, const arma::ivec& smp_to_pop_map, int N_smp, int N_dom_smp, const arma::vec& betas_orig, double sigmae2_orig, double sigmau2_orig, int N_dom_smp_selected, int N_dom_unobs, int B, int L, double threshold, const std::string& transformation, double lambda_orig, double shift_orig, double interval_lower, double interval_upper, Rcpp::Nullable<Rcpp::IntegerVector> agg_domain_ids_pop, int N_dom_agg, Rcpp::Nullable<Rcpp::NumericVector> smp_weights, int indicator_mask);
-RcppExport SEXP _emdi2_parametric_bootstrap_cpp(SEXP X_popSEXP, SEXP mu_fixed_origSEXP, SEXP n_popSEXP, SEXP obs_domSEXP, SEXP dist_obs_domSEXP, SEXP pop_weightsSEXP, SEXP N_popSEXP, SEXP N_dom_popSEXP, SEXP X_smpSEXP, SEXP n_smpSEXP, SEXP smp_domain_idsSEXP, SEXP smp_to_pop_mapSEXP, SEXP N_smpSEXP, SEXP N_dom_smpSEXP, SEXP betas_origSEXP, SEXP sigmae2_origSEXP, SEXP sigmau2_origSEXP, SEXP N_dom_smp_selectedSEXP, SEXP N_dom_unobsSEXP, SEXP BSEXP, SEXP LSEXP, SEXP thresholdSEXP, SEXP transformationSEXP, SEXP lambda_origSEXP, SEXP shift_origSEXP, SEXP interval_lowerSEXP, SEXP interval_upperSEXP, SEXP agg_domain_ids_popSEXP, SEXP N_dom_aggSEXP, SEXP smp_weightsSEXP, SEXP indicator_maskSEXP) {
+arma::mat parametric_bootstrap_cpp(const arma::mat& X_pop, const arma::vec& mu_fixed_orig, const arma::ivec& n_pop, const arma::ivec& obs_dom, const arma::ivec& dist_obs_dom, const arma::vec& pop_weights, int N_pop, int N_dom_pop, const arma::mat& X_smp, const arma::ivec& n_smp, const arma::ivec& smp_domain_ids, const arma::ivec& smp_to_pop_map, int N_smp, int N_dom_smp, const arma::vec& betas_orig, double sigmae2_orig, double sigmau2_orig, int N_dom_smp_selected, int N_dom_unobs, int B, int L, double threshold, const std::string& transformation, double lambda_orig, double shift_orig, double interval_lower, double interval_upper, Rcpp::Nullable<Rcpp::IntegerVector> agg_domain_ids_pop, int N_dom_agg, Rcpp::Nullable<Rcpp::NumericVector> smp_weights, int indicator_mask, int threads);
+RcppExport SEXP _emdi2_parametric_bootstrap_cpp(SEXP X_popSEXP, SEXP mu_fixed_origSEXP, SEXP n_popSEXP, SEXP obs_domSEXP, SEXP dist_obs_domSEXP, SEXP pop_weightsSEXP, SEXP N_popSEXP, SEXP N_dom_popSEXP, SEXP X_smpSEXP, SEXP n_smpSEXP, SEXP smp_domain_idsSEXP, SEXP smp_to_pop_mapSEXP, SEXP N_smpSEXP, SEXP N_dom_smpSEXP, SEXP betas_origSEXP, SEXP sigmae2_origSEXP, SEXP sigmau2_origSEXP, SEXP N_dom_smp_selectedSEXP, SEXP N_dom_unobsSEXP, SEXP BSEXP, SEXP LSEXP, SEXP thresholdSEXP, SEXP transformationSEXP, SEXP lambda_origSEXP, SEXP shift_origSEXP, SEXP interval_lowerSEXP, SEXP interval_upperSEXP, SEXP agg_domain_ids_popSEXP, SEXP N_dom_aggSEXP, SEXP smp_weightsSEXP, SEXP indicator_maskSEXP, SEXP threadsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -381,7 +363,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type N_dom_agg(N_dom_aggSEXP);
     Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::NumericVector> >::type smp_weights(smp_weightsSEXP);
     Rcpp::traits::input_parameter< int >::type indicator_mask(indicator_maskSEXP);
-    rcpp_result_gen = Rcpp::wrap(parametric_bootstrap_cpp(X_pop, mu_fixed_orig, n_pop, obs_dom, dist_obs_dom, pop_weights, N_pop, N_dom_pop, X_smp, n_smp, smp_domain_ids, smp_to_pop_map, N_smp, N_dom_smp, betas_orig, sigmae2_orig, sigmau2_orig, N_dom_smp_selected, N_dom_unobs, B, L, threshold, transformation, lambda_orig, shift_orig, interval_lower, interval_upper, agg_domain_ids_pop, N_dom_agg, smp_weights, indicator_mask));
+    Rcpp::traits::input_parameter< int >::type threads(threadsSEXP);
+    rcpp_result_gen = Rcpp::wrap(parametric_bootstrap_cpp(X_pop, mu_fixed_orig, n_pop, obs_dom, dist_obs_dom, pop_weights, N_pop, N_dom_pop, X_smp, n_smp, smp_domain_ids, smp_to_pop_map, N_smp, N_dom_smp, betas_orig, sigmae2_orig, sigmau2_orig, N_dom_smp_selected, N_dom_unobs, B, L, threshold, transformation, lambda_orig, shift_orig, interval_lower, interval_upper, agg_domain_ids_pop, N_dom_agg, smp_weights, indicator_mask, threads));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -490,10 +473,10 @@ static const R_CallMethodDef CallEntries[] = {
     {"_emdi2_gen_superpop_cpp", (DL_FUNC) &_emdi2_gen_superpop_cpp, 9},
     {"_emdi2_gen_bootstrap_sample_cpp", (DL_FUNC) &_emdi2_gen_bootstrap_sample_cpp, 10},
     {"_emdi2_fh_bc_integral_cpp", (DL_FUNC) &_emdi2_fh_bc_integral_cpp, 2},
-    {"_emdi2_fh_boot_arcsin_cpp", (DL_FUNC) &_emdi2_fh_boot_arcsin_cpp, 12},
+    {"_emdi2_fh_boot_arcsin_cpp", (DL_FUNC) &_emdi2_fh_boot_arcsin_cpp, 13},
     {"_emdi2_fh_eblup_core_cpp", (DL_FUNC) &_emdi2_fh_eblup_core_cpp, 4},
     {"_emdi2_fh_eblup_sfh_cpp", (DL_FUNC) &_emdi2_fh_eblup_sfh_cpp, 6},
-    {"_emdi2_fh_jackknife_cpp", (DL_FUNC) &_emdi2_fh_jackknife_cpp, 8},
+    {"_emdi2_fh_jackknife_cpp", (DL_FUNC) &_emdi2_fh_jackknife_cpp, 9},
     {"_emdi2_fh_mse_pr_cpp", (DL_FUNC) &_emdi2_fh_mse_pr_cpp, 4},
     {"_emdi2_fh_mse_spatial_cpp", (DL_FUNC) &_emdi2_fh_mse_spatial_cpp, 6},
     {"_emdi2_fh_reml_loglik_cpp", (DL_FUNC) &_emdi2_fh_reml_loglik_cpp, 4},
@@ -505,10 +488,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"_emdi2_data_transform_cpp", (DL_FUNC) &_emdi2_data_transform_cpp, 3},
     {"_emdi2_lme_fit_cpp", (DL_FUNC) &_emdi2_lme_fit_cpp, 3},
     {"_emdi2_model_par_weighted_cpp", (DL_FUNC) &_emdi2_model_par_weighted_cpp, 6},
-    {"_emdi2_set_omp_threads", (DL_FUNC) &_emdi2_set_omp_threads, 1},
-    {"_emdi2_get_omp_threads", (DL_FUNC) &_emdi2_get_omp_threads, 0},
-    {"_emdi2_monte_carlo_cpp", (DL_FUNC) &_emdi2_monte_carlo_cpp, 21},
-    {"_emdi2_parametric_bootstrap_cpp", (DL_FUNC) &_emdi2_parametric_bootstrap_cpp, 31},
+    {"_emdi2_monte_carlo_cpp", (DL_FUNC) &_emdi2_monte_carlo_cpp, 22},
+    {"_emdi2_parametric_bootstrap_cpp", (DL_FUNC) &_emdi2_parametric_bootstrap_cpp, 32},
     {"_emdi2_fmt_duration_cpp", (DL_FUNC) &_emdi2_fmt_duration_cpp, 1},
     {"_emdi2_progress_line_cpp", (DL_FUNC) &_emdi2_progress_line_cpp, 5},
     {"_emdi2_progress_header_cpp", (DL_FUNC) &_emdi2_progress_header_cpp, 4},

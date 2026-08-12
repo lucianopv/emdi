@@ -111,6 +111,8 @@ test_that("fh_boot_arcsin_cpp matches the exact R mirror (bc and naive)", {
 })
 
 test_that("fh_boot_arcsin_cpp is thread-count invariant", {
+  nthr <- emdi_cores(4L)
+  skip_if(nthr < 2L, "needs at least 2 cores to be meaningful")
   set.seed(13)
   m <- 30; M <- 36; B <- 60
   X     <- cbind(1, rnorm(m)); predX <- cbind(1, rnorm(M))
@@ -119,14 +121,10 @@ test_that("fh_boot_arcsin_cpp is thread-count invariant", {
   s2 <- 0.012; eblup_corr <- runif(M, 0.1, 0.6); interval <- c(0, 0.5)
   v_boot <- matrix(rnorm(M*B, 0, sqrt(s2)), M, B)
   e_boot <- matrix(rnorm(m*B), m, B) * sqrt(vardir)
-  old <- get_omp_threads()
-  on.exit(set_omp_threads(old), add = TRUE)
-  set_omp_threads(1)
   a <- fh_boot_arcsin_cpp(s2, vardir, beta, X, predX, is_in, v_boot, e_boot,
-                          eblup_corr, TRUE, interval[1], interval[2])
-  set_omp_threads(4)
+                          eblup_corr, TRUE, interval[1], interval[2], threads = 1L)
   b <- fh_boot_arcsin_cpp(s2, vardir, beta, X, predX, is_in, v_boot, e_boot,
-                          eblup_corr, TRUE, interval[1], interval[2])
+                          eblup_corr, TRUE, interval[1], interval[2], threads = nthr)
   expect_equal(as.numeric(a$mse), as.numeric(b$mse), tolerance = 1e-12)
   expect_equal(as.numeric(a$Li),  as.numeric(b$Li),  tolerance = 1e-12)
   expect_equal(as.numeric(a$Ui), as.numeric(b$Ui), tolerance = 1e-12)
@@ -156,4 +154,40 @@ test_that("fh() arcsin+boot: cpp deterministic; point matches R; MSE MC-equivale
   expect_gt(stats::cor(c1$MSE$FH[ok], r1$MSE$FH[ok]), 0.95)
   expect_lt(abs(mean(c1$MSE$FH[ok]) - mean(r1$MSE$FH[ok])) / mean(r1$MSE$FH[ok]), 0.10)
   expect_true(all(c1$MSE$FH[ok] > 0))
+})
+
+# ---------------------------------------------------------------------------
+# cpus core-budget argument (Task 7) -- Trap 2 from the task brief:
+# boot_arcsin_2() is NOT reached through wrapper_MSE(). Its real chain is
+# fh() -> backtransformed() -> arcsin_bt() -> arcsin_mse() -> boot_arcsin_2()
+# -> fh_boot_arcsin_cpp(), and none of the three intermediates forwarded
+# `threads` before this task. A value-identity test cannot distinguish a
+# correctly-wired budget from one silently dropped back to 1 (the kernel is
+# deterministic given the same pre-generated draws either way), so this reads
+# the thread count the kernel actually receives.
+# ---------------------------------------------------------------------------
+
+test_that("fh() hands the resolved cpus budget to the arcsin bootstrap kernel", {
+  budget <- emdi_cores(3L)
+  skip_if(budget < 2L, "machine reports a single core")
+  data("eusilcA_popAgg"); data("eusilcA_smpAgg")
+  combined <- combine_data(eusilcA_popAgg, "Domain", eusilcA_smpAgg, "Domain")
+
+  seen <- integer(0)
+  orig <- fh_boot_arcsin_cpp        # capture BEFORE mocking, or this recurses
+  testthat::with_mocked_bindings(
+    {
+      invisible(suppressMessages(fh(
+        MTMED ~ cash + self_empl, vardir = "Var_MTMED", combined_data = combined,
+        domains = "Domain", method = "reml", transformation = "arcsin",
+        backtransformation = "bc", eff_smpsize = "n", MSE = TRUE,
+        mse_type = "boot", B = c(5, 0), seed = 123, cpus = 3L)))
+    },
+    fh_boot_arcsin_cpp = function(..., threads = 1L) {
+      seen <<- c(seen, as.integer(threads))
+      orig(..., threads = threads)
+    },
+    .package = "emdi2"
+  )
+  expect_identical(seen, budget)
 })

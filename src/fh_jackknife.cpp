@@ -37,7 +37,8 @@ Rcpp::List fh_jackknife_cpp(const arma::vec& direct,
                             const arma::vec& vardir,
                             double sigmau2,
                             const arma::vec& fh_full,
-                            double lower, double upper, double tol) {
+                            double lower, double upper, double tol,
+                            int threads = 1) {
   const arma::uword m = direct.n_elem;
   const arma::uword p = X.n_cols;
 
@@ -49,6 +50,8 @@ Rcpp::List fh_jackknife_cpp(const arma::vec& direct,
   if (lower < 0.0) Rcpp::stop("fh_jackknife_cpp: lower must be >= 0");
   if (m < 3) Rcpp::stop("fh_jackknife_cpp: need at least 3 in-sample domains");
 
+  if (threads < 1) threads = 1;
+
   const arma::vec g1 = vardir % (sigmau2 / (sigmau2 + vardir));
 
   arma::vec sum_dg1(m, arma::fill::zeros);   // sum_j (g1_j - g1)
@@ -59,7 +62,7 @@ Rcpp::List fh_jackknife_cpp(const arma::vec& direct,
   std::string errmsg;
 
   #ifdef _OPENMP
-  #pragma omp parallel
+  #pragma omp parallel num_threads(threads)
   #endif
   {
     // Thread-private accumulators, combined once at the end. This keeps memory

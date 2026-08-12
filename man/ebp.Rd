@@ -19,12 +19,16 @@ ebp(
   seed = 123,
   boot_type = "parametric",
   parallel_mode = ifelse(grepl("windows", .Platform$OS.type), "socket", "multicore"),
-  cpus = 1,
+  cpus = NULL,
   custom_indicator = NULL,
   na.rm = FALSE,
   weights = NULL,
   pop_weights = NULL,
-  aggregate_to = NULL
+  aggregate_to = NULL,
+  selected_domains = NULL,
+  true_indicators = NULL,
+  control = NULL,
+  MSE_indicators = "all"
 )
 }
 \arguments{
@@ -105,11 +109,19 @@ procedures,currently a \code{"parametric"} and a semi-parametric
 \item{parallel_mode}{modus of parallelization, defaults to an automatic
 selection of a suitable mode, depending on the operating system, if the
 number of \code{cpus} is chosen higher than 1. For details, see
-\code{\link[parallelMap]{parallelStart}}.}
+\code{\link[parallelMap]{parallelStart}}. Only applies on the R fallback
+path (wild bootstrap, custom indicators); the C++ path spends the
+\code{cpus} budget on threads instead of worker processes.}
 
-\item{cpus}{number determining the kernels that are used for the
-parallelization. Defaults to 1. For details, see
-\code{\link[parallelMap]{parallelStart}}.}
+\item{cpus}{the number of CPU cores \code{ebp} may use. The budget is spent
+on either parallel threads within one process or on worker processes, never
+both at once. Defaults to \code{NULL}, which resolves the budget from
+\code{getOption("emdi2.cores")}, then the \code{OMP_NUM_THREADS}
+environment variable, then 1. emdi2 uses a single core unless asked
+otherwise, so that it stays well behaved inside parallel pipelines
+(\code{crew}, \code{future}, \code{targets}), where several R processes
+each claiming every core is a common cause of large, silent slowdowns.
+See \code{\link{emdi_cores}}.}
 
 \item{custom_indicator}{a list of functions containing the indicators to be
 calculated additionally. Such functions must depend on the target variable
@@ -130,10 +142,37 @@ indicates population weights in the populatation data. If a character string
 is provided weighted indicators are estimated using population weights.
 The variable has to be numeric. Defaults to \code{NULL}.}
 
-\item{aggregate_to}{a character string containing the name of a variable from
-population data that indicates the target domain level for which the
-results are to be displayed. The variable can be numeric or a factor.
-Defaults to \code{NULL}.}
+\item{aggregate_to}{a character string containing the name of a variable
+from population data used to group Monte Carlo indicator draws for
+output. May be coarser than \code{pop_domains} (the original use case,
+e.g. district random effect, state-level output, so every
+\code{pop_domains} value maps to exactly one \code{aggregate_to} value)
+or finer (e.g. a district random effect with output at an individual
+sub-unit nested within each district, so every \code{aggregate_to} value
+maps to exactly one \code{pop_domains} value). \code{aggregate_to} and
+\code{pop_domains} must form a strict hierarchy in one direction or the
+other; this is validated and raises an error otherwise. The variable can
+be numeric or a factor. Defaults to \code{NULL}.}
+
+\item{selected_domains}{a character vector containing the names of domains
+for which point and MSE estimates should be computed. If \code{NULL} (default),
+estimates are computed for all domains in the population data. The model is
+still estimated using all sample data, but predictions are only made for the
+specified domains. This can be useful for reducing computation time and memory
+usage when only a subset of domains is of interest. Note: Population data is
+filtered to selected domains, so random number generation will differ between
+runs with different domain selections even with the same seed. Defaults to \code{NULL}.}
+
+\item{MSE_indicators}{a character vector specifying which indicators to
+compute MSE for during the bootstrap. Defaults to \code{"all"} (all 10
+standard indicators). When set to a subset, e.g.,
+\code{c("Mean", "Head_Count")}, the bootstrap skips expensive sorting
+operations for Gini, quantiles, and QSR, which can dramatically reduce
+computation time on large datasets. Valid names: \code{"Mean"},
+\code{"Head_Count"}, \code{"Poverty_Gap"}, \code{"Gini"},
+\code{"Quintile_Share"}, \code{"Quantile_10"}, \code{"Quantile_25"},
+\code{"Median"}, \code{"Quantile_75"}, \code{"Quantile_90"}. Note: point
+estimates always include all indicators regardless of this parameter.}
 }
 \value{
 An object of class "ebp", "emdi" that provides estimators for
@@ -242,6 +281,28 @@ emdi_model <- ebp(
                               mean(y[pop_weights == 1] < threshold)
                         }
     ), na.rm = TRUE, pop_weights = "eqsize"
+)
+
+# Example 6: MSE only for Mean and Head_Count (faster on large datasets)
+emdi_model <- ebp(
+  fixed = eqIncome ~ gender + eqsize + cash + self_empl +
+    unempl_ben + age_ben + surv_ben + sick_ben + dis_ben + rent + fam_allow +
+    house_allow + cap_inv + tax_adj, pop_data = eusilcA_pop,
+  pop_domains = "district", smp_data = eusilcA_smp, smp_domains = "district",
+  na.rm = TRUE, MSE = TRUE, B = 10, L = 10,
+  MSE_indicators = c("Mean", "Head_Count")
+)
+
+# Example 7: Estimating indicators for a subset of domains only
+# Model is estimated using all sample data, but point and MSE estimation
+# is performed only for selected domains
+domains_of_interest <- c("94", "95", "96")
+emdi_model <- ebp(
+  fixed = eqIncome ~ gender + eqsize + cash + self_empl +
+    unempl_ben + age_ben + surv_ben + sick_ben + dis_ben + rent + fam_allow +
+    house_allow + cap_inv + tax_adj, pop_data = eusilcA_pop,
+  pop_domains = "district", smp_data = eusilcA_smp, smp_domains = "district",
+  na.rm = TRUE, selected_domains = domains_of_interest
 )
 }
 }

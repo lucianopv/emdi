@@ -149,6 +149,13 @@
 #' should be computed, the second element of \code{B} is needed and must be
 #' greater than 1. Defaults to c(50,0). For practical applications, values
 #' larger than 200 are recommended.
+#' @param cpus the number of CPU cores \code{fh} may use. \code{fh} has no
+#'   worker-process fallback, so the whole budget is spent on parallel threads
+#'   within the current process. Defaults to \code{NULL}, which resolves the
+#'   budget from \code{getOption("emdi2.cores")}, then the
+#'   \code{OMP_NUM_THREADS} environment variable, then 1. Only the C++ fast
+#'   paths use it; other methods run single-threaded regardless.
+#'   See \code{\link{emdi_cores}}.
 #' @param seed an integer to set the seed for the random number generator. For
 #' the usage of random number generation see details. If seed is set to
 #' \code{NULL}, seed is chosen randomly. Defaults to \code{123}.
@@ -294,7 +301,8 @@ fh <- function(fixed, vardir, combined_data, domains = NULL, method = "reml",
                transformation = "no", backtransformation = NULL,
                eff_smpsize = NULL, correlation = "no", corMatrix = NULL,
                Ci = NULL, tol = 0.0001, maxit = 100,
-               MSE = FALSE, mse_type = "analytical", B = c(50, 0), seed = 123) {
+               MSE = FALSE, mse_type = "analytical", B = c(50, 0),
+               cpus = NULL, seed = 123) {
 
   # Agrument checking ----------------------------------------------------------
   fh_combinations(
@@ -315,10 +323,16 @@ fh <- function(fixed, vardir, combined_data, domains = NULL, method = "reml",
     backtransformation = backtransformation, eff_smpsize = eff_smpsize,
     correlation = correlation, corMatrix = corMatrix,
     Ci = Ci, tol = tol, maxit = maxit, MSE = MSE, mse_type = mse_type,
-    B = B, seed = seed
+    B = B, cpus = cpus, seed = seed
   )
 
-
+  # Core budget ------------------------------------------------------------
+  # cpus is a budget of cores, not a worker count. fh() has no parallelMap
+  # branch, so unlike ebp() the whole budget is always spent on OpenMP
+  # threads inside the C++ kernels (REML/EBLUP, jackknife MSE, arcsin
+  # bootstrap MSE). emdi_cores() resolves it against the emdi2.cores option,
+  # OMP_NUM_THREADS, R CMD check's core limit and the machine's core count.
+  cores <- emdi_cores(cpus)
 
 
 
@@ -432,7 +446,7 @@ fh <- function(fixed, vardir, combined_data, domains = NULL, method = "reml",
           sigmau2 = sigmau2, vardir = vardir, Ci = Ci,
           eblup = eblup, transformation = transformation,
           method = method, interval = interval,
-          mse_type = mse_type, B = B[1]
+          mse_type = mse_type, B = B[1], threads = cores
         )
         MSE <- mse_data$mse_data
         MSE_method <- mse_data$MSE_method
@@ -645,7 +659,7 @@ fh <- function(fixed, vardir, combined_data, domains = NULL, method = "reml",
         method = method, interval = interval,
         MSE = MSE,
         mse_type = mse_type,
-        B = B[1]
+        B = B[1], threads = cores
       )
 
       out <- list(
@@ -701,7 +715,7 @@ fh <- function(fixed, vardir, combined_data, domains = NULL, method = "reml",
         framework = framework,
         combined_data = framework$combined_data,
         vardir = vardir, eblup = eblup,
-        mse_type = mse_type, method = method, B = B[1]
+        mse_type = mse_type, method = method, B = B[1], threads = cores
       )
       MSE <- mse_data$mse_data
       MSE_method <- mse_data$MSE_method

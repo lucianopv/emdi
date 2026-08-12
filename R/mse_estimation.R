@@ -6,6 +6,24 @@
 # mse_estim (see below)
 # The parametric boostrap approach can be find in Molina and Rao (2010) p. 376
 
+# Is the C++ bootstrap fast path available for this call?
+#
+# Defined once and read from two places: parametric_bootstrap() below, which
+# dispatches on it, and ebp(), which needs to know in advance whether worker
+# processes will be started (the C++ path never starts any, so it must not
+# switch the RNG to L'Ecuyer streams). Keeping a single definition stops the
+# two from drifting apart.
+#
+# n_indicators is length(framework$indicator_names); ebp() computes the same
+# quantity as 10 + length(names(custom_indicator)) because it needs the answer
+# before framework_ebp() has run.
+uses_cpp_bootstrap <- function(boot_type, n_indicators, true_indicators) {
+  n_standard <- 10L
+  boot_type == "parametric" &&
+    n_indicators == n_standard &&
+    is.null(true_indicators)
+}
+
 parametric_bootstrap <- function(framework,
                                  point_estim,
                                  fixed,
@@ -18,16 +36,26 @@ parametric_bootstrap <- function(framework,
                                  cpus,
                                  control,
                                  true_indicators,
-                                 MSE_indicators = "all") {
+                                 MSE_indicators = "all",
+                                 threads = 1L) {
   message("\r", "Bootstrap started                                            ")
 
-  # Check if C++ fast path is available
-  n_standard <- 10
-  use_cpp <- (boot_type == "parametric" &&
-              length(framework$indicator_names) == n_standard &&
-              is.null(true_indicators) &&
-              cpus <= 1)
+  # Check if C++ fast path is available.
+  # The C++ path spends the core budget on OpenMP threads, so it no longer
+  # needs cpus == 1. Worker processes are used only where this path does not
+  # apply (wild bootstrap, custom indicators).
+  use_cpp <- uses_cpp_bootstrap(
+    boot_type = boot_type,
+    n_indicators = length(framework$indicator_names),
+    true_indicators = true_indicators
+  )
 
+  # The budget buys exactly one kind of parallelism, never both at once. The
+  # C++ branch below spends it on OpenMP threads (it passes `threads` straight
+  # to the kernel and returns before reaching the parallelMap block). The R
+  # fallback spends it on worker processes instead, and their thread count is
+  # not carried in a variable at all -- it is the literal threads = 1L at the
+  # point_estim() call inside mse_estim().
   if (use_cpp) {
     # Resolve interval defaults
     if (transformation == "box.cox" && any(interval == "default")) {
@@ -133,7 +161,8 @@ parametric_bootstrap <- function(framework,
       agg_domain_ids_pop = agg_domain_ids,
       N_dom_agg = N_dom_agg,
       smp_weights = smp_weights,
-      indicator_mask = as.integer(indicator_mask)
+      indicator_mask = as.integer(indicator_mask),
+      threads = as.integer(threads)
     )
 
     # Format result as data.frame
@@ -191,7 +220,9 @@ parametric_bootstrap <- function(framework,
       res_s           = res_s,
       fitted_s        = fitted_s,
       start_time      = start_time,
-      boot_type       = boot_type
+      boot_type       = boot_type,
+      true_indicators = true_indicators,
+      control         = control
     )
     )
     parallelMap::parallelStop()
@@ -371,6 +402,10 @@ mse_estim <- function(framework,
   framework$smp_data <- bootstrap_sample
 
   # Prediction of indicators with bootstap sample.
+  # threads = 1L is deliberate and must stay: this runs once per bootstrap
+  # iteration on the R fallback path, where the core budget has already been
+  # spent on worker processes. Letting it spawn OpenMP threads as well would
+  # oversubscribe the machine by cpus x threads.
   bootstrap_point_estim <- as.matrix(point_estim(
     fixed = fixed,
     transformation =
@@ -378,7 +413,8 @@ mse_estim <- function(framework,
     interval = interval,
     L = L,
     control = control,
-    framework = framework
+    framework = framework,
+    threads = 1L
   )[[1]][, -1])
 
   if(ncol(true_indicators) != ncol(bootstrap_point_estim)){
@@ -580,8 +616,7 @@ mse_estim_wrapper <- function(i,
                               start_time,
                               boot_type,
                               true_indicators,
-                              control,
-                              seedvec) {
+                              control) {
   tmp <- mse_estim(
     framework = framework,
     lambda = lambda,

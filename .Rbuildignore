@@ -20,3 +20,4 @@ CONTRIBUTING.md
 ^\.claude$
 ^docs$
 ^CLAUDE\.md$
+^\.superpowers$
