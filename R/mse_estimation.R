@@ -22,7 +22,13 @@ uses_cpp_bootstrap <- function(boot_type, n_indicators, true_indicators,
   n_standard <- 10L
   boot_type == "parametric" &&
     n_indicators == n_standard &&
-    is.null(true_indicators) &&
+    # A supplied `true_indicators` no longer forces the R path: the kernel
+    # accepts it directly. Measured on eusilcA at L = 20, B = 20: 5.76s on the
+    # old R loop against 4.22s here, ~1.35x. Note the R fallback was never
+    # fully R -- its inner loop already called monte_carlo_cpp() -- so the gain
+    # is loop overhead only, not the 7.5-10x the headline benchmark table
+    # quotes for paths that were genuinely interpreted.
+    # `true_indicators` is deliberately not referenced here any more.
     # A function-valued threshold must stay on the R path. The kernel takes a
     # single scalar threshold for all B iterations, whereas mse_estim() below
     # re-evaluates the closure against each replicate's own superpopulation
@@ -275,7 +281,11 @@ parametric_bootstrap <- function(framework,
       N_dom_agg = N_dom_agg,
       smp_weights = smp_weights,
       indicator_mask = as.integer(indicator_mask),
-      threads = as.integer(threads)
+      threads = as.integer(threads),
+      # Already validated and canonicalised by normalise_true_indicators():
+      # rows in output-domain order, 10 columns, zeros where MSE_indicators
+      # did not ask for a value.
+      true_indicators_fixed = true_indicators
     )
 
     # Format result as data.frame
