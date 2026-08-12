@@ -153,3 +153,37 @@ test_that("fh() arcsin+boot: cpp deterministic; point matches R; MSE MC-equivale
   expect_lt(abs(mean(c1$MSE$FH[ok]) - mean(r1$MSE$FH[ok])) / mean(r1$MSE$FH[ok]), 0.10)
   expect_true(all(c1$MSE$FH[ok] > 0))
 })
+
+# ---------------------------------------------------------------------------
+# cpus core-budget argument (Task 7) -- Trap 2 from the task brief:
+# boot_arcsin_2() is NOT reached through wrapper_MSE(). Its real chain is
+# fh() -> backtransformed() -> arcsin_bt() -> arcsin_mse() -> boot_arcsin_2()
+# -> fh_boot_arcsin_cpp(), and none of the three intermediates forwarded
+# `threads` before this task. A value-identity test cannot distinguish a
+# correctly-wired budget from one silently dropped back to 1 (the kernel is
+# deterministic given the same pre-generated draws either way), so this reads
+# the thread count the kernel actually receives.
+# ---------------------------------------------------------------------------
+
+test_that("fh() hands the resolved cpus budget to the arcsin bootstrap kernel", {
+  data("eusilcA_popAgg"); data("eusilcA_smpAgg")
+  combined <- combine_data(eusilcA_popAgg, "Domain", eusilcA_smpAgg, "Domain")
+
+  seen <- integer(0)
+  orig <- fh_boot_arcsin_cpp        # capture BEFORE mocking, or this recurses
+  testthat::with_mocked_bindings(
+    {
+      invisible(suppressMessages(fh(
+        MTMED ~ cash + self_empl, vardir = "Var_MTMED", combined_data = combined,
+        domains = "Domain", method = "reml", transformation = "arcsin",
+        backtransformation = "bc", eff_smpsize = "n", MSE = TRUE,
+        mse_type = "boot", B = c(5, 0), seed = 123, cpus = 3L)))
+    },
+    fh_boot_arcsin_cpp = function(..., threads = 1L) {
+      seen <<- c(seen, as.integer(threads))
+      orig(..., threads = threads)
+    },
+    .package = "emdi2"
+  )
+  expect_identical(seen, emdi_cores(3L))
+})

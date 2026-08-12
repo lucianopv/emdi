@@ -553,7 +553,7 @@ boot_arcsin_2 <- function(sigmau2, vardir, combined_data, framework,
     bc_flag <- identical(backtransformation, "bc")
     res <- fh_boot_arcsin_cpp(sigmau2, vardir_v, beta_pt, x, predX, is_in,
                               v_boot, e_boot, as.numeric(eblup_corr), bc_flag,
-                              interval[1], interval[2], threads)
+                              interval[1], interval[2], threads = threads)
 
     conf_int <- data.frame(Li = res$Li, Ui = res$Ui)
     mse_data <- data.frame(Domain = framework$combined_data[[framework$domains]])

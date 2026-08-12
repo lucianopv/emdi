@@ -255,3 +255,73 @@ test_that("ebp() reaches the OMP_NUM_THREADS tier when cpus is left at its defau
     })
   })
 })
+
+# ---------------------------------------------------------------------------
+# fh() cpus core-budget argument (Task 7). fh() has no parallelMap branch, so
+# its whole budget maps to OpenMP threads inside the C++ kernels.
+# ---------------------------------------------------------------------------
+
+# Same reasoning as the ebp() version above: fh()'s cpus default must be NULL,
+# not a default that already calls getOption(...) itself, or the
+# OMP_NUM_THREADS tier below it in emdi_cores()'s precedence would be
+# unreachable.
+test_that("fh() reaches the OMP_NUM_THREADS tier when cpus is left at its default", {
+  skip_on_cran()
+  data("eusilcA_popAgg", package = "emdi2")
+  data("eusilcA_smpAgg", package = "emdi2")
+  combined <- combine_data(eusilcA_popAgg, "Domain", eusilcA_smpAgg, "Domain")
+
+  expect_null(formals(fh)$cpus)
+
+  withr::with_options(list(emdi2.cores = NULL), {
+    withr::with_envvar(c(OMP_NUM_THREADS = "2", `_R_CHECK_LIMIT_CORES_` = NA), {
+      budget <- emdi_cores()
+      skip_if(budget < 2L, "machine reports a single core")
+      expect_identical(budget, 2L)
+
+      seen <- integer(0)
+      orig <- fh_jackknife_cpp        # capture BEFORE mocking, or this recurses
+      testthat::with_mocked_bindings(
+        {
+          invisible(suppressMessages(fh(
+            MTMED ~ cash + self_empl, vardir = "Var_MTMED",
+            combined_data = combined, domains = "Domain", method = "reml",
+            interval = c(0, 1e7), transformation = "arcsin",
+            backtransformation = "naive", eff_smpsize = "n", MSE = TRUE,
+            mse_type = "jackknife"
+          )))      # cpus deliberately not supplied
+        },
+        fh_jackknife_cpp = function(..., threads = 1L) {
+          seen <<- c(seen, as.integer(threads))
+          orig(..., threads = threads)
+        },
+        .package = "emdi2"
+      )
+      expect_identical(seen, 2L)
+    })
+  })
+})
+
+# is.numeric(NULL) is FALSE, so a cpus check written as
+# `!is.numeric(cpus) -> stop(...)` without a NULL exemption would reject the
+# documented default and error on every default call. This pins both halves:
+# the typo is still caught, and NULL still passes through untouched.
+test_that("fh() rejects a non-numeric cpus but accepts the NULL default", {
+  data("eusilcA_popAgg", package = "emdi2")
+  data("eusilcA_smpAgg", package = "emdi2")
+  combined <- combine_data(eusilcA_popAgg, "Domain", eusilcA_smpAgg, "Domain")
+  fixed <- MTMED ~ cash + self_empl
+
+  expect_error(
+    suppressMessages(fh(
+      fixed, vardir = "Var_MTMED", combined_data = combined,
+      domains = "Domain", method = "reml", cpus = "four"
+    )),
+    regexp = "[Cc]pus"
+  )
+
+  expect_no_error(suppressMessages(fh(
+    fixed, vardir = "Var_MTMED", combined_data = combined,
+    domains = "Domain", method = "reml", cpus = NULL
+  )))
+})
