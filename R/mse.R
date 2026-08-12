@@ -1210,10 +1210,24 @@ jiang_jackknife <- function(framework, combined_data, sigmau2, eblup,
     g1[d] <- framework$vardir[d] * (1 - Bd[d])
   }
 
+  # Loop-invariant: the in-sample data and its framework do not depend on the
+  # deleted domain, so they are built once rather than m times.
+  data_insample <- combined_data[framework$obs_dom, ]
+  framework_insample <- framework_FH(
+    combined_data = data_insample,
+    fixed = framework$formula,
+    vardir = vardir,
+    domains = framework$domains,
+    transformation = transformation,
+    correlation = framework$correlation,
+    corMatrix = framework$corMatrix,
+    eff_smpsize = framework$eff_smpsize,
+    Ci = NULL, tol = NULL, maxit = NULL
+  )
+
   for (domain in seq_len(m)) {
     message("domain =", domain, "\n")
 
-    data_insample <- combined_data[framework$obs_dom, ]
     data_tmp <- data_insample[-domain, ]
 
     # Framework with temporary data
@@ -1247,17 +1261,6 @@ jiang_jackknife <- function(framework, combined_data, sigmau2, eblup,
     diff_jack_g1[, paste0(domain)] <- g1_tmp - g1
 
     # Standard EBLUP
-    framework_insample <- framework_FH(
-      combined_data = data_insample,
-      fixed = framework$formula,
-      vardir = vardir,
-      domains = framework$domains,
-      transformation = transformation,
-      correlation = framework$correlation,
-      corMatrix = framework$corMatrix,
-      eff_smpsize = framework$eff_smpsize,
-      Ci = NULL, tol = NULL, maxit = NULL
-    )
     eblup_tmp <- eblup_FH(
       framework = framework_insample, sigmau2 = sigmau2_tmp,
       combined_data = data_insample
@@ -1341,11 +1344,24 @@ chen_weighted_jackknife <- function(framework, combined_data, sigmau2, eblup,
       framework$model_X[d, ] * (sum(Nenner))^(-1)
   }
 
+  # Loop-invariant: the in-sample data and its framework do not depend on the
+  # deleted domain, so they are built once rather than m times.
+  data_insample <- combined_data[framework$obs_dom, ]
+  framework_insample <- framework_FH(
+    combined_data = data_insample,
+    fixed = framework$formula,
+    vardir = vardir,
+    domains = framework$domains,
+    transformation = transformation,
+    eff_smpsize = framework$eff_smpsize,
+    correlation = framework$correlation,
+    corMatrix = framework$corMatrix,
+    Ci = NULL, tol = NULL, maxit = NULL
+  )
+
   for (domain in seq_len(m)) {
     message("domain =", domain, "\n")
 
-
-    data_insample <- combined_data[framework$obs_dom, ]
     data_tmp <- data_insample[-domain, ]
 
     # Framework with temporary data
@@ -1397,17 +1413,6 @@ chen_weighted_jackknife <- function(framework, combined_data, sigmau2, eblup,
     diff_jack_g2[, paste0(domain)] <- g1_tmp + g2_tmp - (g1 + g2)
 
     # Standard EBLUP
-    framework_insample <- framework_FH(
-      combined_data = data_insample,
-      fixed = framework$formula,
-      vardir = vardir,
-      domains = framework$domains,
-      transformation = transformation,
-      eff_smpsize = framework$eff_smpsize,
-      correlation = framework$correlation,
-      corMatrix = framework$corMatrix,
-      Ci = NULL, tol = NULL, maxit = NULL
-    )
     eblup_tmp <- eblup_FH(
       framework = framework_insample, sigmau2 = sigmau2_tmp,
       combined_data = data_insample
@@ -1518,11 +1523,26 @@ jiang_jackknife_yl <- function(framework, combined_data, sigmau2, eblup,
     g1[d] <- framework$vardir[d] * (1 - Bd[d])
   }
 
+  # Loop-invariant: the in-sample data and its framework do not depend on the
+  # deleted domain, so they are built once rather than m times.
+  data_insample <- framework$combined_data[framework$obs_dom, ]
+  framework_insample <- framework_FH(
+    combined_data = data_insample,
+    fixed = framework$formula,
+    vardir = vardir,
+    domains = framework$domains,
+    transformation = "no",
+    eff_smpsize = framework$eff_smpsize,
+    correlation = framework$correlation,
+    corMatrix = framework$corMatrix,
+    Ci = Ci,
+    tol = framework$tol,
+    maxit = framework$maxit
+  )
+
   for (domain in seq_len(m)) {
     message("domain =", domain, "\n")
 
-
-    data_insample <- framework$combined_data[framework$obs_dom, ]
     data_tmp <- data_insample[-domain, ]
     Ci_tmp <- Ci[, , -domain]
 
@@ -1548,21 +1568,6 @@ jiang_jackknife_yl <- function(framework, combined_data, sigmau2, eblup,
       method = method
     )
     jack_sigmau2[domain] <- sigmau2_tmp$sigmau_YL
-
-    framework_insample <- framework_FH(
-      combined_data = data_insample,
-      fixed = framework$formula,
-      vardir = vardir,
-      domains = framework$domains,
-      transformation = "no",
-      eff_smpsize = framework$eff_smpsize,
-      correlation = framework$correlation,
-      corMatrix = framework$corMatrix,
-      Ci = Ci,
-      tol = framework$tol,
-      maxit = framework$maxit
-    )
-
 
     Beta.hat.tCiBeta.hat <- NULL
     for (i in seq_len(framework_insample$m)) {
