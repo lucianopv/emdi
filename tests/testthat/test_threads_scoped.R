@@ -12,9 +12,8 @@ test_that("monte_carlo_cpp accepts a threads argument and is invariant to it", {
     threshold = 10924.32, custom_indicator = NULL,
     na.rm = TRUE, pop_weights = NULL, weights = NULL
   )
-  set.seed(42)
-  pe <- point_estim(framework = framework, fixed = eqIncome ~ gender + eqsize,
-                    transformation = "log", interval = "default", L = 20)
+  nthr <- emdi_cores(4L)
+  skip_if(nthr < 2L, "needs at least 2 cores to be meaningful")
 
   run <- function(n) {
     set.seed(7)
@@ -22,7 +21,7 @@ test_that("monte_carlo_cpp accepts a threads argument and is invariant to it", {
                 transformation = "log", interval = "default", L = 20,
                 threads = n)$point_estimates
   }
-  expect_equal(run(1L), run(4L), tolerance = 1e-12)
+  expect_equal(run(1L), run(nthr), tolerance = 1e-12)
 })
 
 # The value assertions above cannot catch a pragma that silently drops
@@ -32,18 +31,23 @@ test_that("every OpenMP parallel region takes its thread count from an argument"
   src_dir <- testthat::test_path("..", "..", "src")
   skip_if_not(dir.exists(src_dir), "source tree not available (installed package)")
 
-  for (f in c("monte_carlo.cpp", "parametric_bootstrap.cpp",
-              "fh_arcsin.cpp", "fh_jackknife.cpp")) {
-    p <- file.path(src_dir, f)
-    skip_if_not(file.exists(p), paste(f, "not found"))
+  cpp_files <- list.files(src_dir, pattern = "\\.cpp$", full.names = TRUE)
+  skip_if(length(cpp_files) == 0, "no .cpp files found under src/")
+
+  all_directives <- character(0)
+  for (p in cpp_files) {
     directives <- grep("pragma omp parallel", readLines(p), value = TRUE)
-    expect_gt(length(directives), 0)
+    if (length(directives) == 0) next   # e.g. RcppExports.cpp has no OpenMP regions
     expect_true(
       all(grepl("num_threads(threads)", directives, fixed = TRUE)),
-      info = paste(f, "has an omp parallel region without num_threads(threads):",
+      info = paste(basename(p), "has an omp parallel region without num_threads(threads):",
                    paste(directives, collapse = " | "))
     )
+    all_directives <- c(all_directives, directives)
   }
+  # A fifth source file with an OpenMP region and no num_threads(threads) would
+  # be caught above; this catches the file list itself silently going empty.
+  expect_gte(length(all_directives), 4L)
 })
 
 # ---------------------------------------------------------------------------

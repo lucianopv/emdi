@@ -60,7 +60,7 @@ LinkingTo:
     Rcpp,
     RcppArmadillo
 Suggests:
-    testthat,
+    testthat (>= 3.1.7),
     withr,
     R.rsp,
     simFrame,

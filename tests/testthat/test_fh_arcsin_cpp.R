@@ -111,6 +111,8 @@ test_that("fh_boot_arcsin_cpp matches the exact R mirror (bc and naive)", {
 })
 
 test_that("fh_boot_arcsin_cpp is thread-count invariant", {
+  nthr <- emdi_cores(4L)
+  skip_if(nthr < 2L, "needs at least 2 cores to be meaningful")
   set.seed(13)
   m <- 30; M <- 36; B <- 60
   X     <- cbind(1, rnorm(m)); predX <- cbind(1, rnorm(M))
@@ -122,7 +124,7 @@ test_that("fh_boot_arcsin_cpp is thread-count invariant", {
   a <- fh_boot_arcsin_cpp(s2, vardir, beta, X, predX, is_in, v_boot, e_boot,
                           eblup_corr, TRUE, interval[1], interval[2], threads = 1L)
   b <- fh_boot_arcsin_cpp(s2, vardir, beta, X, predX, is_in, v_boot, e_boot,
-                          eblup_corr, TRUE, interval[1], interval[2], threads = 4L)
+                          eblup_corr, TRUE, interval[1], interval[2], threads = nthr)
   expect_equal(as.numeric(a$mse), as.numeric(b$mse), tolerance = 1e-12)
   expect_equal(as.numeric(a$Li),  as.numeric(b$Li),  tolerance = 1e-12)
   expect_equal(as.numeric(a$Ui), as.numeric(b$Ui), tolerance = 1e-12)
@@ -166,6 +168,8 @@ test_that("fh() arcsin+boot: cpp deterministic; point matches R; MSE MC-equivale
 # ---------------------------------------------------------------------------
 
 test_that("fh() hands the resolved cpus budget to the arcsin bootstrap kernel", {
+  budget <- emdi_cores(3L)
+  skip_if(budget < 2L, "machine reports a single core")
   data("eusilcA_popAgg"); data("eusilcA_smpAgg")
   combined <- combine_data(eusilcA_popAgg, "Domain", eusilcA_smpAgg, "Domain")
 
@@ -185,5 +189,5 @@ test_that("fh() hands the resolved cpus budget to the arcsin bootstrap kernel", 
     },
     .package = "emdi2"
   )
-  expect_identical(seen, emdi_cores(3L))
+  expect_identical(seen, budget)
 })

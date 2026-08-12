@@ -72,6 +72,8 @@ test_that("fh_jackknife_cpp matches the R jackknife numeric core", {
 })
 
 test_that("fh_jackknife_cpp is invariant to the thread count", {
+  nthr <- emdi_cores(4L)
+  skip_if(nthr < 2L, "needs at least 2 cores to be meaningful")
   fr <- framework_FH(
     combined_data = jk_data, fixed = jk_fixed, vardir = "Var_MTMED",
     domains = "Domain", transformation = "no", correlation = "no",
@@ -84,7 +86,7 @@ test_that("fh_jackknife_cpp is invariant to the thread count", {
   fh_full <- as.numeric(X %*% core$beta_hat) + as.numeric(core$u_hat)
 
   a <- fh_jackknife_cpp(direct, X, vardir, s2, fh_full, 0, 1e7, tol, threads = 1L)
-  b <- fh_jackknife_cpp(direct, X, vardir, s2, fh_full, 0, 1e7, tol, threads = 4L)
+  b <- fh_jackknife_cpp(direct, X, vardir, s2, fh_full, 0, 1e7, tol, threads = nthr)
 
   expect_equal(as.numeric(a$mse), as.numeric(b$mse), tolerance = 1e-12)
 })
@@ -159,6 +161,8 @@ test_that("fh() accepts cpus and returns identical results at 1 and 2", {
 # wrapper_MSE() directly (Trap 1 from the task brief: FH.R's own two
 # wrapper_MSE() call sites are NOT on the arcsin+jackknife path).
 test_that("fh() hands the resolved cpus budget to the jackknife kernel", {
+  budget <- emdi_cores(3L)
+  skip_if(budget < 2L, "machine reports a single core")
   seen <- integer(0)
   orig <- fh_jackknife_cpp          # capture BEFORE mocking, or this recurses
   testthat::with_mocked_bindings(
@@ -175,5 +179,5 @@ test_that("fh() hands the resolved cpus budget to the jackknife kernel", {
     },
     .package = "emdi2"
   )
-  expect_identical(seen, emdi_cores(3L))
+  expect_identical(seen, budget)
 })

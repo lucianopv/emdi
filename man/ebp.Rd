@@ -109,14 +109,18 @@ procedures,currently a \code{"parametric"} and a semi-parametric
 \item{parallel_mode}{modus of parallelization, defaults to an automatic
 selection of a suitable mode, depending on the operating system, if the
 number of \code{cpus} is chosen higher than 1. For details, see
-\code{\link[parallelMap]{parallelStart}}.}
+\code{\link[parallelMap]{parallelStart}}. Only applies on the R fallback
+path (wild bootstrap, custom indicators); the C++ path spends the
+\code{cpus} budget on threads instead of worker processes.}
 
-\item{cpus}{number of CPU cores emdi2 may use, defaulting to
-\code{getOption("emdi2.cores", 1)}. emdi2 uses a single core unless asked
+\item{cpus}{the number of CPU cores \code{ebp} may use. The budget is spent
+on either parallel threads within one process or on worker processes, never
+both at once. Defaults to \code{NULL}, which resolves the budget from
+\code{getOption("emdi2.cores")}, then the \code{OMP_NUM_THREADS}
+environment variable, then 1. emdi2 uses a single core unless asked
 otherwise, so that it stays well behaved inside parallel pipelines
-(\code{crew}, \code{future}, \code{targets}) where several R processes
-each claiming every core causes severe slowdowns. The budget is spent
-either on threads within one process or on worker processes, never both.
+(\code{crew}, \code{future}, \code{targets}), where several R processes
+each claiming every core is a common cause of large, silent slowdowns.
 See \code{\link{emdi_cores}}.}
 
 \item{custom_indicator}{a list of functions containing the indicators to be

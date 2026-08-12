@@ -44,10 +44,11 @@ test_that("the parallel bootstrap returns a well-formed MSE", {
   # Quintile_Share is excluded from the finiteness check below: it has a
   # separate, pre-existing defect in the wild-bootstrap true-indicator path
   # (R/framework_ebp.R's qsr(), unrelated to cpus/parallelism -- confirmed to
-  # reproduce under cpus = 1 too) where the step-quantile tie-handling can
-  # divide 0/0 when the domain's largest simulated value ties the 80th
-  # percentile cut. Out of scope for this fix (see task-5-report.md); this
-  # test only asserts the missing-argument bug this task targets is gone.
+  # reproduce under cpus = 1 too) where the asymmetric ">" comparison against
+  # the 80th percentile empties the top quintile whenever the domain's largest
+  # simulated value ties that percentile, producing a 0/0 division. Out of
+  # scope for this fix; this test only asserts the missing-argument bug this
+  # task targets is gone.
   expect_s3_class(res, "emdi")
   non_qsr <- res$MSE[, setdiff(names(res$MSE), c("Domain", "Quintile_Share")), drop = FALSE]
   expect_true(all(vapply(non_qsr, function(x) all(is.finite(x)), logical(1))))
