@@ -85,6 +85,18 @@ parametric_bootstrap_cpp <- function(X_pop, mu_fixed_orig, n_pop, obs_dom, dist_
     .Call(`_emdi2_parametric_bootstrap_cpp`, X_pop, mu_fixed_orig, n_pop, obs_dom, dist_obs_dom, pop_weights, N_pop, N_dom_pop, X_smp, n_smp, smp_domain_ids, smp_to_pop_map, N_smp, N_dom_smp, betas_orig, sigmae2_orig, sigmau2_orig, N_dom_smp_selected, N_dom_unobs, B, L, threshold, transformation, lambda_orig, shift_orig, interval_lower, interval_upper, agg_domain_ids_pop, N_dom_agg, smp_weights, indicator_mask)
 }
 
+fmt_duration_cpp <- function(secs) {
+    .Call(`_emdi2_fmt_duration_cpp`, secs)
+}
+
+progress_line_cpp <- function(i, total, elapsed, start_epoch, label) {
+    .Call(`_emdi2_progress_line_cpp`, i, total, elapsed, start_epoch, label)
+}
+
+progress_header_cpp <- function(title, total, label, start_epoch) {
+    .Call(`_emdi2_progress_header_cpp`, title, total, label, start_epoch)
+}
+
 std_transform_y_cpp <- function(y_raw, transformation, lambda) {
     .Call(`_emdi2_std_transform_y_cpp`, y_raw, transformation, lambda)
 }

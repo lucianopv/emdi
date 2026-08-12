@@ -47,6 +47,15 @@ progress_line <- function(i, total, elapsed, start_time, label = "iteration") {
   out
 }
 
+# The one-off line announcing what is about to run and when it started.
+# Mirrored in src/progress.h for the C++ bootstrap loop; keep the two in sync.
+progress_header <- function(title, total, label, start_time) {
+  sprintf(
+    "%s: %d %ss, started %s",
+    title, total, label, format(start_time, "%Y-%m-%d %H:%M:%S")
+  )
+}
+
 # TRUE when stderr is attached to a terminal, so overwriting with "\r" renders
 # correctly. FALSE when output is redirected to a log file, where "\r" would
 # collapse the whole run onto one unreadable line.
@@ -72,10 +81,7 @@ progress_reporter <- function(total, label = "iteration", title = NULL,
   last <- start
 
   if (!is.null(title)) {
-    message(sprintf(
-      "%s: %d %ss, started %s",
-      title, total, label, format(start, "%Y-%m-%d %H:%M:%S")
-    ))
+    message(progress_header(title, total, label, start))
   }
 
   function(i) {

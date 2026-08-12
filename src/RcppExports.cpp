@@ -367,6 +367,46 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// fmt_duration_cpp
+std::string fmt_duration_cpp(double secs);
+RcppExport SEXP _emdi2_fmt_duration_cpp(SEXP secsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< double >::type secs(secsSEXP);
+    rcpp_result_gen = Rcpp::wrap(fmt_duration_cpp(secs));
+    return rcpp_result_gen;
+END_RCPP
+}
+// progress_line_cpp
+std::string progress_line_cpp(int i, int total, double elapsed, double start_epoch, std::string label);
+RcppExport SEXP _emdi2_progress_line_cpp(SEXP iSEXP, SEXP totalSEXP, SEXP elapsedSEXP, SEXP start_epochSEXP, SEXP labelSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< int >::type i(iSEXP);
+    Rcpp::traits::input_parameter< int >::type total(totalSEXP);
+    Rcpp::traits::input_parameter< double >::type elapsed(elapsedSEXP);
+    Rcpp::traits::input_parameter< double >::type start_epoch(start_epochSEXP);
+    Rcpp::traits::input_parameter< std::string >::type label(labelSEXP);
+    rcpp_result_gen = Rcpp::wrap(progress_line_cpp(i, total, elapsed, start_epoch, label));
+    return rcpp_result_gen;
+END_RCPP
+}
+// progress_header_cpp
+std::string progress_header_cpp(std::string title, int total, std::string label, double start_epoch);
+RcppExport SEXP _emdi2_progress_header_cpp(SEXP titleSEXP, SEXP totalSEXP, SEXP labelSEXP, SEXP start_epochSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< std::string >::type title(titleSEXP);
+    Rcpp::traits::input_parameter< int >::type total(totalSEXP);
+    Rcpp::traits::input_parameter< std::string >::type label(labelSEXP);
+    Rcpp::traits::input_parameter< double >::type start_epoch(start_epochSEXP);
+    rcpp_result_gen = Rcpp::wrap(progress_header_cpp(title, total, label, start_epoch));
+    return rcpp_result_gen;
+END_RCPP
+}
 // std_transform_y_cpp
 arma::vec std_transform_y_cpp(const arma::vec& y_raw, const std::string& transformation, double lambda);
 RcppExport SEXP _emdi2_std_transform_y_cpp(SEXP y_rawSEXP, SEXP transformationSEXP, SEXP lambdaSEXP) {
@@ -450,6 +490,9 @@ static const R_CallMethodDef CallEntries[] = {
     {"_emdi2_get_omp_threads", (DL_FUNC) &_emdi2_get_omp_threads, 0},
     {"_emdi2_monte_carlo_cpp", (DL_FUNC) &_emdi2_monte_carlo_cpp, 21},
     {"_emdi2_parametric_bootstrap_cpp", (DL_FUNC) &_emdi2_parametric_bootstrap_cpp, 31},
+    {"_emdi2_fmt_duration_cpp", (DL_FUNC) &_emdi2_fmt_duration_cpp, 1},
+    {"_emdi2_progress_line_cpp", (DL_FUNC) &_emdi2_progress_line_cpp, 5},
+    {"_emdi2_progress_header_cpp", (DL_FUNC) &_emdi2_progress_header_cpp, 4},
     {"_emdi2_std_transform_y_cpp", (DL_FUNC) &_emdi2_std_transform_y_cpp, 3},
     {"_emdi2_reml_loglik_cpp", (DL_FUNC) &_emdi2_reml_loglik_cpp, 6},
     {"_emdi2_optimal_parameter_cpp", (DL_FUNC) &_emdi2_optimal_parameter_cpp, 7},

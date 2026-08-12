@@ -92,3 +92,43 @@ test_that("progress_reporter throttles intermediate ticks but never the last", {
   expect_length(msgs, 1)
   expect_match(msgs[1], "100 of 100", fixed = TRUE)
 })
+
+# --- cross-language format parity -------------------------------------------
+# The C++ parametric bootstrap prints its own progress (it cannot call back into
+# R from inside the loop), so the format necessarily exists twice. These tests
+# pin the two implementations to the same output, so the duplication cannot
+# drift apart silently.
+
+test_that("C++ progress_line matches the R implementation character for character", {
+  start <- as.POSIXct("2026-08-12 14:03:12")   # local tz, as C++ localtime uses
+  cases <- list(
+    c(i = 37, total = 94, elapsed = 72),
+    c(i = 1,  total = 94, elapsed = 0.4),
+    c(i = 94, total = 94, elapsed = 180),
+    c(i = 0,  total = 94, elapsed = 0)         # no ETA yet
+  )
+  for (cs in cases) {
+    expect_equal(
+      progress_line_cpp(cs[["i"]], cs[["total"]], cs[["elapsed"]],
+                        as.numeric(start), "bootstrap iteration"),
+      progress_line(cs[["i"]], cs[["total"]], cs[["elapsed"]],
+                    start, "bootstrap iteration"),
+      info = paste("i =", cs[["i"]])
+    )
+  }
+})
+
+test_that("C++ fmt_duration matches the R implementation", {
+  for (s in c(0, 1, 59, 60, 3599, 3600, 3661, 86400, 90061)) {
+    expect_equal(fmt_duration_cpp(s), fmt_duration(s), info = paste("secs =", s))
+  }
+})
+
+test_that("C++ progress_header matches the R implementation", {
+  start <- as.POSIXct("2026-08-12 14:03:12")
+  expect_equal(
+    progress_header_cpp("Bootstrap MSE", 50L, "bootstrap iteration",
+                        as.numeric(start)),
+    progress_header("Bootstrap MSE", 50L, "bootstrap iteration", start)
+  )
+})

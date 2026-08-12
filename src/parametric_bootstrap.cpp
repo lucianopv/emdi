@@ -1,4 +1,7 @@
 #include <RcppArmadillo.h>
+#include <chrono>
+#include <ctime>
+#include "progress.h"
 // [[Rcpp::depends(RcppArmadillo)]]
 
 #ifdef _OPENMP
@@ -171,6 +174,14 @@ arma::mat parametric_bootstrap_cpp(
   // =========================================================================
   // Main bootstrap loop
   // =========================================================================
+  // steady_clock for elapsed time (monotonic, sub-second); wall-clock epoch
+  // only for projecting the finish time onto the user's clock.
+  const auto t0 = std::chrono::steady_clock::now();
+  const double start_epoch = (double)std::time(NULL);
+  double last_report = 0.0;
+  Rprintf("%s\n", emdi::progress_header("Bootstrap MSE", B,
+                                        "bootstrap iteration", start_epoch).c_str());
+
   for (int b = 0; b < B; b++) {
 
     Rcpp::checkUserInterrupt();
@@ -536,14 +547,24 @@ arma::mat parametric_bootstrap_cpp(
     arma::mat diff = boot_estimates - true_indicators;
     mse_accum += diff % diff; // element-wise square
 
-    // Progress message
-    if ((b + 1) % 10 == 0 || b == B - 1) {
-      Rprintf("\r%d of %d Bootstrap iterations completed", b + 1, B);
+    // Progress: single in-place line carrying elapsed time and projected
+    // finish, throttled by elapsed time rather than iteration count (a
+    // bootstrap iteration can take milliseconds or minutes depending on N_pop
+    // and L). Format mirrors R/progress.R -- see src/progress.h.
+    {
+      double elapsed =
+        std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
+      bool final_iter = (b == B - 1);
+      if (final_iter || elapsed - last_report >= 0.5) {
+        last_report = elapsed;
+        Rprintf("\r%s", emdi::progress_line(b + 1, B, elapsed, start_epoch,
+                                            "bootstrap iteration").c_str());
+        if (final_iter) Rprintf("\n");
+        R_FlushConsole();
+      }
     }
 
   } // end bootstrap loop
-
-  Rprintf("\n");
 
   // Average MSE over B
   arma::mat mse = mse_accum / (double)B;

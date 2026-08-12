@@ -599,23 +599,19 @@ mse_estim_wrapper <- function(i,
     true_indicators = true_indicators
   )
 
-  if (i %% 10 == 0) {
-    if (i != B) {
-      delta <- difftime(Sys.time(), start_time, units = "secs")
-      remaining <- (delta / i) * (B - i)
-      remaining <- unclass(remaining)
-      remaining <- sprintf(
-        "%02d:%02d:%02d:%02d",
-        remaining %/% 86400, # days
-        remaining %% 86400 %/% 3600, # hours
-        remaining %% 3600 %/% 60, # minutes
-        remaining %% 60 %/% 1
-      ) # seconds)
-
-      message("\r", i, " of ", B, " Bootstrap iterations completed \t
-              Approximately ", remaining, " remaining \n")
-      if (.Platform$OS.type == "windows") flush.console()
-    }
+  # Progress. This runs per iteration, possibly inside a parallelMap worker, so
+  # it cannot hold state across calls -- hence the stateless iteration-count
+  # throttle rather than the time-based one progress_reporter() uses. The line
+  # itself comes from the shared formatter so all progress output in the package
+  # reads the same.
+  #
+  # The previous version built its message across two source lines, which
+  # embedded a literal tab and newline and so defeated its own leading "\r".
+  if (i %% 10 == 0 && i != B) {
+    elapsed <- as.numeric(difftime(Sys.time(), start_time, units = "secs"))
+    message("\r", progress_line(i, B, elapsed, start_time, "bootstrap iteration"),
+            appendLF = FALSE)
+    if (.Platform$OS.type == "windows") flush.console()
   }
   return(tmp)
 }
