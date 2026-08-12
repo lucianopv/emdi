@@ -313,7 +313,8 @@ emdi_model <- ebp(
 # Example 7: Estimating indicators for a subset of domains only
 # Model is estimated using all sample data, but point and MSE estimation
 # is performed only for selected domains
-domains_of_interest <- c("94", "95", "96")
+# district is a name, not an index -- these must be actual district labels
+domains_of_interest <- c("Bregenz", "Dornbirn", "Wien")
 emdi_model <- ebp(
   fixed = eqIncome ~ gender + eqsize + cash + self_empl +
     unempl_ben + age_ben + surv_ben + sick_ben + dis_ben + rent + fam_allow +
