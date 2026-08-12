@@ -50,16 +50,12 @@ parametric_bootstrap <- function(framework,
     true_indicators = true_indicators
   )
 
-  # The budget buys exactly one kind of parallelism, never both at once: the
-  # C++ path turns it into OpenMP threads, while the R fallback below turns it
-  # into worker processes and runs each of them single-threaded (see the
-  # threads = 1L handed to point_estim() inside mse_estim()).
-  if (use_cpp) {
-    boot_threads <- threads   # C++ path: budget becomes OpenMP threads
-  } else {
-    boot_threads <- 1L        # R path: budget becomes worker processes instead
-  }
-
+  # The budget buys exactly one kind of parallelism, never both at once. The
+  # C++ branch below spends it on OpenMP threads (it passes `threads` straight
+  # to the kernel and returns before reaching the parallelMap block). The R
+  # fallback spends it on worker processes instead, and their thread count is
+  # not carried in a variable at all -- it is the literal threads = 1L at the
+  # point_estim() call inside mse_estim().
   if (use_cpp) {
     # Resolve interval defaults
     if (transformation == "box.cox" && any(interval == "default")) {
@@ -166,7 +162,7 @@ parametric_bootstrap <- function(framework,
       N_dom_agg = N_dom_agg,
       smp_weights = smp_weights,
       indicator_mask = as.integer(indicator_mask),
-      threads = as.integer(boot_threads)
+      threads = as.integer(threads)
     )
 
     # Format result as data.frame

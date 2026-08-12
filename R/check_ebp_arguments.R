@@ -119,10 +119,16 @@ ebp_check2 <- function(threshold, transformation, interval, MSE, boot_type, B,
                  of bootstrap sample needs to be chosen that is greater than 1.
                  See also help(ebp)."))
   }
-  if (!is.numeric(cpus) || !(is.numeric(cpus) && length(cpus) == 1)) {
+  # NULL is the default and means "resolve the budget from the emdi2.cores
+  # option, then OMP_NUM_THREADS, then 1" -- see emdi_cores(). Anything else
+  # still has to be a single number, so a typo is reported here rather than
+  # being coerced to NA and silently falling back to one core.
+  if (!is.null(cpus) &&
+      (!is.numeric(cpus) || !(is.numeric(cpus) && length(cpus) == 1))) {
     stop(strwrap(prefix = " ", initial = "",
                  "Cpus must be a single number determining the number of
-                 kernels for the parallelization."))
+                 cores emdi2 may use, or NULL to resolve it from
+                 options(emdi2.cores = ) and OMP_NUM_THREADS."))
   }
   if (!is.null(seed) && (!is.numeric(seed) ||
     !(is.numeric(seed) && length(seed) == 1))) {

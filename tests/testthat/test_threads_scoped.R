@@ -213,3 +213,45 @@ test_that("ebp() counts indicators the same way framework_ebp() does", {
                      10L + length(names(ci)))
   }
 })
+
+# emdi_cores()'s documented precedence is argument > emdi2.cores option >
+# OMP_NUM_THREADS > 1. The env-var tier is only reachable from ebp() if ebp()
+# leaves cpus alone and lets emdi_cores() do the whole resolution: a default
+# that resolved the option itself (getOption("emdi2.cores", 1L)) would hand
+# emdi_cores() a non-NULL 1, so the tier below it could never be consulted and
+# pipelines that set OMP_NUM_THREADS would silently drop to one core.
+test_that("ebp() reaches the OMP_NUM_THREADS tier when cpus is left at its default", {
+  skip_on_cran()
+  data("eusilcA_smp", package = "emdi2")
+  data("eusilcA_pop", package = "emdi2")
+
+  # The default must stay unresolved for the tiers below it to stay live.
+  expect_null(formals(ebp)$cpus)
+
+  withr::with_options(list(emdi2.cores = NULL), {
+    withr::with_envvar(c(OMP_NUM_THREADS = "2", `_R_CHECK_LIMIT_CORES_` = NA), {
+      budget <- emdi_cores()
+      skip_if(budget < 2L, "machine reports a single core")
+      expect_identical(budget, 2L)
+
+      seen <- integer(0)
+      orig <- monte_carlo_cpp          # capture BEFORE mocking, or this recurses
+      testthat::with_mocked_bindings(
+        {
+          invisible(suppressMessages(ebp(
+            fixed = eqIncome ~ gender + eqsize,
+            pop_data = eusilcA_pop, pop_domains = "district",
+            smp_data = eusilcA_smp, smp_domains = "district",
+            threshold = 10924.32, transformation = "log",
+            L = 5, MSE = FALSE)))      # cpus deliberately not supplied
+        },
+        monte_carlo_cpp = function(..., threads = 1L) {
+          seen <<- c(seen, as.integer(threads))
+          orig(..., threads = threads)
+        },
+        .package = "emdi2"
+      )
+      expect_identical(seen, 2L)
+    })
+  })
+})

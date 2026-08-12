@@ -19,7 +19,7 @@ ebp(
   seed = 123,
   boot_type = "parametric",
   parallel_mode = ifelse(grepl("windows", .Platform$OS.type), "socket", "multicore"),
-  cpus = getOption("emdi2.cores", 1L),
+  cpus = NULL,
   custom_indicator = NULL,
   na.rm = FALSE,
   weights = NULL,
@@ -115,11 +115,13 @@ number of \code{cpus} is chosen higher than 1. For details, see
 on exactly one form of parallelism, never both at once: the C++ fast path
 runs single-process and turns the budget into OpenMP threads, while the R
 fallback (wild bootstrap, custom indicators) turns it into worker processes
-and runs each of them single-threaded. Defaults to
-\code{getOption("emdi2.cores", 1L)}, i.e. one core unless asked otherwise,
-which keeps \code{ebp} safe inside parallel pipelines. Resolved by
-\code{\link{emdi_cores}}; for the worker-process mode, see also
-\code{\link[parallelMap]{parallelStart}}.}
+and runs each of them single-threaded. Defaults to \code{NULL}, which lets
+\code{\link{emdi_cores}} resolve the budget from
+\code{options(emdi2.cores = )}, then the \code{OMP_NUM_THREADS} environment
+variable, then 1. So \code{ebp} uses a single core unless asked otherwise,
+which keeps it safe inside parallel pipelines, while still respecting a
+budget an enclosing pipeline has already set. For the worker-process mode,
+see also \code{\link[parallelMap]{parallelStart}}.}
 
 \item{custom_indicator}{a list of functions containing the indicators to be
 calculated additionally. Such functions must depend on the target variable
