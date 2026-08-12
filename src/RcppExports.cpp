@@ -294,27 +294,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// set_omp_threads
-int set_omp_threads(int n);
-RcppExport SEXP _emdi2_set_omp_threads(SEXP nSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< int >::type n(nSEXP);
-    rcpp_result_gen = Rcpp::wrap(set_omp_threads(n));
-    return rcpp_result_gen;
-END_RCPP
-}
-// get_omp_threads
-int get_omp_threads();
-RcppExport SEXP _emdi2_get_omp_threads() {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    rcpp_result_gen = Rcpp::wrap(get_omp_threads());
-    return rcpp_result_gen;
-END_RCPP
-}
 // monte_carlo_cpp
 Rcpp::List monte_carlo_cpp(const arma::vec& mu, double sigmae2, double sigmau2, const arma::vec& sigmav2, const arma::ivec& domain_ids, const arma::ivec& obs_dom, const arma::ivec& dist_obs_dom, const arma::ivec& n_pop, int N_dom_pop, int N_dom_smp, int N_dom_unobs, int L, double threshold, const std::string& transformation, double lambda, double shift, const arma::vec& pop_weights, int n_indicators, Rcpp::Nullable<Rcpp::IntegerVector> agg_domain_ids, int N_dom_agg, int indicator_mask, int threads);
 RcppExport SEXP _emdi2_monte_carlo_cpp(SEXP muSEXP, SEXP sigmae2SEXP, SEXP sigmau2SEXP, SEXP sigmav2SEXP, SEXP domain_idsSEXP, SEXP obs_domSEXP, SEXP dist_obs_domSEXP, SEXP n_popSEXP, SEXP N_dom_popSEXP, SEXP N_dom_smpSEXP, SEXP N_dom_unobsSEXP, SEXP LSEXP, SEXP thresholdSEXP, SEXP transformationSEXP, SEXP lambdaSEXP, SEXP shiftSEXP, SEXP pop_weightsSEXP, SEXP n_indicatorsSEXP, SEXP agg_domain_idsSEXP, SEXP N_dom_aggSEXP, SEXP indicator_maskSEXP, SEXP threadsSEXP) {
@@ -509,8 +488,6 @@ static const R_CallMethodDef CallEntries[] = {
     {"_emdi2_data_transform_cpp", (DL_FUNC) &_emdi2_data_transform_cpp, 3},
     {"_emdi2_lme_fit_cpp", (DL_FUNC) &_emdi2_lme_fit_cpp, 3},
     {"_emdi2_model_par_weighted_cpp", (DL_FUNC) &_emdi2_model_par_weighted_cpp, 6},
-    {"_emdi2_set_omp_threads", (DL_FUNC) &_emdi2_set_omp_threads, 1},
-    {"_emdi2_get_omp_threads", (DL_FUNC) &_emdi2_get_omp_threads, 0},
     {"_emdi2_monte_carlo_cpp", (DL_FUNC) &_emdi2_monte_carlo_cpp, 22},
     {"_emdi2_parametric_bootstrap_cpp", (DL_FUNC) &_emdi2_parametric_bootstrap_cpp, 32},
     {"_emdi2_fmt_duration_cpp", (DL_FUNC) &_emdi2_fmt_duration_cpp, 1},

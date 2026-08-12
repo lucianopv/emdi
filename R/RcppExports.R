@@ -73,14 +73,6 @@ model_par_weighted_cpp <- function(y_transformed, X, weights, n_d, sigma2_e, sig
     .Call(`_emdi2_model_par_weighted_cpp`, y_transformed, X, weights, n_d, sigma2_e, sigma2_u)
 }
 
-set_omp_threads <- function(n) {
-    .Call(`_emdi2_set_omp_threads`, n)
-}
-
-get_omp_threads <- function() {
-    .Call(`_emdi2_get_omp_threads`)
-}
-
 monte_carlo_cpp <- function(mu, sigmae2, sigmau2, sigmav2, domain_ids, obs_dom, dist_obs_dom, n_pop, N_dom_pop, N_dom_smp, N_dom_unobs, L, threshold, transformation, lambda, shift, pop_weights, n_indicators, agg_domain_ids = NULL, N_dom_agg = 0L, indicator_mask = 0x3FFL, threads = 1L) {
     .Call(`_emdi2_monte_carlo_cpp`, mu, sigmae2, sigmau2, sigmav2, domain_ids, obs_dom, dist_obs_dom, n_pop, N_dom_pop, N_dom_smp, N_dom_unobs, L, threshold, transformation, lambda, shift, pop_weights, n_indicators, agg_domain_ids, N_dom_agg, indicator_mask, threads)
 }
