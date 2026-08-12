@@ -252,8 +252,27 @@ static arma::vec compute_domain_indicators_masked(const arma::vec& y,
       if (y[i] <= q20) { sum_iq1_wy += w[i] * y[i]; sum_iq1_w += w[i]; }
       if (y[i] > q80)  { sum_iq4_wy += w[i] * y[i]; sum_iq4_w += w[i]; }
     }
-    double top_mean = (sum_iq4_w > 0) ? sum_iq4_wy / sum_iq4_w : 0.0;
-    double bot_mean = (sum_iq1_w > 0) ? sum_iq1_wy / sum_iq1_w : 1.0;
+    // No empty-set guards here, deliberately. R's qsr() computes
+    // sum(w*y)/sum(w) for each quintile with no guard, so an empty quintile
+    // gives 0/0 = NaN. Substituting 0.0 (as this did) turns an undefined
+    // statistic into a plausible-looking 0 that flows into downstream means
+    // and plots unnoticed -- strictly worse than a NaN, which cannot be
+    // silently averaged.
+    //
+    // An empty TOP quintile is reachable, not hypothetical: iq4 uses `>` while
+    // iq1 uses `<=`, so any domain whose 80th percentile equals its maximum
+    // has no members above the cut. Under the step (inverse-CDF) rule the
+    // quantile IS an order statistic, so ties at the top -- or a constant
+    // domain -- trigger it. e.g. y = c(1,2,3,4,4) and y = c(1,1,1,1,1).
+    //
+    // That asymmetry is inherited from upstream emdi, whose qsr() is
+    // byte-identical; reproducing it (rather than fixing it here) is
+    // deliberate, so emdi2 does not silently diverge from emdi. The
+    // bottom quintile can never be empty -- q20 is an order statistic, so at
+    // least one observation satisfies y <= q20 -- which is why only the top
+    // needs saying.
+    double top_mean = sum_iq4_wy / sum_iq4_w;
+    double bot_mean = sum_iq1_wy / sum_iq1_w;
     result[4] = top_mean / bot_mean;
   }
 

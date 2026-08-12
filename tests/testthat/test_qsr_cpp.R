@@ -144,3 +144,41 @@ test_that("ebp() Quintile_Share reproduces the emdi reference implementation", {
   expect_equal(got$ind$Quintile_Share, want$ind$Quintile_Share,
                tolerance = 1e-8)
 })
+
+# --- empty top quintile -------------------------------------------------------
+# Quintile_Share is undefined when the 80th percentile equals the domain
+# maximum: qsr() uses `iq4 <- y > q[0.8]` (strict) against `iq1 <- y <= q[0.2]`,
+# so the TOP quintile is empty and the ratio computes 0/0. Under the step rule
+# q[0.8] is an order statistic, so ties at the top -- or a constant domain --
+# reach it.
+#
+# The C++ kernel used to guard the division and return 0, a plausible-looking
+# number that averages and plots silently. R returns NaN. These pin the two to
+# the same answer. The underlying asymmetry is inherited from upstream emdi
+# (byte-identical qsr()) and is deliberately NOT fixed here.
+
+test_that("C++ Quintile_Share is NaN, not 0, when the top quintile is empty", {
+  degenerate <- list(c(1, 2, 3, 4, 4), c(1, 1, 1, 1, 1), c(1, 2, 3, 3, 3))
+  for (y in degenerate) {
+    got <- compute_domain_indicators_cpp(as.numeric(y), rep(1, length(y)), 3)[5]
+    expect_true(is.nan(got),
+                info = paste("y =", paste(y, collapse = ",")))
+  }
+})
+
+test_that("C++ and R agree on the empty-top-quintile case", {
+  qsr_r <- function(y, w) {
+    q <- wtd.quantile(x = y, weights = w, probs = c(0.2, 0.8))
+    iq1 <- y <= q[1]; iq4 <- y > q[2]
+    as.numeric((sum(w[iq4] * y[iq4]) / sum(w[iq4])) /
+               (sum(w[iq1] * y[iq1]) / sum(w[iq1])))
+  }
+  for (y in list(c(1, 2, 3, 4, 5), c(1, 2, 3, 4, 4), c(1, 1, 1, 1, 1))) {
+    w <- rep(1, length(y))
+    cpp <- compute_domain_indicators_cpp(as.numeric(y), w, 3)[5]
+    r <- qsr_r(as.numeric(y), w)
+    expect_identical(is.nan(cpp), is.nan(r),
+                     info = paste("y =", paste(y, collapse = ",")))
+    if (!is.nan(r)) expect_equal(cpp, r, tolerance = 1e-12)
+  }
+})
