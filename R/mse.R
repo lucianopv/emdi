@@ -572,6 +572,11 @@ boot_arcsin_2 <- function(sigmau2, vardir, combined_data, framework,
   true_value_boot <- matrix(NA, ncol = B, nrow = M)
   est_value_boot <- matrix(NA, ncol = B, nrow = M)
 
+  progress <- progress_reporter(
+    total = B, label = "bootstrap iteration",
+    title = "Bootstrap MSE (transformed FH)"
+  )
+
   for (b in seq_len(B)) {
     v_boot <- rnorm(M, 0, sqrt(sigmau2))
     e_boot <- rnorm(m, 0, sqrt(vardir))
@@ -673,7 +678,7 @@ boot_arcsin_2 <- function(sigmau2, vardir, combined_data, framework,
 
     est_value_boot[, b] <- int_value
 
-    message("b =", b, "\n")
+    progress(b)
   } # End of bootstrap runs
 
   # KI
@@ -806,6 +811,11 @@ nonparametricboot_spatial <- function(sigmau2, combined_data, framework,
   # Successfull bootstraps
   notSuc <- matrix(0, B, 1)
 
+  progress <- progress_reporter(
+    total = B, label = "bootstrap iteration",
+    title = "Spatial nonparametric bootstrap MSE"
+  )
+
   # Bootstrap algorithm
   for (b in seq_len(B)) {
 
@@ -865,7 +875,7 @@ nonparametricboot_spatial <- function(sigmau2, combined_data, framework,
       next
     }
 
-    message("b =", b, "\n")
+    progress(b)
 
     # Bootstrap values
     rho.tmp.boot <- sigmau2.boot$rho
@@ -1033,6 +1043,10 @@ parametricboot_spatial <- function(sigmau2, combined_data, framework, vardir,
   # Successfull bootstraps
   notSuc <- matrix(0, B, 1)
 
+  progress <- progress_reporter(
+    total = B, label = "bootstrap iteration",
+    title = "Spatial parametric bootstrap MSE"
+  )
 
   # Bootstrap algorithm
   for (b in seq_len(B)) {
@@ -1081,7 +1095,7 @@ parametricboot_spatial <- function(sigmau2, combined_data, framework, vardir,
     }
 
 
-    message("b =", b, "\n")
+    progress(b)
 
     rho.tmp.boot <- sigmau2.boot$rho
     sigma2.tmp.boot <- sigmau2.boot$sigmau2
@@ -1225,9 +1239,11 @@ jiang_jackknife <- function(framework, combined_data, sigmau2, eblup,
     Ci = NULL, tol = NULL, maxit = NULL
   )
 
-  for (domain in seq_len(m)) {
-    message("domain =", domain, "\n")
+  progress <- progress_reporter(
+    total = m, label = "domain", title = "Jackknife MSE"
+  )
 
+  for (domain in seq_len(m)) {
     data_tmp <- data_insample[-domain, ]
 
     # Framework with temporary data
@@ -1267,6 +1283,10 @@ jiang_jackknife <- function(framework, combined_data, sigmau2, eblup,
     )
     diff_jack_eblups[, paste0(domain)] <- eblup_tmp$eblup_data$FH -
       eblup$eblup_data$FH[eblup$eblup_data$Out == 0]
+
+    # Ticked at the end of the body so the rate is measured over completed
+    # domains, which is what the remaining-time estimate extrapolates from.
+    progress(domain)
   }
 
   jack_mse <- g1 - ((m - 1) / m) * rowSums(diff_jack_g1) +
@@ -1359,9 +1379,11 @@ chen_weighted_jackknife <- function(framework, combined_data, sigmau2, eblup,
     Ci = NULL, tol = NULL, maxit = NULL
   )
 
-  for (domain in seq_len(m)) {
-    message("domain =", domain, "\n")
+  progress <- progress_reporter(
+    total = m, label = "domain", title = "Weighted jackknife MSE"
+  )
 
+  for (domain in seq_len(m)) {
     data_tmp <- data_insample[-domain, ]
 
     # Framework with temporary data
@@ -1419,6 +1441,10 @@ chen_weighted_jackknife <- function(framework, combined_data, sigmau2, eblup,
     )
     diff_jack_eblups[, paste0(domain)] <- eblup_tmp$eblup_data$FH -
       eblup$eblup_data$FH[eblup$eblup_data$Out == 0]
+
+    # Ticked at the end of the body so the rate is measured over completed
+    # domains, which is what the remaining-time estimate extrapolates from.
+    progress(domain)
   }
 
   w_u <- c()
@@ -1540,9 +1566,11 @@ jiang_jackknife_yl <- function(framework, combined_data, sigmau2, eblup,
     maxit = framework$maxit
   )
 
-  for (domain in seq_len(m)) {
-    message("domain =", domain, "\n")
+  progress <- progress_reporter(
+    total = m, label = "domain", title = "Jackknife MSE (measurement error)"
+  )
 
+  for (domain in seq_len(m)) {
     data_tmp <- data_insample[-domain, ]
     Ci_tmp <- Ci[, , -domain]
 
@@ -1596,6 +1624,10 @@ jiang_jackknife_yl <- function(framework, combined_data, sigmau2, eblup,
 
     diff_jack_eblups[, paste0(domain)] <- eblup_tmp$eblup_data$FH -
       eblup$eblup_data$FH[eblup$eblup_data$Out == 0]
+
+    # Ticked at the end of the body so the rate is measured over completed
+    # domains, which is what the remaining-time estimate extrapolates from.
+    progress(domain)
   }
 
   jack_mse <- g1 - ((m - 1) / m) * rowSums(diff_jack_g1) +
