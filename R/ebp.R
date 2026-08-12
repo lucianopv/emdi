@@ -124,6 +124,21 @@
 #' usage when only a subset of domains is of interest. Note: Population data is
 #' filtered to selected domains, so random number generation will differ between
 #' runs with different domain selections even with the same seed. Defaults to \code{NULL}.
+#' @param true_indicators optional data frame of known true domain values,
+#'   for simulation studies where the truth is known. When supplied, the
+#'   bootstrap MSE is computed against these values instead of against the
+#'   indicators of each simulated superpopulation. It needs a \code{Domain}
+#'   column containing exactly the output domains -- the \code{aggregate_to}
+#'   values when that argument is used, otherwise the \code{pop_domains}
+#'   values -- one row each, in any order, plus one numeric column named after
+#'   each indicator requested via \code{MSE_indicators}. Rows and columns are
+#'   matched by name, and missing, duplicated or unexpected domains are an
+#'   error. Not intended for routine estimation on real data, where the truth
+#'   is unknown. Defaults to \code{NULL}, i.e. the truth is simulated.
+#' @param control optional list of control values for the mixed model fit,
+#'   passed to \code{\link[nlme]{lme}}; see \code{\link[nlme]{lmeControl}}.
+#'   Useful when the default fit has trouble converging. Defaults to
+#'   \code{NULL}, i.e. \pkg{nlme}'s own defaults.
 #' @param MSE_indicators a character vector specifying which indicators to
 #' compute MSE for during the bootstrap. Defaults to \code{"all"} (all 10
 #' standard indicators). When set to a subset, e.g.,
