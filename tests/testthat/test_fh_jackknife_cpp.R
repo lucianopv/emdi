@@ -71,7 +71,7 @@ test_that("fh_jackknife_cpp matches the R jackknife numeric core", {
   expect_true(all(is.finite(got$jack_sigmau2)))
 })
 
-test_that("fh_jackknife_cpp is invariant to the OpenMP thread count", {
+test_that("fh_jackknife_cpp is invariant to the thread count", {
   fr <- framework_FH(
     combined_data = jk_data, fixed = jk_fixed, vardir = "Var_MTMED",
     domains = "Domain", transformation = "no", correlation = "no",
@@ -83,13 +83,8 @@ test_that("fh_jackknife_cpp is invariant to the OpenMP thread count", {
   core <- fh_eblup_core_cpp(s2, direct, X, vardir)
   fh_full <- as.numeric(X %*% core$beta_hat) + as.numeric(core$u_hat)
 
-  old <- get_omp_threads()
-  on.exit(set_omp_threads(old), add = TRUE)
-
-  set_omp_threads(1)
-  a <- fh_jackknife_cpp(direct, X, vardir, s2, fh_full, 0, 1e7, tol)
-  set_omp_threads(4)
-  b <- fh_jackknife_cpp(direct, X, vardir, s2, fh_full, 0, 1e7, tol)
+  a <- fh_jackknife_cpp(direct, X, vardir, s2, fh_full, 0, 1e7, tol, threads = 1L)
+  b <- fh_jackknife_cpp(direct, X, vardir, s2, fh_full, 0, 1e7, tol, threads = 4L)
 
   expect_equal(as.numeric(a$mse), as.numeric(b$mse), tolerance = 1e-12)
 })

@@ -519,7 +519,7 @@ analytical_mse <- function(framework, sigmau2, combined_data,
 
 boot_arcsin_2 <- function(sigmau2, vardir, combined_data, framework,
                           eblup, eblup_corr, B, method,
-                          interval, backtransformation) {
+                          interval, backtransformation, threads = 1L) {
 
 
   # Gonzales Bootstrap fuer arcsin
@@ -553,7 +553,7 @@ boot_arcsin_2 <- function(sigmau2, vardir, combined_data, framework,
     bc_flag <- identical(backtransformation, "bc")
     res <- fh_boot_arcsin_cpp(sigmau2, vardir_v, beta_pt, x, predX, is_in,
                               v_boot, e_boot, as.numeric(eblup_corr), bc_flag,
-                              interval[1], interval[2])
+                              interval[1], interval[2], threads)
 
     conf_int <- data.frame(Li = res$Li, Ui = res$Ui)
     mse_data <- data.frame(Domain = framework$combined_data[[framework$domains]])
@@ -1202,7 +1202,8 @@ parametricboot_spatial <- function(sigmau2, combined_data, framework, vardir,
 }
 
 jiang_jackknife <- function(framework, combined_data, sigmau2, eblup,
-                            transformation, vardir, method, interval) {
+                            transformation, vardir, method, interval,
+                            threads = 1L) {
 
 
   # this MSE estimator can leed to negative values
@@ -1223,7 +1224,8 @@ jiang_jackknife <- function(framework, combined_data, sigmau2, eblup,
       sigmau2 = as.numeric(sigmau2),
       fh_full = as.numeric(fh_in),
       lower   = interval[1], upper = interval[2],
-      tol     = .Machine$double.eps^0.25
+      tol     = .Machine$double.eps^0.25,
+      threads = threads
     )$mse)
   } else {
     jack_sigmau2 <- vector(length = m)
@@ -1743,7 +1745,7 @@ robustboot <- function(framework, combined_data, eblup, mse_type, B, method) {
 
 wrapper_MSE <- function(framework, combined_data, sigmau2, vardir, Ci, eblup,
                         transformation, method, interval, mse_type,
-                        B = NULL) {
+                        B = NULL, threads = 1L) {
   mse_data <- if (mse_type == "analytical") {
     analytical_mse(
       framework = framework, sigmau2 = sigmau2,
@@ -1762,7 +1764,7 @@ wrapper_MSE <- function(framework, combined_data, sigmau2, vardir, Ci, eblup,
         framework = framework, combined_data = combined_data,
         sigmau2 = sigmau2, vardir = vardir, eblup = eblup,
         transformation = transformation, method = method,
-        interval = interval
+        interval = interval, threads = threads
       )
     }
   } else if (mse_type == "weighted_jackknife") {

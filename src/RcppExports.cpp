@@ -63,8 +63,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // fh_boot_arcsin_cpp
-Rcpp::List fh_boot_arcsin_cpp(double sigmau2, const arma::vec& vardir, const arma::vec& beta, const arma::mat& X, const arma::mat& predX, const arma::ivec& is_in, const arma::mat& v_boot, const arma::mat& e_boot, const arma::vec& eblup_corr, bool bc, double lower, double upper);
-RcppExport SEXP _emdi2_fh_boot_arcsin_cpp(SEXP sigmau2SEXP, SEXP vardirSEXP, SEXP betaSEXP, SEXP XSEXP, SEXP predXSEXP, SEXP is_inSEXP, SEXP v_bootSEXP, SEXP e_bootSEXP, SEXP eblup_corrSEXP, SEXP bcSEXP, SEXP lowerSEXP, SEXP upperSEXP) {
+Rcpp::List fh_boot_arcsin_cpp(double sigmau2, const arma::vec& vardir, const arma::vec& beta, const arma::mat& X, const arma::mat& predX, const arma::ivec& is_in, const arma::mat& v_boot, const arma::mat& e_boot, const arma::vec& eblup_corr, bool bc, double lower, double upper, int threads);
+RcppExport SEXP _emdi2_fh_boot_arcsin_cpp(SEXP sigmau2SEXP, SEXP vardirSEXP, SEXP betaSEXP, SEXP XSEXP, SEXP predXSEXP, SEXP is_inSEXP, SEXP v_bootSEXP, SEXP e_bootSEXP, SEXP eblup_corrSEXP, SEXP bcSEXP, SEXP lowerSEXP, SEXP upperSEXP, SEXP threadsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -80,7 +80,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< bool >::type bc(bcSEXP);
     Rcpp::traits::input_parameter< double >::type lower(lowerSEXP);
     Rcpp::traits::input_parameter< double >::type upper(upperSEXP);
-    rcpp_result_gen = Rcpp::wrap(fh_boot_arcsin_cpp(sigmau2, vardir, beta, X, predX, is_in, v_boot, e_boot, eblup_corr, bc, lower, upper));
+    Rcpp::traits::input_parameter< int >::type threads(threadsSEXP);
+    rcpp_result_gen = Rcpp::wrap(fh_boot_arcsin_cpp(sigmau2, vardir, beta, X, predX, is_in, v_boot, e_boot, eblup_corr, bc, lower, upper, threads));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -115,8 +116,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // fh_jackknife_cpp
-Rcpp::List fh_jackknife_cpp(const arma::vec& direct, const arma::mat& X, const arma::vec& vardir, double sigmau2, const arma::vec& fh_full, double lower, double upper, double tol);
-RcppExport SEXP _emdi2_fh_jackknife_cpp(SEXP directSEXP, SEXP XSEXP, SEXP vardirSEXP, SEXP sigmau2SEXP, SEXP fh_fullSEXP, SEXP lowerSEXP, SEXP upperSEXP, SEXP tolSEXP) {
+Rcpp::List fh_jackknife_cpp(const arma::vec& direct, const arma::mat& X, const arma::vec& vardir, double sigmau2, const arma::vec& fh_full, double lower, double upper, double tol, int threads);
+RcppExport SEXP _emdi2_fh_jackknife_cpp(SEXP directSEXP, SEXP XSEXP, SEXP vardirSEXP, SEXP sigmau2SEXP, SEXP fh_fullSEXP, SEXP lowerSEXP, SEXP upperSEXP, SEXP tolSEXP, SEXP threadsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -128,7 +129,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< double >::type lower(lowerSEXP);
     Rcpp::traits::input_parameter< double >::type upper(upperSEXP);
     Rcpp::traits::input_parameter< double >::type tol(tolSEXP);
-    rcpp_result_gen = Rcpp::wrap(fh_jackknife_cpp(direct, X, vardir, sigmau2, fh_full, lower, upper, tol));
+    Rcpp::traits::input_parameter< int >::type threads(threadsSEXP);
+    rcpp_result_gen = Rcpp::wrap(fh_jackknife_cpp(direct, X, vardir, sigmau2, fh_full, lower, upper, tol, threads));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -492,10 +494,10 @@ static const R_CallMethodDef CallEntries[] = {
     {"_emdi2_gen_superpop_cpp", (DL_FUNC) &_emdi2_gen_superpop_cpp, 9},
     {"_emdi2_gen_bootstrap_sample_cpp", (DL_FUNC) &_emdi2_gen_bootstrap_sample_cpp, 10},
     {"_emdi2_fh_bc_integral_cpp", (DL_FUNC) &_emdi2_fh_bc_integral_cpp, 2},
-    {"_emdi2_fh_boot_arcsin_cpp", (DL_FUNC) &_emdi2_fh_boot_arcsin_cpp, 12},
+    {"_emdi2_fh_boot_arcsin_cpp", (DL_FUNC) &_emdi2_fh_boot_arcsin_cpp, 13},
     {"_emdi2_fh_eblup_core_cpp", (DL_FUNC) &_emdi2_fh_eblup_core_cpp, 4},
     {"_emdi2_fh_eblup_sfh_cpp", (DL_FUNC) &_emdi2_fh_eblup_sfh_cpp, 6},
-    {"_emdi2_fh_jackknife_cpp", (DL_FUNC) &_emdi2_fh_jackknife_cpp, 8},
+    {"_emdi2_fh_jackknife_cpp", (DL_FUNC) &_emdi2_fh_jackknife_cpp, 9},
     {"_emdi2_fh_mse_pr_cpp", (DL_FUNC) &_emdi2_fh_mse_pr_cpp, 4},
     {"_emdi2_fh_mse_spatial_cpp", (DL_FUNC) &_emdi2_fh_mse_spatial_cpp, 6},
     {"_emdi2_fh_reml_loglik_cpp", (DL_FUNC) &_emdi2_fh_reml_loglik_cpp, 4},

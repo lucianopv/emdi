@@ -13,8 +13,8 @@ fh_bc_integral_cpp <- function(mu, sigma) {
     .Call(`_emdi2_fh_bc_integral_cpp`, mu, sigma)
 }
 
-fh_boot_arcsin_cpp <- function(sigmau2, vardir, beta, X, predX, is_in, v_boot, e_boot, eblup_corr, bc, lower, upper) {
-    .Call(`_emdi2_fh_boot_arcsin_cpp`, sigmau2, vardir, beta, X, predX, is_in, v_boot, e_boot, eblup_corr, bc, lower, upper)
+fh_boot_arcsin_cpp <- function(sigmau2, vardir, beta, X, predX, is_in, v_boot, e_boot, eblup_corr, bc, lower, upper, threads = 1L) {
+    .Call(`_emdi2_fh_boot_arcsin_cpp`, sigmau2, vardir, beta, X, predX, is_in, v_boot, e_boot, eblup_corr, bc, lower, upper, threads)
 }
 
 fh_eblup_core_cpp <- function(sigmau2, direct, X, vardir) {
@@ -25,8 +25,8 @@ fh_eblup_sfh_cpp <- function(sigmau2, rho, direct, X, vardir, W) {
     .Call(`_emdi2_fh_eblup_sfh_cpp`, sigmau2, rho, direct, X, vardir, W)
 }
 
-fh_jackknife_cpp <- function(direct, X, vardir, sigmau2, fh_full, lower, upper, tol) {
-    .Call(`_emdi2_fh_jackknife_cpp`, direct, X, vardir, sigmau2, fh_full, lower, upper, tol)
+fh_jackknife_cpp <- function(direct, X, vardir, sigmau2, fh_full, lower, upper, tol, threads = 1L) {
+    .Call(`_emdi2_fh_jackknife_cpp`, direct, X, vardir, sigmau2, fh_full, lower, upper, tol, threads)
 }
 
 fh_mse_pr_cpp <- function(sigmau2, X, vardir, pred_X) {

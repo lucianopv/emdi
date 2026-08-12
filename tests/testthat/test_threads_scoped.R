@@ -28,16 +28,12 @@ test_that("monte_carlo_cpp accepts a threads argument and is invariant to it", {
 # The value assertions above cannot catch a pragma that silently drops
 # num_threads(threads): the RNG is pre-generated, so results agree at any
 # thread count regardless. This checks the structural property directly.
-#
-# NOTE: only monte_carlo.cpp and parametric_bootstrap.cpp are checked here.
-# fh_arcsin.cpp and fh_jackknife.cpp don't gain a `threads` parameter until a
-# later task; a later task should extend the `f in c(...)` vector below to
-# include them once they do.
 test_that("every OpenMP parallel region takes its thread count from an argument", {
   src_dir <- testthat::test_path("..", "..", "src")
   skip_if_not(dir.exists(src_dir), "source tree not available (installed package)")
 
-  for (f in c("monte_carlo.cpp", "parametric_bootstrap.cpp")) {
+  for (f in c("monte_carlo.cpp", "parametric_bootstrap.cpp",
+              "fh_arcsin.cpp", "fh_jackknife.cpp")) {
     p <- file.path(src_dir, f)
     skip_if_not(file.exists(p), paste(f, "not found"))
     directives <- grep("pragma omp parallel", readLines(p), value = TRUE)
