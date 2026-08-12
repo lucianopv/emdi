@@ -193,7 +193,9 @@ parametric_bootstrap <- function(framework,
       res_s           = res_s,
       fitted_s        = fitted_s,
       start_time      = start_time,
-      boot_type       = boot_type
+      boot_type       = boot_type,
+      true_indicators = true_indicators,
+      control         = control
     )
     )
     parallelMap::parallelStop()
@@ -582,8 +584,7 @@ mse_estim_wrapper <- function(i,
                               start_time,
                               boot_type,
                               true_indicators,
-                              control,
-                              seedvec) {
+                              control) {
   tmp <- mse_estim(
     framework = framework,
     lambda = lambda,
