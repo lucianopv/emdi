@@ -35,6 +35,94 @@ uses_cpp_bootstrap <- function(boot_type, n_indicators, true_indicators,
     !inherits(threshold, "function")
 }
 
+# Validate and normalise a user-supplied `true_indicators` data frame.
+#
+# Returns a numeric matrix with one row per output domain, in the SAME order
+# the kernels and the returned MSE use, and 10 columns in the canonical
+# indicator order with zeros in the positions MSE_indicators did not request
+# (the C++ kernel leaves unrequested slots at zero, so the difference against
+# them is zero either way).
+#
+# The previous check was `all(!true_indicators$Domain %in% target)`, which is
+# TRUE only when NO domain matches -- so a frame with one wrong domain, or with
+# the right domains in a different order, passed silently and was then consumed
+# positionally by `as.matrix(true_indicators[, -1])`. That produced MSE computed
+# against the wrong domains' truths with no error. Column order was likewise
+# assumed rather than checked: the code assigned `colnames(...) <-
+# framework$indicator_names` onto whatever it was given.
+normalise_true_indicators <- function(true_indicators, framework,
+                                      MSE_indicators = "all") {
+  all_names <- c("Mean", "Head_Count", "Poverty_Gap", "Gini",
+                 "Quintile_Share", "Quantile_10", "Quantile_25",
+                 "Median", "Quantile_75", "Quantile_90")
+
+  # Output domains, in the order the MSE rows are produced in.
+  target <- if (is.null(framework$aggregate_to_vec)) {
+    as.character(unique(framework$pop_domains_vec))
+  } else {
+    as.character(unique(framework$aggregate_to_vec))
+  }
+  level <- if (is.null(framework$aggregate_to_vec)) "pop_domains" else "aggregate_to"
+
+  if (!is.data.frame(true_indicators)) {
+    stop("true_indicators must be a data frame with a 'Domain' column.",
+         call. = FALSE)
+  }
+  if (!"Domain" %in% names(true_indicators)) {
+    stop("true_indicators must have a 'Domain' column.", call. = FALSE)
+  }
+
+  dom <- as.character(true_indicators$Domain)
+  if (anyDuplicated(dom)) {
+    stop("true_indicators has duplicated Domain values: ",
+         paste(unique(dom[duplicated(dom)]), collapse = ", "), call. = FALSE)
+  }
+  missing_dom <- setdiff(target, dom)
+  extra_dom <- setdiff(dom, target)
+  if (length(missing_dom) || length(extra_dom)) {
+    stop("true_indicators$Domain must contain exactly the ", level,
+         " values, one row each.",
+         if (length(missing_dom)) paste0("\n  Missing: ",
+           paste(utils::head(missing_dom, 10), collapse = ", "),
+           if (length(missing_dom) > 10) " ..." else "") else "",
+         if (length(extra_dom)) paste0("\n  Unexpected: ",
+           paste(utils::head(extra_dom, 10), collapse = ", "),
+           if (length(extra_dom) > 10) " ..." else "") else "",
+         call. = FALSE)
+  }
+
+  wanted <- if (identical(MSE_indicators, "all")) all_names else MSE_indicators
+  bad <- setdiff(wanted, all_names)
+  if (length(bad)) {
+    stop("Unknown MSE_indicators: ", paste(bad, collapse = ", "), call. = FALSE)
+  }
+  missing_col <- setdiff(wanted, names(true_indicators))
+  if (length(missing_col)) {
+    stop("true_indicators is missing a column for each requested indicator.",
+         "\n  Missing: ", paste(missing_col, collapse = ", "),
+         "\n  Requested via MSE_indicators: ", paste(wanted, collapse = ", "),
+         call. = FALSE)
+  }
+
+  # Reorder rows to the output order, then place the requested columns into
+  # their canonical slots. Everything below is by name, never by position.
+  ord <- match(target, dom)
+  out <- matrix(0, nrow = length(target), ncol = length(all_names),
+                dimnames = list(NULL, all_names))
+  for (nm in wanted) {
+    col <- true_indicators[[nm]][ord]
+    if (!is.numeric(col)) {
+      stop("true_indicators$", nm, " must be numeric.", call. = FALSE)
+    }
+    if (anyNA(col)) {
+      stop("true_indicators$", nm, " contains NA for one or more domains.",
+           call. = FALSE)
+    }
+    out[, nm] <- col
+  }
+  out
+}
+
 parametric_bootstrap <- function(framework,
                                  point_estim,
                                  fixed,
@@ -50,6 +138,19 @@ parametric_bootstrap <- function(framework,
                                  MSE_indicators = "all",
                                  threads = 1L) {
   message("\r", "Bootstrap started                                            ")
+
+  # Validate and canonicalise a user-supplied truth ONCE here, not once per
+  # bootstrap iteration inside mse_estim(). After this, `true_indicators` is
+  # either NULL or a matrix whose rows are in output-domain order and whose
+  # columns are the 10 canonical indicators, so every consumer can index it
+  # positionally and safely.
+  if (!is.null(true_indicators)) {
+    true_indicators <- normalise_true_indicators(
+      true_indicators = true_indicators,
+      framework = framework,
+      MSE_indicators = MSE_indicators
+    )
+  }
 
   # Check if C++ fast path is available.
   # The C++ path spends the core budget on OpenMP threads, so it no longer
@@ -373,11 +474,11 @@ mse_estim <- function(framework,
                            threshold = framework$threshold
                            ))
     ) } else {
-      if(all(!true_indicators$Domain %in% unique(framework$pop_domains_vec))){
-        stop("The domain of the true indicators does not match the domain of the framework.")
-      }
-
-      true_indicators <- as.matrix(true_indicators[,-1])
+      # Already validated, row-ordered and column-ordered by
+      # normalise_true_indicators() in parametric_bootstrap(). Nothing to check
+      # or reorder here -- doing it per iteration was both wasteful and, in the
+      # old form, unable to catch a mis-ordered frame.
+      true_indicators <- as.matrix(true_indicators)
 
     }
 
