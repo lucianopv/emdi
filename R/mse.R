@@ -1207,90 +1207,110 @@ jiang_jackknife <- function(framework, combined_data, sigmau2, eblup,
 
   # this MSE estimator can leed to negative values
   m <- framework$m
-  jack_sigmau2 <- vector(length = m)
-  diff_jack_eblups <- data.frame(row.names = seq_len(m))
-  diff_jack_g1 <- data.frame(row.names = seq_len(m))
+  # C++ fast path. The kernel re-estimates sigmau2 by REML on each delete-one
+  # subset, so it is correct only for method = "reml" without a correlation
+  # structure; ml, the adjusted-REML family, me and spatial each use a different
+  # sigmau2 estimator and stay on the R loop below.
+  use_cpp <- .fh_use_cpp() && method == "reml" && framework$correlation == "no"
 
-  g1 <- rep(0, framework$m)
-  jack_mse <- rep(0, framework$m)
-  # Inverse of total variance
-  Vi <- 1 / (sigmau2 + framework$vardir)
-  # Shrinkage factor
-  Bd <- framework$vardir / (sigmau2 + framework$vardir)
+  if (use_cpp) {
+    # In-sample EBLUP, in the same domain order as framework$direct.
+    fh_in <- eblup$eblup_data$FH[eblup$eblup_data$Out == 0]
+    jack_mse <- as.numeric(fh_jackknife_cpp(
+      direct  = as.numeric(framework$direct),
+      X       = framework$model_X,
+      vardir  = as.numeric(framework$vardir),
+      sigmau2 = as.numeric(sigmau2),
+      fh_full = as.numeric(fh_in),
+      lower   = interval[1], upper = interval[2],
+      tol     = .Machine$double.eps^0.25
+    )$mse)
+  } else {
+    jack_sigmau2 <- vector(length = m)
+    diff_jack_eblups <- data.frame(row.names = seq_len(m))
+    diff_jack_g1 <- data.frame(row.names = seq_len(m))
+
+    g1 <- rep(0, framework$m)
+    jack_mse <- rep(0, framework$m)
+    # Inverse of total variance
+    Vi <- 1 / (sigmau2 + framework$vardir)
+    # Shrinkage factor
+    Bd <- framework$vardir / (sigmau2 + framework$vardir)
 
 
-  for (d in seq_len(framework$m)) {
-    # Variance due to random effects: vardir * gamma
-    g1[d] <- framework$vardir[d] * (1 - Bd[d])
-  }
+    for (d in seq_len(framework$m)) {
+      # Variance due to random effects: vardir * gamma
+      g1[d] <- framework$vardir[d] * (1 - Bd[d])
+    }
 
-  # Loop-invariant: the in-sample data and its framework do not depend on the
-  # deleted domain, so they are built once rather than m times.
-  data_insample <- combined_data[framework$obs_dom, ]
-  framework_insample <- framework_FH(
-    combined_data = data_insample,
-    fixed = framework$formula,
-    vardir = vardir,
-    domains = framework$domains,
-    transformation = transformation,
-    correlation = framework$correlation,
-    corMatrix = framework$corMatrix,
-    eff_smpsize = framework$eff_smpsize,
-    Ci = NULL, tol = NULL, maxit = NULL
-  )
-
-  progress <- progress_reporter(
-    total = m, label = "domain", title = "Jackknife MSE"
-  )
-
-  for (domain in seq_len(m)) {
-    data_tmp <- data_insample[-domain, ]
-
-    # Framework with temporary data
-    framework_tmp <- framework_FH(
-      combined_data = data_tmp,
+    # Loop-invariant: the in-sample data and its framework do not depend on the
+    # deleted domain, so they are built once rather than m times.
+    data_insample <- combined_data[framework$obs_dom, ]
+    framework_insample <- framework_FH(
+      combined_data = data_insample,
       fixed = framework$formula,
-      vardir = vardir, domains = framework$domains,
+      vardir = vardir,
+      domains = framework$domains,
       transformation = transformation,
       correlation = framework$correlation,
       corMatrix = framework$corMatrix,
       eff_smpsize = framework$eff_smpsize,
       Ci = NULL, tol = NULL, maxit = NULL
     )
-    # Estimate sigma u
-    sigmau2_tmp <- wrapper_estsigmau2(
-      framework = framework_tmp,
-      method = method, interval = interval
+
+    progress <- progress_reporter(
+      total = m, label = "domain", title = "Jackknife MSE"
     )
-    jack_sigmau2[domain] <- sigmau2_tmp
 
-    Vi_tmp <- 1 / (sigmau2_tmp + framework$vardir)
-    # Shrinkage factor
-    Bd_tmp <- framework$vardir / (sigmau2_tmp + framework$vardir)
+    for (domain in seq_len(m)) {
+      data_tmp <- data_insample[-domain, ]
 
-    g1_tmp <- rep(0, framework$m)
-    for (d_tmp in seq_len(framework$m)) {
-      g1_tmp[d_tmp] <- framework$vardir[d_tmp] * (1 - Bd_tmp[d_tmp])
+      # Framework with temporary data
+      framework_tmp <- framework_FH(
+        combined_data = data_tmp,
+        fixed = framework$formula,
+        vardir = vardir, domains = framework$domains,
+        transformation = transformation,
+        correlation = framework$correlation,
+        corMatrix = framework$corMatrix,
+        eff_smpsize = framework$eff_smpsize,
+        Ci = NULL, tol = NULL, maxit = NULL
+      )
+      # Estimate sigma u
+      sigmau2_tmp <- wrapper_estsigmau2(
+        framework = framework_tmp,
+        method = method, interval = interval
+      )
+      jack_sigmau2[domain] <- sigmau2_tmp
+
+      Vi_tmp <- 1 / (sigmau2_tmp + framework$vardir)
+      # Shrinkage factor
+      Bd_tmp <- framework$vardir / (sigmau2_tmp + framework$vardir)
+
+      g1_tmp <- rep(0, framework$m)
+      for (d_tmp in seq_len(framework$m)) {
+        g1_tmp[d_tmp] <- framework$vardir[d_tmp] * (1 - Bd_tmp[d_tmp])
+      }
+
+      # G1
+      diff_jack_g1[, paste0(domain)] <- g1_tmp - g1
+
+      # Standard EBLUP
+      eblup_tmp <- eblup_FH(
+        framework = framework_insample, sigmau2 = sigmau2_tmp,
+        combined_data = data_insample
+      )
+      diff_jack_eblups[, paste0(domain)] <- eblup_tmp$eblup_data$FH -
+        eblup$eblup_data$FH[eblup$eblup_data$Out == 0]
+
+      # Ticked at the end of the body so the rate is measured over completed
+      # domains, which is what the remaining-time estimate extrapolates from.
+      progress(domain)
     }
 
-    # G1
-    diff_jack_g1[, paste0(domain)] <- g1_tmp - g1
-
-    # Standard EBLUP
-    eblup_tmp <- eblup_FH(
-      framework = framework_insample, sigmau2 = sigmau2_tmp,
-      combined_data = data_insample
-    )
-    diff_jack_eblups[, paste0(domain)] <- eblup_tmp$eblup_data$FH -
-      eblup$eblup_data$FH[eblup$eblup_data$Out == 0]
-
-    # Ticked at the end of the body so the rate is measured over completed
-    # domains, which is what the remaining-time estimate extrapolates from.
-    progress(domain)
+    jack_mse <- g1 - ((m - 1) / m) * rowSums(diff_jack_g1) +
+      ((m - 1) / m) * rowSums(diff_jack_eblups^2)
   }
-
-  jack_mse <- g1 - ((m - 1) / m) * rowSums(diff_jack_g1) +
-    ((m - 1) / m) * rowSums(diff_jack_eblups^2)
 
 
   mse_data <- data.frame(Domain = framework$combined_data[[framework$domains]])

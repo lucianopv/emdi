@@ -25,6 +25,10 @@ fh_eblup_sfh_cpp <- function(sigmau2, rho, direct, X, vardir, W) {
     .Call(`_emdi2_fh_eblup_sfh_cpp`, sigmau2, rho, direct, X, vardir, W)
 }
 
+fh_jackknife_cpp <- function(direct, X, vardir, sigmau2, fh_full, lower, upper, tol) {
+    .Call(`_emdi2_fh_jackknife_cpp`, direct, X, vardir, sigmau2, fh_full, lower, upper, tol)
+}
+
 fh_mse_pr_cpp <- function(sigmau2, X, vardir, pred_X) {
     .Call(`_emdi2_fh_mse_pr_cpp`, sigmau2, X, vardir, pred_X)
 }
