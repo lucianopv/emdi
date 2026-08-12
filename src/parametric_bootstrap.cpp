@@ -94,12 +94,27 @@ arma::mat parametric_bootstrap_cpp(
     N_dom_ind = N_dom_pop;
   }
 
-  // Pre-build index vectors for aggregated domains
+  // Pre-build index vectors for aggregated domains.
+  // Two-pass counting sort: O(N_pop) total, independent of N_dom_ind. A
+  // per-domain arma::find() would be O(N_dom_ind * N_pop), which is a hard
+  // cliff for finer-than-model-domain output (many small aggregate cells).
+  // Mirrors the construction in monte_carlo.cpp.
   std::vector<arma::uvec> agg_idx_cache;
   if (use_agg) {
     agg_idx_cache.resize(N_dom_ind);
+    int N_pop_agg = (int)agg_ids.n_elem;
+    std::vector<int> bucket_count(N_dom_ind, 0);
+    for (int i = 0; i < N_pop_agg; i++) {
+      bucket_count[agg_ids(i) - 1]++;
+    }
     for (int d = 0; d < N_dom_ind; d++) {
-      agg_idx_cache[d] = arma::find(agg_ids == (d + 1));
+      agg_idx_cache[d].set_size(bucket_count[d]);
+    }
+    std::vector<int> fill_pos(N_dom_ind, 0);
+    for (int i = 0; i < N_pop_agg; i++) {
+      int d = agg_ids(i) - 1;
+      agg_idx_cache[d](fill_pos[d]) = i;
+      fill_pos[d]++;
     }
   }
 
