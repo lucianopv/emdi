@@ -149,15 +149,8 @@
 #' should be computed, the second element of \code{B} is needed and must be
 #' greater than 1. Defaults to c(50,0). For practical applications, values
 #' larger than 200 are recommended.
-#' @param cpus the number of CPU cores \code{fh} may use. \code{fh} has no
-#' worker-process fallback, so the whole budget is spent on OpenMP threads
-#' inside the C++ kernels (REML/EBLUP, the jackknife MSE loop, and the arcsin
-#' bootstrap MSE loop). Defaults to \code{NULL}, which lets
-#' \code{\link{emdi_cores}} resolve the budget from
-#' \code{options(emdi2.cores = )}, then the \code{OMP_NUM_THREADS} environment
-#' variable, then 1. So \code{fh} uses a single core unless asked otherwise,
-#' which keeps it safe inside parallel pipelines, while still respecting a
-#' budget an enclosing pipeline has already set.
+#' @param cpus number of CPU cores emdi2 may use, defaulting to
+#'   \code{getOption("emdi2.cores", 1)}. See \code{\link{emdi_cores}}.
 #' @param seed an integer to set the seed for the random number generator. For
 #' the usage of random number generation see details. If seed is set to
 #' \code{NULL}, seed is chosen randomly. Defaults to \code{123}.
