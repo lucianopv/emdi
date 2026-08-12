@@ -18,7 +18,8 @@ parametric_bootstrap <- function(framework,
                                  cpus,
                                  control,
                                  true_indicators,
-                                 MSE_indicators = "all") {
+                                 MSE_indicators = "all",
+                                 threads = 1L) {
   message("\r", "Bootstrap started                                            ")
 
   # Check if C++ fast path is available
@@ -133,7 +134,8 @@ parametric_bootstrap <- function(framework,
       agg_domain_ids_pop = agg_domain_ids,
       N_dom_agg = N_dom_agg,
       smp_weights = smp_weights,
-      indicator_mask = as.integer(indicator_mask)
+      indicator_mask = as.integer(indicator_mask),
+      threads = as.integer(threads)
     )
 
     # Format result as data.frame

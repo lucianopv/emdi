@@ -81,12 +81,12 @@ get_omp_threads <- function() {
     .Call(`_emdi2_get_omp_threads`)
 }
 
-monte_carlo_cpp <- function(mu, sigmae2, sigmau2, sigmav2, domain_ids, obs_dom, dist_obs_dom, n_pop, N_dom_pop, N_dom_smp, N_dom_unobs, L, threshold, transformation, lambda, shift, pop_weights, n_indicators, agg_domain_ids = NULL, N_dom_agg = 0L, indicator_mask = 0x3FFL) {
-    .Call(`_emdi2_monte_carlo_cpp`, mu, sigmae2, sigmau2, sigmav2, domain_ids, obs_dom, dist_obs_dom, n_pop, N_dom_pop, N_dom_smp, N_dom_unobs, L, threshold, transformation, lambda, shift, pop_weights, n_indicators, agg_domain_ids, N_dom_agg, indicator_mask)
+monte_carlo_cpp <- function(mu, sigmae2, sigmau2, sigmav2, domain_ids, obs_dom, dist_obs_dom, n_pop, N_dom_pop, N_dom_smp, N_dom_unobs, L, threshold, transformation, lambda, shift, pop_weights, n_indicators, agg_domain_ids = NULL, N_dom_agg = 0L, indicator_mask = 0x3FFL, threads = 1L) {
+    .Call(`_emdi2_monte_carlo_cpp`, mu, sigmae2, sigmau2, sigmav2, domain_ids, obs_dom, dist_obs_dom, n_pop, N_dom_pop, N_dom_smp, N_dom_unobs, L, threshold, transformation, lambda, shift, pop_weights, n_indicators, agg_domain_ids, N_dom_agg, indicator_mask, threads)
 }
 
-parametric_bootstrap_cpp <- function(X_pop, mu_fixed_orig, n_pop, obs_dom, dist_obs_dom, pop_weights, N_pop, N_dom_pop, X_smp, n_smp, smp_domain_ids, smp_to_pop_map, N_smp, N_dom_smp, betas_orig, sigmae2_orig, sigmau2_orig, N_dom_smp_selected, N_dom_unobs, B, L, threshold, transformation, lambda_orig, shift_orig, interval_lower, interval_upper, agg_domain_ids_pop = NULL, N_dom_agg = 0L, smp_weights = NULL, indicator_mask = 0x3FFL) {
-    .Call(`_emdi2_parametric_bootstrap_cpp`, X_pop, mu_fixed_orig, n_pop, obs_dom, dist_obs_dom, pop_weights, N_pop, N_dom_pop, X_smp, n_smp, smp_domain_ids, smp_to_pop_map, N_smp, N_dom_smp, betas_orig, sigmae2_orig, sigmau2_orig, N_dom_smp_selected, N_dom_unobs, B, L, threshold, transformation, lambda_orig, shift_orig, interval_lower, interval_upper, agg_domain_ids_pop, N_dom_agg, smp_weights, indicator_mask)
+parametric_bootstrap_cpp <- function(X_pop, mu_fixed_orig, n_pop, obs_dom, dist_obs_dom, pop_weights, N_pop, N_dom_pop, X_smp, n_smp, smp_domain_ids, smp_to_pop_map, N_smp, N_dom_smp, betas_orig, sigmae2_orig, sigmau2_orig, N_dom_smp_selected, N_dom_unobs, B, L, threshold, transformation, lambda_orig, shift_orig, interval_lower, interval_upper, agg_domain_ids_pop = NULL, N_dom_agg = 0L, smp_weights = NULL, indicator_mask = 0x3FFL, threads = 1L) {
+    .Call(`_emdi2_parametric_bootstrap_cpp`, X_pop, mu_fixed_orig, n_pop, obs_dom, dist_obs_dom, pop_weights, N_pop, N_dom_pop, X_smp, n_smp, smp_domain_ids, smp_to_pop_map, N_smp, N_dom_smp, betas_orig, sigmae2_orig, sigmau2_orig, N_dom_smp_selected, N_dom_unobs, B, L, threshold, transformation, lambda_orig, shift_orig, interval_lower, interval_upper, agg_domain_ids_pop, N_dom_agg, smp_weights, indicator_mask, threads)
 }
 
 fmt_duration_cpp <- function(secs) {

@@ -16,7 +16,8 @@ point_estim <- function(framework,
                         interval,
                         L,
                         keep_data = FALSE,
-                        control = list()) {
+                        control = list(),
+                        threads = 1L) {
 
   # Transformation of data -----------------------------------------------------
 
@@ -100,7 +101,8 @@ point_estim <- function(framework,
     lambda = optimal_lambda,
     shift = shift_par,
     model_par = est_par,
-    gen_model = gen_par
+    gen_model = gen_par,
+    threads = threads
   )
 
   mixed_model$coefficients_weighted <- if (!is.null(framework$weights)) {
@@ -347,7 +349,8 @@ monte_carlo <- function(transformation,
                         lambda = NULL,
                         shift = NULL,
                         model_par,
-                        gen_model) {
+                        gen_model,
+                        threads = 1L) {
 
   # Handle aggregate_to
   if(!is.null(framework$aggregate_to_vec)){
@@ -398,7 +401,8 @@ monte_carlo <- function(transformation,
     pop_weights = pop_weights_vec,
     n_indicators = 10L,
     agg_domain_ids = agg_ids,
-    N_dom_agg = N_dom_agg
+    N_dom_agg = N_dom_agg,
+    threads = as.integer(threads)
   )
 
   if (!is.null(framework$aggregate_to_vec)) {
