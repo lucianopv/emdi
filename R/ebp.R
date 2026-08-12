@@ -345,7 +345,8 @@ ebp <- function(fixed,
     !uses_cpp_bootstrap(
       boot_type = boot_type,
       n_indicators = 10L + length(names(custom_indicator)),
-      true_indicators = true_indicators
+      true_indicators = true_indicators,
+      threshold = threshold
     )
 
   # Save function call ---------------------------------------------------------

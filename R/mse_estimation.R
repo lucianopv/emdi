@@ -17,11 +17,22 @@
 # n_indicators is length(framework$indicator_names); ebp() computes the same
 # quantity as 10 + length(names(custom_indicator)) because it needs the answer
 # before framework_ebp() has run.
-uses_cpp_bootstrap <- function(boot_type, n_indicators, true_indicators) {
+uses_cpp_bootstrap <- function(boot_type, n_indicators, true_indicators,
+                               threshold = NULL) {
   n_standard <- 10L
   boot_type == "parametric" &&
     n_indicators == n_standard &&
-    is.null(true_indicators)
+    is.null(true_indicators) &&
+    # A function-valued threshold must stay on the R path. The kernel takes a
+    # single scalar threshold for all B iterations, whereas mse_estim() below
+    # re-evaluates the closure against each replicate's own superpopulation
+    # (`framework$threshold(y = pop_income_vector)`), which is the defined
+    # behaviour for a relative poverty line. Resolving it once and passing the
+    # scalar would silently change that statistic rather than reproduce it, so
+    # the fast path is declined instead. Previously the closure was passed
+    # straight through and the kernel died with
+    # "Not compatible with requested type: [type=closure; target=double]".
+    !inherits(threshold, "function")
 }
 
 parametric_bootstrap <- function(framework,
@@ -47,7 +58,8 @@ parametric_bootstrap <- function(framework,
   use_cpp <- uses_cpp_bootstrap(
     boot_type = boot_type,
     n_indicators = length(framework$indicator_names),
-    true_indicators = true_indicators
+    true_indicators = true_indicators,
+    threshold = framework$threshold
   )
 
   # The budget buys exactly one kind of parallelism, never both at once. The
