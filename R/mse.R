@@ -733,9 +733,54 @@ boot_logit <- function(sigmau2, vardir, combined_data, framework,
   in_sample <- framework$obs_dom == TRUE
   out_sample <- framework$obs_dom == FALSE
 
+  # C++ fast path: standard FH (reml) only, mirroring boot_arcsin_2's gate. The
+  # kernel hardcodes the REML sigma2_u estimator, so ml / spatial fall through
+  # to the legacy R loop below.
+  #
+  # Worth having beyond speed: the R loop calls logit_bc(), which evaluates
+  # exp(l)/(1 + exp(l)) at mu +/- 50*sd and so dies with "non-finite function
+  # value" once a replicate's posterior sd exceeds ~14.2. Since sigmau2 is
+  # re-estimated per replicate, a single bad draw kills the whole run. The
+  # kernel uses the numerically stable sigmoid and does not have that failure.
+  if (.fh_use_cpp() && method == "reml" && framework$correlation == "no") {
+    # Full M-domain model matrix, built once. The legacy loop below rebuilds it
+    # (via makeXY) on every iteration although it never changes.
+    # helper: dummy LHS so makeXY builds predX; the draw is unused but kept to
+    # preserve seed-deterministic RNG consumption before v_boot/e_boot.
+    pred_tmp <- data.frame(framework$combined_data, helper = stats::rnorm(1, 0, 1))
+    formula.tools::lhs(framework$formula) <- quote(helper)
+    predX <- makeXY(formula = framework$formula, data = pred_tmp)$x   # M x p
+
+    vardir_v <- as.numeric(framework$vardir)
+
+    # Pre-generate all bootstrap draws (deterministic given fh()'s seed).
+    v_boot <- matrix(stats::rnorm(M * B, 0, sqrt(sigmau2)), M, B)
+    e_boot <- matrix(stats::rnorm(m * B), m, B) * sqrt(vardir_v)
+
+    res <- fh_boot_logit_cpp(
+      sigmau2, vardir_v, as.numeric(eblup$coefficients$coefficients),
+      x, predX, as.integer(in_sample), v_boot, e_boot,
+      as.numeric(eblup_corr), identical(backtransformation, "bc"),
+      interval[1], interval[2]
+    )
+
+    conf_int <- data.frame(Li = res$Li, Ui = res$Ui)
+    mse_data <- data.frame(Domain = framework$combined_data[[framework$domains]])
+    mse_data$Direct <- NA
+    mse_data$Direct[in_sample] <- framework$vardir
+    mse_data$MSE <- as.numeric(res$mse)
+    mse_data$Out <- as.numeric(out_sample)
+    return(list(conf_int, mse_data))
+  }
+
   # Result matrizes
   true_value_boot <- matrix(NA, ncol = B, nrow = M)
   est_value_boot <- matrix(NA, ncol = B, nrow = M)
+
+  progress <- progress_reporter(
+    total = B, label = "bootstrap iteration",
+    title = "Bootstrap MSE (logit FH)"
+  )
 
   for (b in seq_len(B)) {
     v_boot <- rnorm(M, 0, sqrt(sigmau2))
@@ -807,7 +852,7 @@ boot_logit <- function(sigmau2, vardir, combined_data, framework,
       est_value_boot[, b] <- int_value
     }
 
-    message("b =", b, "\n")
+    progress(b)
   } # End of bootstrap runs
 
   # KI
