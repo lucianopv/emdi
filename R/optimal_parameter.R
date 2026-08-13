@@ -28,27 +28,51 @@ optimal_parameter <- function(generic_opt,
       interval <- c(lower, upper)
     }
 
-    # Sort data by domain for C++ (requires contiguous domain blocks)
-    smp_data_sorted <- smp_data[order(smp_data[[smp_domains]]), ]
-    y <- as.numeric(smp_data_sorted[[as.character(fixed[[2]])]])
-    X <- model.matrix(fixed, smp_data_sorted)
-    # droplevels: if smp_domains carries unused factor levels (e.g. survey
-    # region2 aligned to census levels for OOS-domain coverage in pop_data),
-    # table() would emit zero counts. The C++ sufficient-stats loop then
-    # tries X.rows(offset, offset - 1) and Armadillo throws Mat::rows().
-    # We only drop levels in the local domain_factor used to build n_d;
-    # smp_data_sorted itself is untouched so the model matrix above and any
-    # downstream factor-level checks see the original factor unchanged.
-    domain_factor <- droplevels(as.factor(smp_data_sorted[[smp_domains]]))
-    domain_ids <- as.integer(domain_factor)
-    n_d <- as.integer(table(domain_factor))
+    if (.use_cpp()) {
+      # Sort data by domain for C++ (requires contiguous domain blocks)
+      smp_data_sorted <- smp_data[order(smp_data[[smp_domains]]), ]
+      y <- as.numeric(smp_data_sorted[[as.character(fixed[[2]])]])
+      X <- model.matrix(fixed, smp_data_sorted)
+      # droplevels: if smp_domains carries unused factor levels (e.g. survey
+      # region2 aligned to census levels for OOS-domain coverage in pop_data),
+      # table() would emit zero counts. The C++ sufficient-stats loop then
+      # tries X.rows(offset, offset - 1) and Armadillo throws Mat::rows().
+      # We only drop levels in the local domain_factor used to build n_d;
+      # smp_data_sorted itself is untouched so the model matrix above and any
+      # downstream factor-level checks see the original factor unchanged.
+      domain_factor <- droplevels(as.factor(smp_data_sorted[[smp_domains]]))
+      domain_ids <- as.integer(domain_factor)
+      n_d <- as.integer(table(domain_factor))
 
-    optimal_parameter <- optimal_parameter_cpp(
-      y = y, X = X,
-      domain_ids = domain_ids, n_d = n_d,
-      transformation = transformation,
-      lower = interval[1], upper = interval[2]
-    )
+      optimal_parameter <- optimal_parameter_cpp(
+        y = y, X = X,
+        domain_ids = domain_ids, n_d = n_d,
+        transformation = transformation,
+        lower = interval[1], upper = interval[2]
+      )
+    } else {
+      # Upstream's implementation. Restored so that engine = "r" runs the
+      # reference lambda search rather than silently falling through to C++:
+      # someone setting "r" to investigate a suspect lambda must actually get
+      # the R optimiser, or the check is worthless.
+      #
+      # It costs almost nothing to carry -- generic_opt() never left this
+      # package (plot.ebp.R calls it to draw the lambda profile), so the R
+      # branch is one optimize() call over a function that has to exist anyway.
+      # This is also why the two agree only to optimizer tolerance and not
+      # exactly: same likelihood and same Brent implementation, but R profiles
+      # via generic_opt()'s nlme::lme() refits while the kernel uses the
+      # closed-form per-domain sufficient statistics.
+      optimal_parameter <- optimize(generic_opt,
+        fixed          = fixed,
+        smp_data       = smp_data,
+        smp_domains    = smp_domains,
+        transformation = transformation,
+        interval       = interval,
+        control        = control,
+        maximum        = FALSE
+      )$minimum
+    }
   } else {
     optimal_parameter <- NULL
   }
