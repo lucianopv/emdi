@@ -380,6 +380,17 @@ logit_inverse <- function(l) exp(l) / (1 + exp(l))
 
 logit_bc <- function(M, mu, var, obs_dom) {
 
+  # C++ fast path: GL-64 quadrature, mirroring arcsin_bc's routing. Replaces
+  # one integrate() call per in-sample domain -- per bootstrap iteration in
+  # boot_logit() -- with a single vectorised call. Out-of-sample domains take
+  # the naive back-transformation, exactly as the R loop below does.
+  if (.fh_use_cpp()) {
+    obs <- as.logical(obs_dom)
+    int_value <- logit_inverse(mu)                    # OOS default
+    int_value[obs] <- fh_logit_integral_cpp(mu[obs], sqrt(as.numeric(var[obs])))
+    return(as.numeric(int_value))
+  }
+
   # Use integral to solve the formula in Slud and Maiti
   int_value <- NULL
 
