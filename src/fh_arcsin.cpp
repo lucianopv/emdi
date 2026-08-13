@@ -92,6 +92,12 @@ static const FhGL& fh_gl() { static const FhGL g; return g; }
 static const std::vector<double>& fh_gl_x() { return fh_gl().x; }
 static const std::vector<double>& fh_gl_w() { return fh_gl().w; }
 
+// Non-static accessors so src/fh_logit.cpp can reuse the same quadrature rule
+// instead of building a second copy: the nodes are identical, only the
+// integrand differs.
+const std::vector<double>& fh_gl_x_shared() { return fh_gl().x; }
+const std::vector<double>& fh_gl_w_shared() { return fh_gl().w; }
+
 // ---------------------------------------------------------------------------
 // Exported vectorised interface.
 // I = int_0^{pi/2} sin^2(x) * N(x; mu, sigma^2) dx, length(mu) == length(sigma).

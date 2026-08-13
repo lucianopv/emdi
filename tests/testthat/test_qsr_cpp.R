@@ -139,7 +139,13 @@ test_that("ebp() Quintile_Share reproduces the emdi reference implementation", {
                threshold = 10859.24, transformation = "no", L = 20,
                MSE = FALSE)
   got <- do.call(emdi2::ebp, args)
-  want <- do.call(emdi::ebp, args)
+  # getExportedValue() rather than emdi::ebp: released emdi is the oracle here,
+  # but it cannot go in Suggests -- this package is destined to BECOME emdi, and
+  # a package cannot suggest itself. A literal emdi:: makes R CMD check raise
+  # "'::' or ':::' import not declared from: 'emdi'". The lookup is resolved at
+  # run time instead, behind the skip_if_not_installed() above.
+  # This whole block goes away when the package is renamed.
+  want <- do.call(getExportedValue("emdi", "ebp"), args)
 
   expect_equal(got$ind$Quintile_Share, want$ind$Quintile_Share,
                tolerance = 1e-8)

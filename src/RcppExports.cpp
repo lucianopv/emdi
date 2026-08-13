@@ -134,6 +134,41 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// fh_logit_integral_cpp
+arma::vec fh_logit_integral_cpp(const arma::vec& mu, const arma::vec& sigma);
+RcppExport SEXP _emdi2_fh_logit_integral_cpp(SEXP muSEXP, SEXP sigmaSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::vec& >::type mu(muSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type sigma(sigmaSEXP);
+    rcpp_result_gen = Rcpp::wrap(fh_logit_integral_cpp(mu, sigma));
+    return rcpp_result_gen;
+END_RCPP
+}
+// fh_boot_logit_cpp
+Rcpp::List fh_boot_logit_cpp(double sigmau2, const arma::vec& vardir, const arma::vec& beta, const arma::mat& X, const arma::mat& predX, const arma::ivec& is_in, const arma::mat& v_boot, const arma::mat& e_boot, const arma::vec& eblup_corr, bool bc, double lower, double upper, int threads);
+RcppExport SEXP _emdi2_fh_boot_logit_cpp(SEXP sigmau2SEXP, SEXP vardirSEXP, SEXP betaSEXP, SEXP XSEXP, SEXP predXSEXP, SEXP is_inSEXP, SEXP v_bootSEXP, SEXP e_bootSEXP, SEXP eblup_corrSEXP, SEXP bcSEXP, SEXP lowerSEXP, SEXP upperSEXP, SEXP threadsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< double >::type sigmau2(sigmau2SEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type vardir(vardirSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type beta(betaSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type X(XSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type predX(predXSEXP);
+    Rcpp::traits::input_parameter< const arma::ivec& >::type is_in(is_inSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type v_boot(v_bootSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type e_boot(e_bootSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type eblup_corr(eblup_corrSEXP);
+    Rcpp::traits::input_parameter< bool >::type bc(bcSEXP);
+    Rcpp::traits::input_parameter< double >::type lower(lowerSEXP);
+    Rcpp::traits::input_parameter< double >::type upper(upperSEXP);
+    Rcpp::traits::input_parameter< int >::type threads(threadsSEXP);
+    rcpp_result_gen = Rcpp::wrap(fh_boot_logit_cpp(sigmau2, vardir, beta, X, predX, is_in, v_boot, e_boot, eblup_corr, bc, lower, upper, threads));
+    return rcpp_result_gen;
+END_RCPP
+}
 // fh_mse_pr_cpp
 Rcpp::List fh_mse_pr_cpp(double sigmau2, const arma::mat& X, const arma::vec& vardir, const arma::mat& pred_X);
 RcppExport SEXP _emdi2_fh_mse_pr_cpp(SEXP sigmau2SEXP, SEXP XSEXP, SEXP vardirSEXP, SEXP pred_XSEXP) {
@@ -478,6 +513,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"_emdi2_fh_eblup_core_cpp", (DL_FUNC) &_emdi2_fh_eblup_core_cpp, 4},
     {"_emdi2_fh_eblup_sfh_cpp", (DL_FUNC) &_emdi2_fh_eblup_sfh_cpp, 6},
     {"_emdi2_fh_jackknife_cpp", (DL_FUNC) &_emdi2_fh_jackknife_cpp, 9},
+    {"_emdi2_fh_logit_integral_cpp", (DL_FUNC) &_emdi2_fh_logit_integral_cpp, 2},
+    {"_emdi2_fh_boot_logit_cpp", (DL_FUNC) &_emdi2_fh_boot_logit_cpp, 13},
     {"_emdi2_fh_mse_pr_cpp", (DL_FUNC) &_emdi2_fh_mse_pr_cpp, 4},
     {"_emdi2_fh_mse_spatial_cpp", (DL_FUNC) &_emdi2_fh_mse_spatial_cpp, 6},
     {"_emdi2_fh_reml_loglik_cpp", (DL_FUNC) &_emdi2_fh_reml_loglik_cpp, 4},

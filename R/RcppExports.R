@@ -29,6 +29,14 @@ fh_jackknife_cpp <- function(direct, X, vardir, sigmau2, fh_full, lower, upper, 
     .Call(`_emdi2_fh_jackknife_cpp`, direct, X, vardir, sigmau2, fh_full, lower, upper, tol, threads)
 }
 
+fh_logit_integral_cpp <- function(mu, sigma) {
+    .Call(`_emdi2_fh_logit_integral_cpp`, mu, sigma)
+}
+
+fh_boot_logit_cpp <- function(sigmau2, vardir, beta, X, predX, is_in, v_boot, e_boot, eblup_corr, bc, lower, upper, threads = 1L) {
+    .Call(`_emdi2_fh_boot_logit_cpp`, sigmau2, vardir, beta, X, predX, is_in, v_boot, e_boot, eblup_corr, bc, lower, upper, threads)
+}
+
 fh_mse_pr_cpp <- function(sigmau2, X, vardir, pred_X) {
     .Call(`_emdi2_fh_mse_pr_cpp`, sigmau2, X, vardir, pred_X)
 }

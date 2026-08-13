@@ -20,8 +20,11 @@
 uses_cpp_bootstrap <- function(boot_type, n_indicators, true_indicators,
                                threshold = NULL) {
   n_standard <- 10L
-  boot_type == "parametric" &&
-    n_indicators == n_standard &&
+  # The engine switch comes first: engine = "r" must decline the fast path
+  # outright, whatever the other conditions say.
+  .use_cpp() &&
+    boot_type == "parametric" &&
+      n_indicators == n_standard &&
     # A supplied `true_indicators` no longer forces the R path: the kernel
     # accepts it directly. Measured on eusilcA at L = 20, B = 20: 5.76s on the
     # old R loop against 4.22s here, ~1.35x. Note the R fallback was never
@@ -38,7 +41,7 @@ uses_cpp_bootstrap <- function(boot_type, n_indicators, true_indicators,
     # the fast path is declined instead. Previously the closure was passed
     # straight through and the kernel died with
     # "Not compatible with requested type: [type=closure; target=double]".
-    !inherits(threshold, "function")
+      !inherits(threshold, "function")
 }
 
 # Validate and normalise a user-supplied `true_indicators` data frame.
