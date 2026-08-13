@@ -1,10 +1,24 @@
+# emdi 2.2.3
+* Adapted linking to foreign packages
+* Added citation for area level models
+* Bugfix: Argument (k) path through fixed for robust FH models
+
+
+# emdi 2.2.2
+* Addition of logit transformation in FH model 
+* Removal of MuMIn dependency
+
+# emdi 2.2.1
+* Substitution of maptools and rgeos by sf due to deprecation of the former
+* Substitution of ggplot2::fortify by ggplot2::geom_sf due to depreciation of the former
+
 # emdi 2.2.0
 * **Changed default:** `ebp()` and `fh()` now use a single CPU core unless asked otherwise. Previously the C++ kernels used every core on the machine, which made emdi2 badly behaved inside parallel pipelines (`crew`, `future`, `targets`) — several R processes each claiming every core is a common cause of large, silent slowdowns — and did not meet CRAN's requirement that packages not use more than two cores. `cpus` now means "cores emdi2 may use" and covers both threads and worker processes; set it per call, or session-wide with `options(emdi2.cores = n)`, or via the `OMP_NUM_THREADS` environment variable. `emdi_cores()` reports the resolved budget. **Existing code relying on the previous implicit all-cores behaviour will be slower until `cpus` is set.**
 * Bug fix in `ebp(cpus > 1)`: every bootstrap worker failed with `argument "true_indicators" is missing, with no default`, because the parallel branch omitted two arguments that the sequential branch supplies. The `cpus > 1` code path therefore never worked. Additionally, `cpus > 1` previously disabled the C++ bootstrap fast path and fell back to the R implementation; it now keeps the fast path and spends the budget on threads.
 * emdi2 no longer changes OpenMP settings for the rest of the R session. Thread counts are applied with a `num_threads()` clause scoped to each parallel region rather than by calling `omp_set_num_threads()`, so emdi2 cannot affect other packages' threading. The unexported `set_omp_threads()`/`get_omp_threads()` helpers are removed; use `cpus` or `options(emdi2.cores=)`.
 * Extension of the ebp function to allow for population weights
 * Extension of the ebp function to allow the aggregation of the estimates to different levels  
-* a more flexible use of the custom_indicator agrument within the ebp function
+* a more flexible use of the custom_indicator argument within the ebp function
 * Bug fix in `optimal_parameter()` (transformations `box.cox`, `log.shift`, `dual`): the per-domain sample counts `n_d` are now built from `droplevels()` of the domain factor. If `smp_data[[smp_domains]]` carried unused factor levels (e.g. because the survey's `region2` was aligned to the census's level set for out-of-sample-domain coverage in `pop_data`), `table()` previously returned zero counts and the C++ sufficient-stats loop crashed with `Mat::rows(): indices out of bounds`. Added defensive `Rcpp::stop()` guards in `reml_loglik_cpp`, `lme_fit_cpp`, and `model_par_weighted_cpp` so a direct C++ call with ill-formed `n_d` fails fast with a clear message instead of an opaque Armadillo error.
 * Performance fix in the C++ parametric bootstrap (`ebp(MSE = TRUE)` with `aggregate_to`): the aggregate-cell index cache was built with one `arma::find()` scan per cell, making construction `O(N_dom_agg * N_pop)`. This is a hard cliff for finer-than-model-domain output — at 3.7M population rows and ~140k grid cells it costs minutes before the first bootstrap iteration starts. It now uses the same two-pass counting sort as the Monte-Carlo path, which is `O(N_pop)` and independent of the number of aggregate cells. Results are unaffected: the returned MSE matrix is bit-for-bit `identical()` to the previous implementation for both coarsening and finer-output aggregations. Measured 1.115s to 0.100s at 25,000 cells on `eusilcA`. Regression test in `tests/testthat/test_agg_cache_perf.R`. Note that the equivalent construction in the Monte-Carlo path was already `O(N_pop)`; only the bootstrap path was affected.
 * Performance fix in the jackknife MSE estimators for `fh()` (`mse_type = "jackknife"`, `"weighted_jackknife"`, and the measurement-error variant): the in-sample data frame and its `framework_FH()` were rebuilt inside the delete-one-domain loop although neither depends on the deleted domain, costing `m` redundant `model.matrix()` builds per fit. They are now built once, reducing `framework_FH()` calls per `fh()` from `1 + 2m` to `m + 2`. No numerical change — the stored jackknife benchmarks (`MSE_jack`, `MSE_wjack`) are unchanged. The wall-clock gain is modest (~15% at `m = 94`) because the loop also re-estimates `sigmau2` `m` times, which dominates.

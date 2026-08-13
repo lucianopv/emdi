@@ -1,3 +1,5 @@
+"_PACKAGE"
+
 #' A package for estimating and mapping disaggregated indicators
 #'
 #' The package \pkg{emdi} supports estimating and mapping regional
@@ -44,6 +46,6 @@
 #' Data Analysis, Vol. 121, 20-40.
 #' @useDynLib emdi2, .registration = TRUE
 #' @importFrom Rcpp evalCpp
-#' @docType package
 #' @name emdi
+"_PACKAGE"
 NULL
