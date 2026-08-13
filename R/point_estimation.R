@@ -343,7 +343,7 @@ gen_model <- function(fixed,
 # The function approximates the expected value (Molina and Rao (2010)
 # p.372 (6)). For description of monte-carlo simulation see Molina and
 # Rao (2010) p. 373 (13) and p. 374-375
-monte_carlo <- function(transformation,
+monte_carlo_cpp_path <- function(transformation,
                         L,
                         framework,
                         lambda = NULL,
@@ -570,3 +570,140 @@ prediction_y <- function(transformation,
 
   return(y_pred)
 } # End prediction_y
+
+
+# ---------------------------------------------------------------------------
+# R Monte-Carlo implementation, restored verbatim from upstream emdi
+# (emdi-upstream/master:R/point_estimation.R). This is the engine = "r" branch.
+#
+# It had been deleted here rather than kept beside the C++ kernel, which made
+# engine = "r" impossible for EBP. The upstream merge did NOT bring it back on
+# its own: upstream never touched R/point_estimation.R in its 34 post-fork
+# commits, so only this side had changed the file and git kept our version,
+# deletion included.
+#
+# Keeping it is less of a burden than it looks. Upstream maintains this code
+# regardless, so remaining a fork that can merge means carrying it anyway --
+# deleting an R path does not save maintenance, it creates future conflict.
+# What it buys is the ability to check the C++ against it, which is what makes
+# the kernels reviewable by someone who does not read C++.
+#
+# Kept verbatim on purpose: any edit weakens it as an oracle.
+# ---------------------------------------------------------------------------
+
+monte_carlo_r <- function(transformation,
+                        L,
+                        framework,
+                        lambda,
+                        shift,
+                        model_par,
+                        gen_model) {
+
+  # Preparing matrices for indicators for the Monte-Carlo simulation
+
+  if(!is.null(framework$aggregate_to_vec)){
+    N_dom_pop_tmp <- framework$N_dom_pop_agg
+    pop_domains_vec_tmp <- framework$aggregate_to_vec
+  } else {
+    N_dom_pop_tmp <- framework$N_dom_pop
+    pop_domains_vec_tmp <- framework$pop_domains_vec
+  }
+
+  ests_mcmc <- array(dim = c(
+    N_dom_pop_tmp,
+    L,
+    length(framework$indicator_names)
+  ))
+
+  for (l in seq_len(L)) {
+
+    # Errors in generating model: individual error term and random effect
+    # See below for function errors_gen.
+    errors <- errors_gen(
+      framework = framework,
+      model_par = model_par,
+      gen_model = gen_model
+    )
+
+    # Prediction of population vector y
+    # See below for function prediction_y.
+    population_vector <- prediction_y(
+      transformation = transformation,
+      lambda = lambda,
+      shift = shift,
+      gen_model = gen_model,
+      errors_gen = errors,
+      framework = framework
+    )
+
+    if(!is.null(framework$pop_weights)){
+      pop_weights_vec <- framework$pop_data[[framework$pop_weights]]
+    }else{
+      pop_weights_vec <- rep(1, nrow(framework$pop_data))
+    }
+
+    # Calculation of indicators for each Monte Carlo population
+    ests_mcmc[, l, ] <-
+      matrix(
+        nrow = N_dom_pop_tmp,
+        data = unlist(lapply(framework$indicator_list,
+          function(f, threshold) {
+            matrix(
+              nrow = N_dom_pop_tmp,
+              data = unlist(mapply(
+                y = split(population_vector, pop_domains_vec_tmp),
+                pop_weights = split(pop_weights_vec, pop_domains_vec_tmp),
+                f,
+                threshold = framework$threshold
+              )), byrow = TRUE
+            )
+          },
+          threshold = framework$threshold
+        ))
+      )
+  } # End for loop
+
+
+  # Point estimations of indicators by taking the mean
+
+  point_estimates <- data.frame(
+    Domain = unique(pop_domains_vec_tmp),
+    apply(ests_mcmc, c(3), rowMeans)
+  )
+  colnames(point_estimates) <- c("Domain", framework$indicator_names)
+  return(point_estimates)
+} # End Monte-Carlo
+
+# ---------------------------------------------------------------------------
+# Monte-Carlo dispatcher. Whole-call gating: engine = "r" runs the R
+# implementation end to end, not a mixture.
+# ---------------------------------------------------------------------------
+monte_carlo <- function(transformation, L, framework, lambda = NULL,
+                        shift = NULL, model_par, gen_model, threads = 1L) {
+  if (.use_cpp()) {
+    monte_carlo_cpp_path(
+      transformation = transformation, L = L, framework = framework,
+      lambda = lambda, shift = shift, model_par = model_par,
+      gen_model = gen_model, threads = threads
+    )
+  } else {
+    # Shape reconciliation: upstream's implementation returns the point
+    # estimates data frame directly, while the C++ path returns a list that
+    # also carries y_mcmc -- the full L-column matrix of simulated population
+    # values, an output this fork added.
+    #
+    # y_mcmc is NULL under engine = "r". Nothing in the R path needs it:
+    # upstream computes custom indicators inside its own loop via
+    # framework$indicator_list. It is absent from the returned emdi object,
+    # which is a documented limitation of the R engine rather than a defect --
+    # the R path exists to verify the C++ numerics, not to replace them.
+    list(
+      point_estimates = monte_carlo_r(
+        transformation = transformation, L = L, framework = framework,
+        lambda = lambda, shift = shift, model_par = model_par,
+        gen_model = gen_model
+      ),
+      y_mcmc = NULL
+    )
+  }
+}
