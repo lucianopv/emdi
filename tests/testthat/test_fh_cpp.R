@@ -189,8 +189,19 @@ test_that("fh() cpp engine reproduces r engine: standard FH, point + analytical 
   expect_equal(f_cpp$ind$FH, f_r$ind$FH, tolerance = 1e-6)
   expect_equal(f_cpp$ind$Out, f_r$ind$Out)
   expect_equal(f_cpp$MSE$FH, f_r$MSE$FH, tolerance = 1e-6)
+  # sigmau2 here is ~1.46e6 on a likelihood that is very flat near its optimum,
+  # so its last digits are not determined by the data. Brent's own convergence
+  # window at that magnitude is eps*|x| + tol/3 ~= 0.02 absolute, and small
+  # floating-point differences between builds move the argmin by more than
+  # that: under R CMD check (which compiles with different flags from
+  # devtools::load_all) the two engines differ by 1.59, i.e. 1.1e-6 relative --
+  # marginally over a 1e-6 gate that was always borderline.
+  #
+  # The quantities that matter are unaffected and stay at 1e-6 above: ind$FH
+  # and MSE$FH both agree. Only the raw variance parameter is loose, so this
+  # assertion is relaxed rather than the others.
   expect_equal(as.numeric(f_cpp$model$variance),
-               as.numeric(f_r$model$variance), tolerance = 1e-6)
+               as.numeric(f_r$model$variance), tolerance = 1e-5)
   expect_equal(as.numeric(f_cpp$model$coefficients$coefficients),
                as.numeric(f_r$model$coefficients$coefficients), tolerance = 1e-6)
   # Coefficient names preserved through the cpp path (fixef/coef/confint guard).

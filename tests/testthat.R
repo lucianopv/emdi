@@ -1,4 +1,4 @@
 library(testthat)
-library(emdi)
+library(emdi2)
 
-test_check("emdi")
+test_check("emdi2")

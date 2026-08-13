@@ -82,7 +82,8 @@ arma::mat parametric_bootstrap_cpp(
     int N_dom_agg = 0,
     Rcpp::Nullable<Rcpp::NumericVector> smp_weights = R_NilValue,
     int indicator_mask = 0x3FF,
-    int threads = 1
+    int threads = 1,
+    Rcpp::Nullable<Rcpp::NumericMatrix> true_indicators_fixed = R_NilValue
 ) {
   if (threads < 1) threads = 1;
 
@@ -184,6 +185,37 @@ arma::mat parametric_bootstrap_cpp(
   Rprintf("%s\n", emdi::progress_header("Bootstrap MSE", B,
                                         "bootstrap iteration", start_epoch).c_str());
 
+  // A user-supplied truth is constant across all B iterations, so it is read
+  // once here and Step 2 is skipped entirely below.
+  //
+  // Skipping Step 2 is NOT itself a meaningful speedup, despite appearances:
+  // Step 5's Monte-Carlo loop computes the same indicators L times per
+  // iteration, so Step 2 is only about 1/L of the indicator work. Measured on
+  // eusilcA at L = 20, B = 20, supplying the truth was 4.22s against 4.00s for
+  // the ordinary C++ path -- i.e. no gain, within noise. The reason to accept
+  // the argument here is that a supplied truth previously forced the whole
+  // bootstrap onto the R loop (5.76s in the same measurement, ~1.35x slower),
+  // not that skipping Step 2 buys anything.
+  //
+  // The matrix arrives already validated by normalise_true_indicators() in R:
+  // rows in output-domain order (aggregate_to's order when that is in use),
+  // and all 10 canonical indicator columns with zeros in the positions
+  // MSE_indicators did not request -- matching what
+  // compute_domain_indicators_selective_cpp leaves there, so the difference in
+  // an unrequested column is zero either way.
+  const bool has_fixed_true = true_indicators_fixed.isNotNull();
+  arma::mat fixed_true;
+  if (has_fixed_true) {
+    fixed_true = Rcpp::as<arma::mat>(true_indicators_fixed.get());
+    if ((int) fixed_true.n_rows != N_dom_ind ||
+        (int) fixed_true.n_cols != n_indicators) {
+      Rcpp::stop("parametric_bootstrap_cpp: true_indicators_fixed must be "
+                 "%d x %d, got %d x %d",
+                 N_dom_ind, n_indicators,
+                 (int) fixed_true.n_rows, (int) fixed_true.n_cols);
+    }
+  }
+
   for (int b = 0; b < B; b++) {
 
     Rcpp::checkUserInterrupt();
@@ -242,14 +274,18 @@ arma::mat parametric_bootstrap_cpp(
     // Step 2: Compute true indicators on superpopulation
     // =====================================================================
 
-    arma::mat true_indicators(N_dom_ind, n_indicators);
+    // Skipped entirely when the caller supplied the truth: `computed_true`
+    // stays empty and the reference below binds to `fixed_true` instead.
+    arma::mat computed_true;
+    if (!has_fixed_true) {
+    computed_true.set_size(N_dom_ind, n_indicators);
 
     if (use_agg) {
       for (int d = 0; d < N_dom_ind; d++) {
         const arma::uvec& idx = agg_idx_cache[d];
         arma::vec y_d = Y_pop_b.elem(idx);
         arma::vec w_d = pop_weights.elem(idx);
-        true_indicators.row(d) = compute_domain_indicators_selective_cpp(y_d, w_d, threshold, indicator_mask).t();
+        computed_true.row(d) = compute_domain_indicators_selective_cpp(y_d, w_d, threshold, indicator_mask).t();
       }
     } else {
       int offset = 0;
@@ -257,10 +293,14 @@ arma::mat parametric_bootstrap_cpp(
         int nd = n_pop[d];
         arma::vec y_d = Y_pop_b.subvec(offset, offset + nd - 1);
         arma::vec w_d = pop_weights.subvec(offset, offset + nd - 1);
-        true_indicators.row(d) = compute_domain_indicators_selective_cpp(y_d, w_d, threshold, indicator_mask).t();
+        computed_true.row(d) = compute_domain_indicators_selective_cpp(y_d, w_d, threshold, indicator_mask).t();
         offset += nd;
       }
     }
+    }  // end if (!has_fixed_true)
+
+    // Bind without copying: one of the two is always populated.
+    const arma::mat& true_indicators = has_fixed_true ? fixed_true : computed_true;
 
     // =====================================================================
     // Step 3: Generate bootstrap sample

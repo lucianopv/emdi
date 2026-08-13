@@ -410,8 +410,18 @@ monte_carlo <- function(transformation,
     n_std <- 10
     if (length(framework$indicator_names) > n_std) {
       # Custom indicators: compute via R using y_mcmc from C++
-      custom_list <- framework$indicator_list[(n_std + 1):length(framework$indicator_list)]
+      # n_std counts standard indicator NAMES (10), but indicator_list holds
+      # FUNCTIONS -- only 6 of them, because `quants` alone yields 5 of the 10
+      # names. Slicing [(n_std + 1):length(indicator_list)] therefore built a
+      # DESCENDING index (11:7 with one custom indicator), producing NULLs from
+      # out-of-bounds positions. match.fun(NULL) is not a function, so it fell
+      # back to resolving the symbol `f`, which does not exist in that frame:
+      #   object 'f' of mode 'function' was not found
+      # Custom functions are appended to indicator_list after the standard
+      # ones, so take the last n_custom entries instead.
       n_custom <- length(framework$indicator_names) - n_std
+      n_fun <- length(framework$indicator_list)
+      custom_list <- framework$indicator_list[seq.int(n_fun - n_custom + 1L, n_fun)]
       custom_ests <- array(dim = c(N_dom_pop_tmp, L, n_custom))
       for (l in seq_len(L)) {
         custom_ests[, l, ] <-
@@ -451,8 +461,18 @@ monte_carlo <- function(transformation,
     n_std <- 10
     if (length(framework$indicator_names) > n_std) {
       # Custom indicators: compute via R using y_mcmc from C++
-      custom_list <- framework$indicator_list[(n_std + 1):length(framework$indicator_list)]
+      # n_std counts standard indicator NAMES (10), but indicator_list holds
+      # FUNCTIONS -- only 6 of them, because `quants` alone yields 5 of the 10
+      # names. Slicing [(n_std + 1):length(indicator_list)] therefore built a
+      # DESCENDING index (11:7 with one custom indicator), producing NULLs from
+      # out-of-bounds positions. match.fun(NULL) is not a function, so it fell
+      # back to resolving the symbol `f`, which does not exist in that frame:
+      #   object 'f' of mode 'function' was not found
+      # Custom functions are appended to indicator_list after the standard
+      # ones, so take the last n_custom entries instead.
       n_custom <- length(framework$indicator_names) - n_std
+      n_fun <- length(framework$indicator_list)
+      custom_list <- framework$indicator_list[seq.int(n_fun - n_custom + 1L, n_fun)]
       custom_ests <- array(dim = c(N_dom_pop_tmp, L, n_custom))
       for (l in seq_len(L)) {
         custom_ests[, l, ] <-
