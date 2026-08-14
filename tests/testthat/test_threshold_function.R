@@ -21,8 +21,8 @@ test_that("uses_cpp_bootstrap declines the fast path for a function threshold", 
 
 test_that("ebp(MSE = TRUE) works with a function-valued threshold", {
   skip_on_cran()
-  data("eusilcA_smp", package = "emdi2")
-  data("eusilcA_pop", package = "emdi2")
+  data("eusilcA_smp", package = "emdi")
+  data("eusilcA_pop", package = "emdi")
 
   set.seed(1)
   expect_no_error(

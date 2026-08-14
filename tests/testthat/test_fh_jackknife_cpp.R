@@ -118,7 +118,7 @@ test_that("the cpp jackknife path is taken for reml and skipped for ml", {
     testthat::with_mocked_bindings(
       force(expr),
       framework_FH = function(...) { n <<- n + 1L; orig(...) },
-      .package = "emdi2"
+      .package = "emdi"
     )
     n
   }
@@ -177,7 +177,7 @@ test_that("fh() hands the resolved cpus budget to the jackknife kernel", {
       seen <<- c(seen, as.integer(threads))
       orig(..., threads = threads)
     },
-    .package = "emdi2"
+    .package = "emdi"
   )
   expect_identical(seen, budget)
 })

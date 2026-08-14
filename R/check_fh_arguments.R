@@ -200,7 +200,7 @@ fh_check <- function(fixed, vardir, combined_data, domains, method, interval, k,
                  is chosen, the number of bootstrap samples (B) needs to be
                  greater than 1. See also help(fh)."))
   }
-  # NULL is the default and means "resolve the budget from the emdi2.cores
+  # NULL is the default and means "resolve the budget from the emdi.cores
   # option, then OMP_NUM_THREADS, then 1" -- see emdi_cores(). Anything else
   # still has to be a single number, so a typo is reported here rather than
   # being coerced to NA and silently falling back to one core.
@@ -208,8 +208,8 @@ fh_check <- function(fixed, vardir, combined_data, domains, method, interval, k,
       (!is.numeric(cpus) || !(is.numeric(cpus) && length(cpus) == 1))) {
     stop(strwrap(prefix = " ", initial = "",
                  "Cpus must be a single number determining the number of
-                 cores emdi2 may use, or NULL to resolve it from
-                 options(emdi2.cores = ) and OMP_NUM_THREADS."))
+                 cores emdi may use, or NULL to resolve it from
+                 options(emdi.cores = ) and OMP_NUM_THREADS."))
   }
   if (!is.null(seed) && (!is.numeric(seed) ||
     !(is.numeric(seed) && length(seed) == 1))) {

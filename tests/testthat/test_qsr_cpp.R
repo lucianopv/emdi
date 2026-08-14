@@ -130,13 +130,12 @@ test_that("ebp() reproduces the released-emdi reference implementation", {
   # The oracle is a STORED fixture, not a live call into released emdi.
   #
   # It used to be the latter, resolved at run time via
-  # getExportedValue("emdi", "ebp") because emdi cannot go in Suggests (this
-  # package is destined to BECOME emdi, and a package cannot suggest itself).
-  # That worked only while the fork was still named emdi2. Once it takes the
-  # emdi name, "emdi" resolves to the package under test -- the oracle silently
-  # becomes the subject, and the assertion compares the kernel against itself.
-  # A test that cannot fail is worse than no test, so the reference was frozen
-  # instead.
+  # getExportedValue("emdi", "ebp"), back when this package was still called
+  # emdi2 and "emdi" therefore meant the released CRAN package. It now IS emdi,
+  # so that lookup would resolve to the package under test: the oracle becomes
+  # the subject and the assertion compares the kernel against itself. A test
+  # that cannot fail is worse than no test, so the reference was frozen before
+  # the rename rather than deleted after it.
   #
   # EBP/ebp_indicators_emdi223.csv holds ebp()$ind from CRAN emdi 2.2.3 for the
   # argument list below, written at %.17g so it round-trips bit-exactly and
@@ -146,8 +145,8 @@ test_that("ebp() reproduces the released-emdi reference implementation", {
   want <- read.csv(test_path("EBP", "ebp_indicators_emdi223.csv"),
                    stringsAsFactors = FALSE)
 
-  data("eusilcA_pop", package = "emdi2")
-  data("eusilcA_smp", package = "emdi2")
+  data("eusilcA_pop", package = "emdi")
+  data("eusilcA_smp", package = "emdi")
   fixed <- eqIncome ~ gender + eqsize + cash + self_empl + unempl_ben +
     age_ben + surv_ben + sick_ben + dis_ben + rent + fam_allow +
     house_allow + cap_inv + tax_adj

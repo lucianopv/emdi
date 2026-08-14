@@ -156,7 +156,7 @@
 #' @param cpus the number of CPU cores \code{fh} may use. \code{fh} has no
 #'   worker-process fallback, so the whole budget is spent on parallel threads
 #'   within the current process. Defaults to \code{NULL}, which resolves the
-#'   budget from \code{getOption("emdi2.cores")}, then the
+#'   budget from \code{getOption("emdi.cores")}, then the
 #'   \code{OMP_NUM_THREADS} environment variable, then 1. Only the C++ fast
 #'   paths use it; other methods run single-threaded regardless.
 #'   See \code{\link{emdi_cores}}.
@@ -361,7 +361,7 @@ fh <- function(fixed, vardir, combined_data, domains = NULL, method = "reml",
   # cpus is a budget of cores, not a worker count. fh() has no parallelMap
   # branch, so unlike ebp() the whole budget is always spent on OpenMP
   # threads inside the C++ kernels (REML/EBLUP, jackknife MSE, arcsin
-  # bootstrap MSE). emdi_cores() resolves it against the emdi2.cores option,
+  # bootstrap MSE). emdi_cores() resolves it against the emdi.cores option,
   # OMP_NUM_THREADS, R CMD check's core limit and the machine's core count.
   cores <- emdi_cores(cpus)
 

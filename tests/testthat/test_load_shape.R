@@ -1,23 +1,26 @@
-# load_shapeaustria() looked the shape file up under package = "emdi", the
-# pre-fork name, while the file ships in emdi2's inst/shapes/. system.file()
-# returns "" for a package that is not installed, so load() got an empty path:
+# load_shapeaustria() reads the shape file that ships in inst/shapes/ via
+# system.file(). system.file() returns "" rather than erroring when it cannot
+# find the file, so a wrong package name there does not fail loudly -- load()
+# is handed an empty path and dies with
 #   cannot open compressed file '', probable reason 'No such file or directory'
-# R CMD check hit this in ebp.Rd's --run-donttest examples.
+# which says nothing about the real cause. R CMD check hit exactly that in
+# ebp.Rd's --run-donttest examples.
 #
-# It only surfaced once three earlier blockers were cleared, and it was masked
-# on any machine where the original emdi happened to be installed -- there
-# system.file() would silently return emdi's own copy.
+# The failure was also maskable: on a machine where some other installed
+# package happened to own a file at that path, system.file() would silently
+# return that copy and the bug would stay invisible. So the first test pins the
+# lookup to this package rather than trusting load_shapeaustria() to error.
 
-test_that("the shape file is found in emdi2, not the pre-fork emdi", {
-  path <- system.file("shapes/shape_austria_dis.rda", package = "emdi2")
-  skip_if(!nzchar(path), "emdi2 not installed (devtools::load_all session)")
+test_that("the shape file ships in this package", {
+  path <- system.file("shapes/shape_austria_dis.rda", package = "emdi")
+  skip_if(!nzchar(path), "emdi not installed (devtools::load_all session)")
   expect_true(file.exists(path))
 })
 
 test_that("load_shapeaustria() loads a shape file", {
   skip_if_not_installed("sf")
-  skip_if(!nzchar(system.file("shapes/shape_austria_dis.rda", package = "emdi2")),
-          "emdi2 not installed (devtools::load_all session)")
+  skip_if(!nzchar(system.file("shapes/shape_austria_dis.rda", package = "emdi")),
+          "emdi not installed (devtools::load_all session)")
   on.exit(suppressWarnings(rm(list = "shape_austria_dis", envir = .GlobalEnv)),
           add = TRUE)
 

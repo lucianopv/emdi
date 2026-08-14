@@ -107,8 +107,8 @@ test_that("the results are probabilities and the interval brackets them", {
 
 test_that("boot_logit routes through the kernel, and works where R cannot", {
   skip_on_cran()
-  data("eusilcA_popAgg", package = "emdi2")
-  data("eusilcA_smpAgg", package = "emdi2")
+  data("eusilcA_popAgg", package = "emdi")
+  data("eusilcA_smpAgg", package = "emdi")
   cd <- combine_data(eusilcA_popAgg, "Domain", eusilcA_smpAgg, "Domain")
 
   run <- function(engine) withr::with_options(
@@ -141,7 +141,7 @@ test_that("boot_logit routes through the kernel, and works where R cannot", {
   testthat::with_mocked_bindings(
     invisible(run("cpp")),
     fh_boot_logit_cpp = function(...) { called <<- TRUE; orig(...) },
-    .package = "emdi2"
+    .package = "emdi"
   )
   expect_true(called)
 })

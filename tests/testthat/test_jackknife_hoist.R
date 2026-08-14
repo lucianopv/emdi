@@ -24,7 +24,7 @@ count_framework_FH <- function(expr) {
       count <<- count + 1L
       orig(...)
     },
-    .package = "emdi2"
+    .package = "emdi"
   )
   list(fit = fit, count = count)
 }

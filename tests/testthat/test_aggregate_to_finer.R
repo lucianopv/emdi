@@ -1,6 +1,6 @@
 test_that("aggregate_to rejects a column that doesn't nest within pop_domains", {
-  data("eusilcA_smp", package = "emdi2")
-  data("eusilcA_pop", package = "emdi2")
+  data("eusilcA_smp", package = "emdi")
+  data("eusilcA_pop", package = "emdi")
 
   set.seed(1)
   # Deliberately break nesting: assign a random "cell" label independent of district
@@ -19,8 +19,8 @@ test_that("aggregate_to rejects a column that doesn't nest within pop_domains", 
 })
 
 test_that("aggregate_to does not change fitted model parameters (betas, sigmau2, sigmae2)", {
-  data("eusilcA_smp", package = "emdi2")
-  data("eusilcA_pop", package = "emdi2")
+  data("eusilcA_smp", package = "emdi")
+  data("eusilcA_pop", package = "emdi")
 
   # A genuinely finer, properly-nested grouping: split each district into 2 halves by row order
   eusilcA_pop$subunit <- paste0(eusilcA_pop$district, "_",
@@ -53,8 +53,8 @@ test_that("aggregate_to does not change fitted model parameters (betas, sigmau2,
 })
 
 test_that("aggregate_to produces one indicator row per output group, coherent with the plain fit", {
-  data("eusilcA_smp", package = "emdi2")
-  data("eusilcA_pop", package = "emdi2")
+  data("eusilcA_smp", package = "emdi")
+  data("eusilcA_pop", package = "emdi")
 
   eusilcA_pop$subunit <- paste0(eusilcA_pop$district, "_",
                                  rep(1:2, length.out = nrow(eusilcA_pop)))

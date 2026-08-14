@@ -2,8 +2,7 @@
 % Please edit documentation in R/emdi.R
 \docType{package}
 \name{emdi}
-\alias{emdi2}
-\alias{emdi2-package}
+\alias{emdi-package}
 \alias{emdi}
 \title{A package for estimating and mapping disaggregated indicators}
 \description{

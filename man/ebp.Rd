@@ -116,8 +116,8 @@ path (wild bootstrap, custom indicators); the C++ path spends the
 \item{cpus}{the number of CPU cores \code{ebp} may use. The budget is spent
 on either parallel threads within one process or on worker processes, never
 both at once. Defaults to \code{NULL}, which resolves the budget from
-\code{getOption("emdi2.cores")}, then the \code{OMP_NUM_THREADS}
-environment variable, then 1. emdi2 uses a single core unless asked
+\code{getOption("emdi.cores")}, then the \code{OMP_NUM_THREADS}
+environment variable, then 1. emdi uses a single core unless asked
 otherwise, so that it stays well behaved inside parallel pipelines
 (\code{crew}, \code{future}, \code{targets}), where several R processes
 each claiming every core is a common cause of large, silent slowdowns.

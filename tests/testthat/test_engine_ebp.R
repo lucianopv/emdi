@@ -7,8 +7,8 @@
 # it is upstream's code, and staying mergeable means carrying it anyway.
 
 ebp_engine_data <- function() {
-  data("eusilcA_smp", package = "emdi2")
-  data("eusilcA_pop", package = "emdi2")
+  data("eusilcA_smp", package = "emdi")
+  data("eusilcA_pop", package = "emdi")
   list(smp = eusilcA_smp, pop = eusilcA_pop)
 }
 
@@ -33,7 +33,7 @@ test_that("engine = 'r' does not reach the Monte-Carlo kernel", {
   testthat::with_mocked_bindings(
     invisible(run_ebp_engine("r")),
     monte_carlo_cpp = function(...) { called <<- TRUE; orig(...) },
-    .package = "emdi2"
+    .package = "emdi"
   )
   expect_false(called)
 })
@@ -45,7 +45,7 @@ test_that("engine = 'cpp' does reach the Monte-Carlo kernel", {
   testthat::with_mocked_bindings(
     invisible(run_ebp_engine("cpp")),
     monte_carlo_cpp = function(...) { called <<- TRUE; orig(...) },
-    .package = "emdi2"
+    .package = "emdi"
   )
   expect_true(called)
 })
@@ -92,7 +92,7 @@ test_that("engine = 'r' does not reach the lambda-search kernel", {
   testthat::with_mocked_bindings(
     invisible(run_ebp_bc("r")),
     optimal_parameter_cpp = function(...) { called <<- TRUE; orig(...) },
-    .package = "emdi2"
+    .package = "emdi"
   )
   expect_false(called)
 })
@@ -104,7 +104,7 @@ test_that("engine = 'cpp' does reach the lambda-search kernel", {
   testthat::with_mocked_bindings(
     invisible(run_ebp_bc("cpp")),
     optimal_parameter_cpp = function(...) { called <<- TRUE; orig(...) },
-    .package = "emdi2"
+    .package = "emdi"
   )
   expect_true(called)
 })

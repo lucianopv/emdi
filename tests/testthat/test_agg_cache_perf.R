@@ -13,8 +13,8 @@
 test_that("agg_idx_cache construction does not scale with aggregate cardinality", {
   skip_on_cran()
 
-  data("eusilcA_smp", package = "emdi2")
-  data("eusilcA_pop", package = "emdi2")
+  data("eusilcA_smp", package = "emdi")
+  data("eusilcA_pop", package = "emdi")
 
   # Enlarge the population so the cache cost is clearly separable from the
   # per-iteration bootstrap cost (which is O(B * L * N_pop) and stays small

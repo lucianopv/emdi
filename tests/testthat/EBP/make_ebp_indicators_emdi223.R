@@ -1,8 +1,15 @@
 # Freeze released emdi's ebp() indicators as a stored benchmark.
 #
-# Must be run while `emdi` still resolves to the RELEASED CRAN package, i.e.
-# BEFORE this fork is renamed emdi2 -> emdi. Afterwards the name collides and
-# the package would silently become its own oracle.
+# HISTORICAL: this was run once, while the fork was still called emdi2 and
+# `emdi` therefore resolved to the released CRAN package. That is no longer
+# true -- this package now IS emdi, so running the script in a session where
+# the development package is loaded would make it its own oracle and quietly
+# rewrite the benchmark to whatever the kernel currently produces.
+#
+# The packageVersion() assertion below is what stops that: it fails unless the
+# emdi on the search path is genuinely 2.2.3. To regenerate, point R at a
+# library holding released emdi and no development build, e.g.
+#   R_LIBS=~/R/emdi-oracle-2.2.3 Rscript tests/testthat/EBP/make_ebp_indicators_emdi223.R
 
 stopifnot(packageVersion("emdi") == "2.2.3")
 cat("oracle package: emdi", as.character(packageVersion("emdi")),

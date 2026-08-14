@@ -199,7 +199,7 @@ Rcpp::List monte_carlo_cpp(
   // its own column of y_mcmc, accumulates into thread-local indicator sums.
   // ------------------------------------------------------------------
   #ifdef _OPENMP
-  // num_threads scopes the count to this region: emdi2 never calls
+  // num_threads scopes the count to this region: emdi never calls
   // omp_set_num_threads(), so it cannot alter OpenMP for the rest of the
   // session or for other packages.
   #pragma omp parallel if(L > 10) num_threads(threads)
