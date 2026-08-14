@@ -205,8 +205,8 @@ test_that("gen_bootstrap_sample_cpp produces correct dimensions", {
 })
 
 test_that("Full ebp() with C++ produces valid results", {
-  data("eusilcA_smp", package = "emdi2")
-  data("eusilcA_pop", package = "emdi2")
+  data("eusilcA_smp", package = "emdi")
+  data("eusilcA_pop", package = "emdi")
 
   set.seed(42)
   result <- ebp(
@@ -231,8 +231,8 @@ test_that("Full ebp() with C++ produces valid results", {
 })
 
 test_that("Full ebp() with MSE and C++ produces valid results", {
-  data("eusilcA_smp", package = "emdi2")
-  data("eusilcA_pop", package = "emdi2")
+  data("eusilcA_smp", package = "emdi")
+  data("eusilcA_pop", package = "emdi")
 
   set.seed(42)
   result <- ebp(

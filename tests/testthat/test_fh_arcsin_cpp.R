@@ -187,7 +187,7 @@ test_that("fh() hands the resolved cpus budget to the arcsin bootstrap kernel", 
       seen <<- c(seen, as.integer(threads))
       orig(..., threads = threads)
     },
-    .package = "emdi2"
+    .package = "emdi"
   )
   expect_identical(seen, budget)
 })

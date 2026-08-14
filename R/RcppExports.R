@@ -2,118 +2,118 @@
 # Generator token: 10BE3573-1514-4C36-9D1C-5A225CD40393
 
 gen_superpop_cpp <- function(mu_fixed, sigmae2, sigmau2, obs_dom, n_pop, N_dom_pop, transformation, lambda, shift) {
-    .Call(`_emdi2_gen_superpop_cpp`, mu_fixed, sigmae2, sigmau2, obs_dom, n_pop, N_dom_pop, transformation, lambda, shift)
+    .Call(`_emdi_gen_superpop_cpp`, mu_fixed, sigmae2, sigmau2, obs_dom, n_pop, N_dom_pop, transformation, lambda, shift)
 }
 
 gen_bootstrap_sample_cpp <- function(X_smp, betas, sigmae2, sigmau2, vu_tmp, smp_to_pop_map, n_smp, transformation, lambda, shift) {
-    .Call(`_emdi2_gen_bootstrap_sample_cpp`, X_smp, betas, sigmae2, sigmau2, vu_tmp, smp_to_pop_map, n_smp, transformation, lambda, shift)
+    .Call(`_emdi_gen_bootstrap_sample_cpp`, X_smp, betas, sigmae2, sigmau2, vu_tmp, smp_to_pop_map, n_smp, transformation, lambda, shift)
 }
 
 fh_bc_integral_cpp <- function(mu, sigma) {
-    .Call(`_emdi2_fh_bc_integral_cpp`, mu, sigma)
+    .Call(`_emdi_fh_bc_integral_cpp`, mu, sigma)
 }
 
 fh_boot_arcsin_cpp <- function(sigmau2, vardir, beta, X, predX, is_in, v_boot, e_boot, eblup_corr, bc, lower, upper, threads = 1L) {
-    .Call(`_emdi2_fh_boot_arcsin_cpp`, sigmau2, vardir, beta, X, predX, is_in, v_boot, e_boot, eblup_corr, bc, lower, upper, threads)
+    .Call(`_emdi_fh_boot_arcsin_cpp`, sigmau2, vardir, beta, X, predX, is_in, v_boot, e_boot, eblup_corr, bc, lower, upper, threads)
 }
 
 fh_eblup_core_cpp <- function(sigmau2, direct, X, vardir) {
-    .Call(`_emdi2_fh_eblup_core_cpp`, sigmau2, direct, X, vardir)
+    .Call(`_emdi_fh_eblup_core_cpp`, sigmau2, direct, X, vardir)
 }
 
 fh_eblup_sfh_cpp <- function(sigmau2, rho, direct, X, vardir, W) {
-    .Call(`_emdi2_fh_eblup_sfh_cpp`, sigmau2, rho, direct, X, vardir, W)
+    .Call(`_emdi_fh_eblup_sfh_cpp`, sigmau2, rho, direct, X, vardir, W)
 }
 
 fh_jackknife_cpp <- function(direct, X, vardir, sigmau2, fh_full, lower, upper, tol, threads = 1L) {
-    .Call(`_emdi2_fh_jackknife_cpp`, direct, X, vardir, sigmau2, fh_full, lower, upper, tol, threads)
+    .Call(`_emdi_fh_jackknife_cpp`, direct, X, vardir, sigmau2, fh_full, lower, upper, tol, threads)
 }
 
 fh_logit_integral_cpp <- function(mu, sigma) {
-    .Call(`_emdi2_fh_logit_integral_cpp`, mu, sigma)
+    .Call(`_emdi_fh_logit_integral_cpp`, mu, sigma)
 }
 
 fh_boot_logit_cpp <- function(sigmau2, vardir, beta, X, predX, is_in, v_boot, e_boot, eblup_corr, bc, lower, upper, threads = 1L) {
-    .Call(`_emdi2_fh_boot_logit_cpp`, sigmau2, vardir, beta, X, predX, is_in, v_boot, e_boot, eblup_corr, bc, lower, upper, threads)
+    .Call(`_emdi_fh_boot_logit_cpp`, sigmau2, vardir, beta, X, predX, is_in, v_boot, e_boot, eblup_corr, bc, lower, upper, threads)
 }
 
 fh_mse_pr_cpp <- function(sigmau2, X, vardir, pred_X) {
-    .Call(`_emdi2_fh_mse_pr_cpp`, sigmau2, X, vardir, pred_X)
+    .Call(`_emdi_fh_mse_pr_cpp`, sigmau2, X, vardir, pred_X)
 }
 
 fh_mse_spatial_cpp <- function(sigmau2, rho, X, vardir, W, method) {
-    .Call(`_emdi2_fh_mse_spatial_cpp`, sigmau2, rho, X, vardir, W, method)
+    .Call(`_emdi_fh_mse_spatial_cpp`, sigmau2, rho, X, vardir, W, method)
 }
 
 fh_reml_loglik_cpp <- function(sigmau2, direct, X, vardir) {
-    .Call(`_emdi2_fh_reml_loglik_cpp`, sigmau2, direct, X, vardir)
+    .Call(`_emdi_fh_reml_loglik_cpp`, sigmau2, direct, X, vardir)
 }
 
 fh_estsigmau2_reml_cpp <- function(direct, X, vardir, lower, upper, tol) {
-    .Call(`_emdi2_fh_estsigmau2_reml_cpp`, direct, X, vardir, lower, upper, tol)
+    .Call(`_emdi_fh_estsigmau2_reml_cpp`, direct, X, vardir, lower, upper, tol)
 }
 
 fh_sreml_cpp <- function(direct, X, vardir, W, maxit, tol) {
-    .Call(`_emdi2_fh_sreml_cpp`, direct, X, vardir, W, maxit, tol)
+    .Call(`_emdi_fh_sreml_cpp`, direct, X, vardir, W, maxit, tol)
 }
 
 compute_domain_indicators_cpp <- function(y, weights, threshold) {
-    .Call(`_emdi2_compute_domain_indicators_cpp`, y, weights, threshold)
+    .Call(`_emdi_compute_domain_indicators_cpp`, y, weights, threshold)
 }
 
 compute_domain_indicators_selective_cpp <- function(y, weights, threshold, indicator_mask) {
-    .Call(`_emdi2_compute_domain_indicators_selective_cpp`, y, weights, threshold, indicator_mask)
+    .Call(`_emdi_compute_domain_indicators_selective_cpp`, y, weights, threshold, indicator_mask)
 }
 
 compute_all_indicators_cpp <- function(y, weights, domain_ids, threshold, n_domains) {
-    .Call(`_emdi2_compute_all_indicators_cpp`, y, weights, domain_ids, threshold, n_domains)
+    .Call(`_emdi_compute_all_indicators_cpp`, y, weights, domain_ids, threshold, n_domains)
 }
 
 data_transform_cpp <- function(y_raw, transformation, lambda) {
-    .Call(`_emdi2_data_transform_cpp`, y_raw, transformation, lambda)
+    .Call(`_emdi_data_transform_cpp`, y_raw, transformation, lambda)
 }
 
 lme_fit_cpp <- function(y_transformed, X, n_d) {
-    .Call(`_emdi2_lme_fit_cpp`, y_transformed, X, n_d)
+    .Call(`_emdi_lme_fit_cpp`, y_transformed, X, n_d)
 }
 
 model_par_weighted_cpp <- function(y_transformed, X, weights, n_d, sigma2_e, sigma2_u) {
-    .Call(`_emdi2_model_par_weighted_cpp`, y_transformed, X, weights, n_d, sigma2_e, sigma2_u)
+    .Call(`_emdi_model_par_weighted_cpp`, y_transformed, X, weights, n_d, sigma2_e, sigma2_u)
 }
 
 monte_carlo_cpp <- function(mu, sigmae2, sigmau2, sigmav2, domain_ids, obs_dom, dist_obs_dom, n_pop, N_dom_pop, N_dom_smp, N_dom_unobs, L, threshold, transformation, lambda, shift, pop_weights, n_indicators, agg_domain_ids = NULL, N_dom_agg = 0L, indicator_mask = 0x3FFL, threads = 1L) {
-    .Call(`_emdi2_monte_carlo_cpp`, mu, sigmae2, sigmau2, sigmav2, domain_ids, obs_dom, dist_obs_dom, n_pop, N_dom_pop, N_dom_smp, N_dom_unobs, L, threshold, transformation, lambda, shift, pop_weights, n_indicators, agg_domain_ids, N_dom_agg, indicator_mask, threads)
+    .Call(`_emdi_monte_carlo_cpp`, mu, sigmae2, sigmau2, sigmav2, domain_ids, obs_dom, dist_obs_dom, n_pop, N_dom_pop, N_dom_smp, N_dom_unobs, L, threshold, transformation, lambda, shift, pop_weights, n_indicators, agg_domain_ids, N_dom_agg, indicator_mask, threads)
 }
 
 parametric_bootstrap_cpp <- function(X_pop, mu_fixed_orig, n_pop, obs_dom, dist_obs_dom, pop_weights, N_pop, N_dom_pop, X_smp, n_smp, smp_domain_ids, smp_to_pop_map, N_smp, N_dom_smp, betas_orig, sigmae2_orig, sigmau2_orig, N_dom_smp_selected, N_dom_unobs, B, L, threshold, transformation, lambda_orig, shift_orig, interval_lower, interval_upper, agg_domain_ids_pop = NULL, N_dom_agg = 0L, smp_weights = NULL, indicator_mask = 0x3FFL, threads = 1L, true_indicators_fixed = NULL) {
-    .Call(`_emdi2_parametric_bootstrap_cpp`, X_pop, mu_fixed_orig, n_pop, obs_dom, dist_obs_dom, pop_weights, N_pop, N_dom_pop, X_smp, n_smp, smp_domain_ids, smp_to_pop_map, N_smp, N_dom_smp, betas_orig, sigmae2_orig, sigmau2_orig, N_dom_smp_selected, N_dom_unobs, B, L, threshold, transformation, lambda_orig, shift_orig, interval_lower, interval_upper, agg_domain_ids_pop, N_dom_agg, smp_weights, indicator_mask, threads, true_indicators_fixed)
+    .Call(`_emdi_parametric_bootstrap_cpp`, X_pop, mu_fixed_orig, n_pop, obs_dom, dist_obs_dom, pop_weights, N_pop, N_dom_pop, X_smp, n_smp, smp_domain_ids, smp_to_pop_map, N_smp, N_dom_smp, betas_orig, sigmae2_orig, sigmau2_orig, N_dom_smp_selected, N_dom_unobs, B, L, threshold, transformation, lambda_orig, shift_orig, interval_lower, interval_upper, agg_domain_ids_pop, N_dom_agg, smp_weights, indicator_mask, threads, true_indicators_fixed)
 }
 
 fmt_duration_cpp <- function(secs) {
-    .Call(`_emdi2_fmt_duration_cpp`, secs)
+    .Call(`_emdi_fmt_duration_cpp`, secs)
 }
 
 progress_line_cpp <- function(i, total, elapsed, start_epoch, label) {
-    .Call(`_emdi2_progress_line_cpp`, i, total, elapsed, start_epoch, label)
+    .Call(`_emdi_progress_line_cpp`, i, total, elapsed, start_epoch, label)
 }
 
 progress_header_cpp <- function(title, total, label, start_epoch) {
-    .Call(`_emdi2_progress_header_cpp`, title, total, label, start_epoch)
+    .Call(`_emdi_progress_header_cpp`, title, total, label, start_epoch)
 }
 
 std_transform_y_cpp <- function(y_raw, transformation, lambda) {
-    .Call(`_emdi2_std_transform_y_cpp`, y_raw, transformation, lambda)
+    .Call(`_emdi_std_transform_y_cpp`, y_raw, transformation, lambda)
 }
 
 reml_loglik_cpp <- function(lambda, y_raw, X, domain_ids, n_d, transformation) {
-    .Call(`_emdi2_reml_loglik_cpp`, lambda, y_raw, X, domain_ids, n_d, transformation)
+    .Call(`_emdi_reml_loglik_cpp`, lambda, y_raw, X, domain_ids, n_d, transformation)
 }
 
 optimal_parameter_cpp <- function(y, X, domain_ids, n_d, transformation, lower, upper) {
-    .Call(`_emdi2_optimal_parameter_cpp`, y, X, domain_ids, n_d, transformation, lower, upper)
+    .Call(`_emdi_optimal_parameter_cpp`, y, X, domain_ids, n_d, transformation, lower, upper)
 }
 
 back_transform_cpp <- function(y, transformation, lambda, shift) {
-    .Call(`_emdi2_back_transform_cpp`, y, transformation, lambda, shift)
+    .Call(`_emdi_back_transform_cpp`, y, transformation, lambda, shift)
 }
 

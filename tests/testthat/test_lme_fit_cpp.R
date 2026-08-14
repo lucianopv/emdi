@@ -41,7 +41,7 @@ test_that("data_transform_cpp handles negative values with shift", {
 })
 
 test_that("lme_fit_cpp matches nlme::lme() for unweighted case", {
-  data("eusilcA_smp", package = "emdi2")
+  data("eusilcA_smp", package = "emdi")
   fixed <- eqIncome ~ gender + eqsize
 
   transformation_par <- data_transformation(
@@ -83,7 +83,7 @@ test_that("lme_fit_cpp matches nlme::lme() for unweighted case", {
 })
 
 test_that("lme_fit_cpp works with log transformation", {
-  data("eusilcA_smp", package = "emdi2")
+  data("eusilcA_smp", package = "emdi")
   fixed <- eqIncome ~ gender + eqsize
 
   smp_sorted <- eusilcA_smp[order(eusilcA_smp$district), ]
@@ -103,7 +103,7 @@ test_that("lme_fit_cpp works with log transformation", {
 })
 
 test_that("lme_fit_cpp works with full model formula", {
-  data("eusilcA_smp", package = "emdi2")
+  data("eusilcA_smp", package = "emdi")
   fixed <- eqIncome ~ gender + eqsize + cash + self_empl +
     unempl_ben + age_ben + surv_ben + sick_ben + dis_ben +
     rent + fam_allow + house_allow + cap_inv + tax_adj
@@ -127,8 +127,8 @@ test_that("lme_fit_cpp works with full model formula", {
 })
 
 test_that("model_par_weighted_cpp matches R model_par weighted case", {
-  data("eusilcA_smp", package = "emdi2")
-  data("eusilcA_pop", package = "emdi2")
+  data("eusilcA_smp", package = "emdi")
+  data("eusilcA_pop", package = "emdi")
 
   # Create synthetic weights
   set.seed(123)

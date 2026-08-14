@@ -2,7 +2,7 @@
 % Please edit documentation in R/cores.R
 \name{emdi_cores}
 \alias{emdi_cores}
-\title{Number of CPU cores emdi2 may use}
+\title{Number of CPU cores emdi may use}
 \usage{
 emdi_cores(cpus = NULL)
 }
@@ -14,7 +14,7 @@ the option and environment as described above.}
 A single positive integer.
 }
 \description{
-Resolves how many CPU cores emdi2 is allowed to use for a computation.
+Resolves how many CPU cores emdi is allowed to use for a computation.
 Called internally by \code{\link{ebp}} and \code{\link{fh}}; exported so
 that users can check what budget is in effect.
 }
@@ -22,7 +22,7 @@ that users can check what budget is in effect.
 The budget is resolved in this order, first match winning:
 \enumerate{
   \item the \code{cpus} argument, if supplied;
-  \item \code{getOption("emdi2.cores")};
+  \item \code{getOption("emdi.cores")};
   \item the \code{OMP_NUM_THREADS} environment variable;
   \item 1.
 }
@@ -30,7 +30,7 @@ The result is then capped at 2 while \code{R CMD check} is running (which
 sets \code{_R_CHECK_LIMIT_CORES_}), and at the number of cores the machine
 reports.
 
-emdi2 uses at most one core unless asked otherwise. This keeps it safe
+emdi uses at most one core unless asked otherwise. This keeps it safe
 inside parallel pipelines (\code{crew}, \code{future}, \code{targets}),
 where several R processes each taking every core is a common and severe
 slowdown.

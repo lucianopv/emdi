@@ -265,9 +265,10 @@ static arma::vec compute_domain_indicators_masked(const arma::vec& y,
     // quantile IS an order statistic, so ties at the top -- or a constant
     // domain -- trigger it. e.g. y = c(1,2,3,4,4) and y = c(1,1,1,1,1).
     //
-    // That asymmetry is inherited from upstream emdi, whose qsr() is
-    // byte-identical; reproducing it (rather than fixing it here) is
-    // deliberate, so emdi2 does not silently diverge from emdi. The
+    // That asymmetry is inherited from the R qsr() in framework_ebp.R, which
+    // released emdi 2.2.3 carries byte-identically; reproducing it here rather
+    // than fixing it in the kernel alone is deliberate, so the C++ and R paths
+    // cannot disagree about a case neither of them defines. The
     // bottom quintile can never be empty -- q20 is an order statistic, so at
     // least one observation satisfies y <= q20 -- which is why only the top
     // needs saying.

@@ -7,8 +7,8 @@ test_that("ebp(cpus = 2) runs the wild bootstrap without error", {
   skip_on_cran()
   skip_if_not_installed("parallelMap")
   skip_on_os("windows")   # multicore mode is unavailable on Windows
-  data("eusilcA_smp", package = "emdi2")
-  data("eusilcA_pop", package = "emdi2")
+  data("eusilcA_smp", package = "emdi")
+  data("eusilcA_pop", package = "emdi")
 
   expect_no_error(
     suppressMessages(ebp(
@@ -26,8 +26,8 @@ test_that("the parallel bootstrap returns a well-formed MSE", {
   skip_on_cran()
   skip_if_not_installed("parallelMap")
   skip_on_os("windows")
-  data("eusilcA_smp", package = "emdi2")
-  data("eusilcA_pop", package = "emdi2")
+  data("eusilcA_smp", package = "emdi")
+  data("eusilcA_pop", package = "emdi")
 
   res <- suppressMessages(ebp(
     fixed = eqIncome ~ gender + eqsize,

@@ -512,7 +512,7 @@ arma::mat parametric_bootstrap_cpp(
     // MC loop — OpenMP parallelized over L iterations
     // ------------------------------------------------------------------
     #ifdef _OPENMP
-    // num_threads scopes the count to this region: emdi2 never calls
+    // num_threads scopes the count to this region: emdi never calls
     // omp_set_num_threads(), so it cannot alter OpenMP for the rest of the
     // session or for other packages.
     #pragma omp parallel if(L > 10) num_threads(threads)

@@ -1,8 +1,8 @@
 # Tests for parametric_bootstrap_cpp
 
 test_that("parametric_bootstrap_cpp runs without error (direct call, log)", {
-  data("eusilcA_smp", package = "emdi2")
-  data("eusilcA_pop", package = "emdi2")
+  data("eusilcA_smp", package = "emdi")
+  data("eusilcA_pop", package = "emdi")
 
   fixed <- eqIncome ~ gender + eqsize
   framework <- framework_ebp(fixed = fixed,
@@ -64,8 +64,8 @@ test_that("parametric_bootstrap_cpp runs without error (direct call, log)", {
 })
 
 test_that("parametric_bootstrap_cpp runs without error (direct call, box.cox)", {
-  data("eusilcA_smp", package = "emdi2")
-  data("eusilcA_pop", package = "emdi2")
+  data("eusilcA_smp", package = "emdi")
+  data("eusilcA_pop", package = "emdi")
 
   fixed <- eqIncome ~ gender + eqsize
   framework <- framework_ebp(fixed = fixed,
@@ -127,8 +127,8 @@ test_that("parametric_bootstrap_cpp runs without error (direct call, box.cox)", 
 })
 
 test_that("parametric_bootstrap_cpp works with aggregate domains (direct call)", {
-  data("eusilcA_smp", package = "emdi2")
-  data("eusilcA_pop", package = "emdi2")
+  data("eusilcA_smp", package = "emdi")
+  data("eusilcA_pop", package = "emdi")
 
   eusilcA_pop$region <- as.integer(as.factor(eusilcA_pop$district)) %% 5 + 1
 
@@ -200,8 +200,8 @@ test_that("parametric_bootstrap_cpp works with aggregate domains (direct call)",
 
 # Tests that will pass after Task 5 wires R function to call C++
 test_that("parametric_bootstrap_cpp produces valid MSE via ebp (log transformation)", {
-  data("eusilcA_smp", package = "emdi2")
-  data("eusilcA_pop", package = "emdi2")
+  data("eusilcA_smp", package = "emdi")
+  data("eusilcA_pop", package = "emdi")
 
   set.seed(42)
   result <- ebp(
@@ -219,8 +219,8 @@ test_that("parametric_bootstrap_cpp produces valid MSE via ebp (log transformati
 })
 
 test_that("parametric_bootstrap_cpp produces valid MSE via ebp (box.cox transformation)", {
-  data("eusilcA_smp", package = "emdi2")
-  data("eusilcA_pop", package = "emdi2")
+  data("eusilcA_smp", package = "emdi")
+  data("eusilcA_pop", package = "emdi")
 
   set.seed(42)
   result <- ebp(

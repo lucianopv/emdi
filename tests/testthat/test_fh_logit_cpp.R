@@ -71,8 +71,8 @@ test_that("length mismatch is rejected", {
 # test_fh_backtransformation.R. The 15-domain FH/*.RData fixtures lack eqsize,
 # and their MTMED reaches exactly 1, where logit is infinite.
 logit_data <- local({
-  data("eusilcA_popAgg", package = "emdi2")
-  data("eusilcA_smpAgg", package = "emdi2")
+  data("eusilcA_popAgg", package = "emdi")
+  data("eusilcA_smpAgg", package = "emdi")
   combine_data(pop_data = eusilcA_popAgg, pop_domains = "Domain",
                smp_data = eusilcA_smpAgg, smp_domains = "Domain")
 })

@@ -48,7 +48,7 @@ test_that("std_transform_y_cpp handles negative values with shift", {
 })
 
 test_that("reml_loglik_cpp matches lme() REML log-likelihood", {
-  data("eusilcA_smp", package = "emdi2")
+  data("eusilcA_smp", package = "emdi")
   fixed <- eqIncome ~ gender + eqsize
 
   for (lam in c(0.3, 0.5, 0.7, 1.0)) {
@@ -82,7 +82,7 @@ test_that("reml_loglik_cpp matches lme() REML log-likelihood", {
 })
 
 test_that("reml_loglik_cpp works with dual transformation", {
-  data("eusilcA_smp", package = "emdi2")
+  data("eusilcA_smp", package = "emdi")
   fixed <- eqIncome ~ gender + eqsize
 
   lam <- 0.5
@@ -119,7 +119,7 @@ test_that("reml_loglik_cpp works with dual transformation", {
 # optimize()/nlme::lme test at the end of this file.
 
 test_that("optimal_parameter() passes box.cox data through to the cpp kernel unchanged", {
-  data("eusilcA_smp", package = "emdi2")
+  data("eusilcA_smp", package = "emdi")
   fixed <- eqIncome ~ gender + eqsize
 
   r_lambda <- optimal_parameter(
@@ -149,7 +149,7 @@ test_that("optimal_parameter() passes box.cox data through to the cpp kernel unc
 })
 
 test_that("optimal_parameter() passes dual data through to the cpp kernel unchanged", {
-  data("eusilcA_smp", package = "emdi2")
+  data("eusilcA_smp", package = "emdi")
   fixed <- eqIncome ~ gender + eqsize
 
   r_lambda <- optimal_parameter(
@@ -179,7 +179,7 @@ test_that("optimal_parameter() passes dual data through to the cpp kernel unchan
 })
 
 test_that("optimal_parameter() passes a full-model formula through to the cpp kernel unchanged", {
-  data("eusilcA_smp", package = "emdi2")
+  data("eusilcA_smp", package = "emdi")
   fixed <- eqIncome ~ gender + eqsize + cash + self_empl +
     unempl_ben + age_ben + surv_ben + sick_ben + dis_ben +
     rent + fam_allow + house_allow + cap_inv + tax_adj
@@ -211,8 +211,8 @@ test_that("optimal_parameter() passes a full-model formula through to the cpp ke
 })
 
 test_that("Full ebp() with C++ REML produces valid results", {
-  data("eusilcA_smp", package = "emdi2")
-  data("eusilcA_pop", package = "emdi2")
+  data("eusilcA_smp", package = "emdi")
+  data("eusilcA_pop", package = "emdi")
 
   set.seed(42)
   result <- ebp(
@@ -234,8 +234,8 @@ test_that("Full ebp() with C++ REML produces valid results", {
 })
 
 test_that("Full ebp() with MSE and C++ REML works", {
-  data("eusilcA_smp", package = "emdi2")
-  data("eusilcA_pop", package = "emdi2")
+  data("eusilcA_smp", package = "emdi")
+  data("eusilcA_pop", package = "emdi")
 
   set.seed(42)
   result <- ebp(
@@ -263,7 +263,7 @@ test_that("Full ebp() with MSE and C++ REML works", {
 # and the optimiser.
 test_that("optimal_parameter_cpp matches R optimize() over the lme-based REML likelihood", {
   skip_on_cran()
-  data("eusilcA_smp", package = "emdi2")
+  data("eusilcA_smp", package = "emdi")
   fixed <- eqIncome ~ gender + eqsize
 
   smp_sorted <- eusilcA_smp[order(eusilcA_smp$district), ]

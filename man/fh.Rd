@@ -187,7 +187,7 @@ larger than 200 are recommended.}
 \item{cpus}{the number of CPU cores \code{fh} may use. \code{fh} has no
 worker-process fallback, so the whole budget is spent on parallel threads
 within the current process. Defaults to \code{NULL}, which resolves the
-budget from \code{getOption("emdi2.cores")}, then the
+budget from \code{getOption("emdi.cores")}, then the
 \code{OMP_NUM_THREADS} environment variable, then 1. Only the C++ fast
 paths use it; other methods run single-threaded regardless.
 See \code{\link{emdi_cores}}.}

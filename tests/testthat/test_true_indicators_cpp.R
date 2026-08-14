@@ -14,8 +14,8 @@
 # kernel and changes the answer, by supplying two different truths.
 
 ti_data <- function() {
-  data("eusilcA_smp", package = "emdi2")
-  data("eusilcA_pop", package = "emdi2")
+  data("eusilcA_smp", package = "emdi")
+  data("eusilcA_pop", package = "emdi")
   list(smp = eusilcA_smp, pop = eusilcA_pop)
 }
 
@@ -51,7 +51,7 @@ test_that("a supplied true_indicators now takes the C++ path", {
   testthat::with_mocked_bindings(
     invisible(run_ebp(make_truth(d$pop, 1000))),
     parametric_bootstrap_cpp = function(...) { called <<- TRUE; orig(...) },
-    .package = "emdi2"
+    .package = "emdi"
   )
   expect_true(called)
 })

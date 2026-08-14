@@ -9,16 +9,14 @@
 #' @export
 
 load_shapeaustria <- function() {
-  # package = "emdi2", not "emdi". The shape file ships in this package's
-  # inst/shapes/; looking it up under the pre-fork name made system.file()
-  # return "" whenever emdi itself was not installed, so load() was handed an
-  # empty path and failed with
+  path <- system.file("shapes/shape_austria_dis.rda", package = "emdi")
+  # system.file() returns "" rather than erroring when it cannot find the file,
+  # which would hand load() an empty path and fail with the unhelpful
   #   cannot open compressed file '', probable reason 'No such file or directory'
-  # Missed in the emdi -> emdi2 rename, the same oversight as tests/testthat.R.
-  path <- system.file("shapes/shape_austria_dis.rda", package = "emdi2")
+  # Name the actual problem instead.
   if (!nzchar(path)) {
     stop("Could not locate the Austrian districts shape file in the installed ",
-         "emdi2 package.", call. = FALSE)
+         "emdi package.", call. = FALSE)
   }
   load(file = path, envir = .GlobalEnv)
 }

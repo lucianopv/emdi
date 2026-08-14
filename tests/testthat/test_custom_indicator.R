@@ -13,8 +13,8 @@
 # indicators, which is what makes a descending-index regression visible.
 
 ci_data <- function() {
-  data("eusilcA_smp", package = "emdi2")
-  data("eusilcA_pop", package = "emdi2")
+  data("eusilcA_smp", package = "emdi")
+  data("eusilcA_pop", package = "emdi")
   list(smp = eusilcA_smp, pop = eusilcA_pop)
 }
 

@@ -3,8 +3,8 @@
 # every parallel region, so results must be bit-identical at any thread count.
 
 test_that("monte_carlo_cpp accepts a threads argument and is invariant to it", {
-  data("eusilcA_smp", package = "emdi2")
-  data("eusilcA_pop", package = "emdi2")
+  data("eusilcA_smp", package = "emdi")
+  data("eusilcA_pop", package = "emdi")
   framework <- framework_ebp(
     fixed = eqIncome ~ gender + eqsize,
     pop_data = eusilcA_pop, pop_domains = "district",
@@ -57,8 +57,8 @@ test_that("every OpenMP parallel region takes its thread count from an argument"
 
 test_that("ebp() uses the C++ bootstrap even when cpus > 1", {
   skip_on_cran()
-  data("eusilcA_smp", package = "emdi2")
-  data("eusilcA_pop", package = "emdi2")
+  data("eusilcA_smp", package = "emdi")
+  data("eusilcA_pop", package = "emdi")
   # The C++ path never starts parallelMap workers. If cpus > 1 still forced the
   # R fallback, parallelStart would be called.
   called <- FALSE
@@ -74,15 +74,15 @@ test_that("ebp() uses the C++ bootstrap even when cpus > 1", {
         L = 5, MSE = TRUE, B = 3, cpus = 2)))
     },
     parametric_bootstrap_cpp = function(...) { called <<- TRUE; orig(...) },
-    .package = "emdi2"
+    .package = "emdi"
   )
   expect_true(called)
 })
 
 test_that("ebp() bootstrap MSE is identical at cpus 1 and 2 on the C++ path", {
   skip_on_cran()
-  data("eusilcA_smp", package = "emdi2")
-  data("eusilcA_pop", package = "emdi2")
+  data("eusilcA_smp", package = "emdi")
+  data("eusilcA_pop", package = "emdi")
   run <- function(n) {
     set.seed(1)
     suppressMessages(ebp(
@@ -102,8 +102,8 @@ test_that("ebp() hands the resolved budget to the Monte-Carlo kernel", {
   skip_on_cran()
   budget <- emdi_cores(3L)
   skip_if(budget < 2L, "machine reports a single core")
-  data("eusilcA_smp", package = "emdi2")
-  data("eusilcA_pop", package = "emdi2")
+  data("eusilcA_smp", package = "emdi")
+  data("eusilcA_pop", package = "emdi")
 
   seen <- integer(0)
   orig <- monte_carlo_cpp            # capture BEFORE mocking, or this recurses
@@ -120,7 +120,7 @@ test_that("ebp() hands the resolved budget to the Monte-Carlo kernel", {
       seen <<- c(seen, as.integer(threads))
       orig(..., threads = threads)
     },
-    .package = "emdi2"
+    .package = "emdi"
   )
   expect_identical(seen, budget)
 })
@@ -129,8 +129,8 @@ test_that("ebp() hands the resolved budget to the bootstrap kernel", {
   skip_on_cran()
   budget <- emdi_cores(2L)
   skip_if(budget < 2L, "machine reports a single core")
-  data("eusilcA_smp", package = "emdi2")
-  data("eusilcA_pop", package = "emdi2")
+  data("eusilcA_smp", package = "emdi")
+  data("eusilcA_pop", package = "emdi")
 
   seen <- integer(0)
   orig <- parametric_bootstrap_cpp   # capture BEFORE mocking, or this recurses
@@ -148,7 +148,7 @@ test_that("ebp() hands the resolved budget to the bootstrap kernel", {
       seen <<- c(seen, as.integer(threads))
       orig(..., threads = threads)
     },
-    .package = "emdi2"
+    .package = "emdi"
   )
   expect_identical(seen, budget)
 })
@@ -161,8 +161,8 @@ test_that("ebp() hands the resolved budget to the bootstrap kernel", {
 # and it fails the moment someone plumbs the budget through mse_estim() too.
 test_that("the R bootstrap fallback pins its point estimation to one thread", {
   skip_on_cran()
-  data("eusilcA_smp", package = "emdi2")
-  data("eusilcA_pop", package = "emdi2")
+  data("eusilcA_smp", package = "emdi")
+  data("eusilcA_pop", package = "emdi")
   f <- eqIncome ~ gender + eqsize
   framework <- framework_ebp(
     fixed = f, pop_data = eusilcA_pop, pop_domains = "district",
@@ -189,7 +189,7 @@ test_that("the R bootstrap fallback pins its point estimation to one thread", {
       seen <<- c(seen, as.integer(threads))
       orig(..., threads = threads)
     },
-    .package = "emdi2"
+    .package = "emdi"
   )
   expect_length(seen, 2L)            # one per bootstrap iteration, not vacuous
   expect_true(all(seen == 1L))
@@ -200,8 +200,8 @@ test_that("the R bootstrap fallback pins its point estimation to one thread", {
 # L'Ecuyer switch while worker processes were in fact forked, leaving them all
 # drawing from one shared RNG stream. This pins the two counts together.
 test_that("ebp() counts indicators the same way framework_ebp() does", {
-  data("eusilcA_smp", package = "emdi2")
-  data("eusilcA_pop", package = "emdi2")
+  data("eusilcA_smp", package = "emdi")
+  data("eusilcA_pop", package = "emdi")
   f <- eqIncome ~ gender + eqsize
   my_max <- function(y, pop_weights, threshold) max(y)
 
@@ -218,21 +218,21 @@ test_that("ebp() counts indicators the same way framework_ebp() does", {
   }
 })
 
-# emdi_cores()'s documented precedence is argument > emdi2.cores option >
+# emdi_cores()'s documented precedence is argument > emdi.cores option >
 # OMP_NUM_THREADS > 1. The env-var tier is only reachable from ebp() if ebp()
 # leaves cpus alone and lets emdi_cores() do the whole resolution: a default
-# that resolved the option itself (getOption("emdi2.cores", 1L)) would hand
+# that resolved the option itself (getOption("emdi.cores", 1L)) would hand
 # emdi_cores() a non-NULL 1, so the tier below it could never be consulted and
 # pipelines that set OMP_NUM_THREADS would silently drop to one core.
 test_that("ebp() reaches the OMP_NUM_THREADS tier when cpus is left at its default", {
   skip_on_cran()
-  data("eusilcA_smp", package = "emdi2")
-  data("eusilcA_pop", package = "emdi2")
+  data("eusilcA_smp", package = "emdi")
+  data("eusilcA_pop", package = "emdi")
 
   # The default must stay unresolved for the tiers below it to stay live.
   expect_null(formals(ebp)$cpus)
 
-  withr::with_options(list(emdi2.cores = NULL), {
+  withr::with_options(list(emdi.cores = NULL), {
     withr::with_envvar(c(OMP_NUM_THREADS = "2", `_R_CHECK_LIMIT_CORES_` = NA), {
       budget <- emdi_cores()
       skip_if(budget < 2L, "machine reports a single core")
@@ -253,7 +253,7 @@ test_that("ebp() reaches the OMP_NUM_THREADS tier when cpus is left at its defau
           seen <<- c(seen, as.integer(threads))
           orig(..., threads = threads)
         },
-        .package = "emdi2"
+        .package = "emdi"
       )
       expect_identical(seen, 2L)
     })
@@ -271,13 +271,13 @@ test_that("ebp() reaches the OMP_NUM_THREADS tier when cpus is left at its defau
 # unreachable.
 test_that("fh() reaches the OMP_NUM_THREADS tier when cpus is left at its default", {
   skip_on_cran()
-  data("eusilcA_popAgg", package = "emdi2")
-  data("eusilcA_smpAgg", package = "emdi2")
+  data("eusilcA_popAgg", package = "emdi")
+  data("eusilcA_smpAgg", package = "emdi")
   combined <- combine_data(eusilcA_popAgg, "Domain", eusilcA_smpAgg, "Domain")
 
   expect_null(formals(fh)$cpus)
 
-  withr::with_options(list(emdi2.cores = NULL), {
+  withr::with_options(list(emdi.cores = NULL), {
     withr::with_envvar(c(OMP_NUM_THREADS = "2", `_R_CHECK_LIMIT_CORES_` = NA), {
       budget <- emdi_cores()
       skip_if(budget < 2L, "machine reports a single core")
@@ -299,7 +299,7 @@ test_that("fh() reaches the OMP_NUM_THREADS tier when cpus is left at its defaul
           seen <<- c(seen, as.integer(threads))
           orig(..., threads = threads)
         },
-        .package = "emdi2"
+        .package = "emdi"
       )
       expect_identical(seen, 2L)
     })
@@ -311,8 +311,8 @@ test_that("fh() reaches the OMP_NUM_THREADS tier when cpus is left at its defaul
 # documented default and error on every default call. This pins both halves:
 # the typo is still caught, and NULL still passes through untouched.
 test_that("fh() rejects a non-numeric cpus but accepts the NULL default", {
-  data("eusilcA_popAgg", package = "emdi2")
-  data("eusilcA_smpAgg", package = "emdi2")
+  data("eusilcA_popAgg", package = "emdi")
+  data("eusilcA_smpAgg", package = "emdi")
   combined <- combine_data(eusilcA_popAgg, "Domain", eusilcA_smpAgg, "Domain")
   fixed <- MTMED ~ cash + self_empl
 

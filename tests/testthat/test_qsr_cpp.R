@@ -124,31 +124,51 @@ test_that("multi-domain QSR path matches the reference per domain", {
   expect_equal(got, want, tolerance = 1e-12)
 })
 
-test_that("ebp() Quintile_Share reproduces the emdi reference implementation", {
-  skip_if_not_installed("emdi")
+test_that("ebp() reproduces the released-emdi reference implementation", {
   skip_on_cran()
 
-  data("eusilcA_pop", package = "emdi2")
-  data("eusilcA_smp", package = "emdi2")
+  # The oracle is a STORED fixture, not a live call into released emdi.
+  #
+  # It used to be the latter, resolved at run time via
+  # getExportedValue("emdi", "ebp"), back when this package was still called
+  # emdi2 and "emdi" therefore meant the released CRAN package. It now IS emdi,
+  # so that lookup would resolve to the package under test: the oracle becomes
+  # the subject and the assertion compares the kernel against itself. A test
+  # that cannot fail is worse than no test, so the reference was frozen before
+  # the rename rather than deleted after it.
+  #
+  # EBP/ebp_indicators_emdi223.csv holds ebp()$ind from CRAN emdi 2.2.3 for the
+  # argument list below, written at %.17g so it round-trips bit-exactly and
+  # contributes no error of its own. ebp() defaults to seed = 123, so no
+  # set.seed() is needed for reproducibility. Regenerate only against a genuine
+  # released emdi, never against this package.
+  want <- read.csv(test_path("EBP", "ebp_indicators_emdi223.csv"),
+                   stringsAsFactors = FALSE)
+
+  data("eusilcA_pop", package = "emdi")
+  data("eusilcA_smp", package = "emdi")
   fixed <- eqIncome ~ gender + eqsize + cash + self_empl + unempl_ben +
     age_ben + surv_ben + sick_ben + dis_ben + rent + fam_allow +
     house_allow + cap_inv + tax_adj
 
-  args <- list(fixed = fixed, pop_data = eusilcA_pop, pop_domains = "district",
-               smp_data = eusilcA_smp, smp_domains = "district",
-               threshold = 10859.24, transformation = "no", L = 20,
-               MSE = FALSE)
-  got <- do.call(emdi2::ebp, args)
-  # getExportedValue() rather than emdi::ebp: released emdi is the oracle here,
-  # but it cannot go in Suggests -- this package is destined to BECOME emdi, and
-  # a package cannot suggest itself. A literal emdi:: makes R CMD check raise
-  # "'::' or ':::' import not declared from: 'emdi'". The lookup is resolved at
-  # run time instead, behind the skip_if_not_installed() above.
-  # This whole block goes away when the package is renamed.
-  want <- do.call(getExportedValue("emdi", "ebp"), args)
+  got <- ebp(fixed = fixed, pop_data = eusilcA_pop, pop_domains = "district",
+             smp_data = eusilcA_smp, smp_domains = "district",
+             threshold = 10859.24, transformation = "no", L = 20,
+             MSE = FALSE)$ind
 
-  expect_equal(got$ind$Quintile_Share, want$ind$Quintile_Share,
-               tolerance = 1e-8)
+  expect_identical(as.character(got$Domain), as.character(want$Domain))
+
+  # Quintile_Share is what this file is about: the type-7-vs-step regression
+  # showed up here as 52 of 94 domains differing by up to 2.9%.
+  expect_equal(got$Quintile_Share, want$Quintile_Share, tolerance = 1e-8)
+
+  # The fixture carries the other nine indicators too, so assert them as well
+  # -- they cost nothing extra and turn a single-indicator check into a full
+  # point-estimate parity benchmark against released emdi. All ten agree to
+  # ~1e-15 relative, so 1e-8 is a loose bar that only a real defect trips.
+  for (nm in setdiff(names(want), c("Domain", "Quintile_Share"))) {
+    expect_equal(got[[nm]], want[[nm]], tolerance = 1e-8, info = nm)
+  }
 })
 
 # --- empty top quintile -------------------------------------------------------
