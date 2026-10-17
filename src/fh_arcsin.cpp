@@ -9,22 +9,18 @@
 #endif
 // [[Rcpp::depends(RcppArmadillo)]]
 
-// fh_arcsin.cpp — back-transform integral for the arcsin EBP/bootstrap.
+// fh_arcsin.cpp — bias-corrected back-transformation for the arcsin Fay-Herriot model.
 //
-// Provides fh_bc_integral_cpp(mu, sigma): vectorised evaluation of
-//   I(mu, sigma) = int_0^{pi/2} sin^2(x) * N(x; mu, sigma^2) dx
-// used in arcsin_bc back-transformation and boot_arcsin_2 bootstrap.
+// fh_bc_integral_cpp(mu, sigma) evaluates, element by element,
+//   I(mu, sigma) = E[sin^2(t)],  t ~ N(mu, sigma^2),  over the WHOLE real line,
+// the back-transformation of Hadam, Wuerz, Kreutzmann and Schmid (2023, eq. 5). It has the closed form
+//   I = (1 - exp(-2 sigma^2) cos(2 mu)) / 2,
+// exact for any mu and sigma (sigma -> 0 gives sin^2(mu)). It is used by arcsin_bc and by the bootstrap
+// below. (Before 2026-10-17 this integrated over [0, pi/2] only, losing the mass above pi/2 and pulling
+// estimates near 1 down: 0.50 instead of 0.999 at mu = pi/2, sigma = 0.03.)
 //
-// Method: Gauss–Legendre quadrature in standardised t-space.
-//   Substitute x = mu + sigma*t so the integrand becomes
-//     sin^2(mu + sigma*t) * phi(t)   (standard normal density)
-//   The [0, pi/2] limits in x map to [A, B] in t where
-//     A = max((0 - mu)/sigma, -8),  B = min((pi/2 - mu)/sigma, 8)
-//   The [-8, 8] clamps capture >1-1e-15 of the normal mass.
-//   GL-64 nodes on [-1,1] are mapped to [A,B] via the usual affine transform.
-//
-// Internal helpers fh_bc_one, fh_gl_x, fh_gl_w, fh_gauss_legendre are used
-// by later tasks (bootstrap loop); keep their names exactly.
+// The Gauss-Legendre table below is no longer used here; src/fh_logit.cpp reuses it through the shared
+// accessors.
 
 // ---------------------------------------------------------------------------
 // Gauss-Legendre nodes/weights on [-1,1] via Newton iteration on Legendre P_n.
@@ -54,30 +50,10 @@ static void fh_gauss_legendre(int n, std::vector<double>& x, std::vector<double>
 static const double FH_SQRT_2PI = 2.506628274631000502415765284811;
 
 // ---------------------------------------------------------------------------
-// Scalar worker: I(mu, sigma) for a single (mu, sigma) pair.
+// Scalar worker: I(mu, sigma) = E[sin^2(t)], t ~ N(mu, sigma^2), closed form (Hadam et al. 2023, eq. 5).
 // ---------------------------------------------------------------------------
-static double fh_bc_one(double mu, double sigma,
-                        const std::vector<double>& gx,
-                        const std::vector<double>& gw) {
-  const double HALF_PI = M_PI / 2.0;
-  if (sigma <= 1e-12) {
-    if (mu <= 0.0 || mu >= HALF_PI) return 0.0;   // spike outside [0,pi/2] -> 0
-    double s = std::sin(mu);
-    return s * s;                                  // spike inside -> sin^2(mu)
-  }
-  double A = std::max((0.0 - mu) / sigma, -8.0);
-  double B = std::min((HALF_PI - mu) / sigma, 8.0);
-  if (B <= A) return 0.0;
-  double c1 = 0.5 * (B - A), c2 = 0.5 * (B + A);
-  double acc = 0.0;
-  for (size_t k = 0; k < gx.size(); ++k) {
-    double t = c1 * gx[k] + c2;
-    double x = mu + sigma * t;
-    double s = std::sin(x);
-    double phi = std::exp(-0.5 * t * t) / FH_SQRT_2PI;
-    acc += gw[k] * s * s * phi;
-  }
-  return c1 * acc;
+static double fh_bc_one(double mu, double sigma) {
+  return 0.5 * (1.0 - std::exp(-2.0 * sigma * sigma) * std::cos(2.0 * mu));
 }
 
 // ---------------------------------------------------------------------------
@@ -89,8 +65,6 @@ struct FhGL {
   FhGL() { fh_gauss_legendre(64, x, w); }
 };
 static const FhGL& fh_gl() { static const FhGL g; return g; }
-static const std::vector<double>& fh_gl_x() { return fh_gl().x; }
-static const std::vector<double>& fh_gl_w() { return fh_gl().w; }
 
 // Non-static accessors so src/fh_logit.cpp can reuse the same quadrature rule
 // instead of building a second copy: the nodes are identical, only the
@@ -100,16 +74,14 @@ const std::vector<double>& fh_gl_w_shared() { return fh_gl().w; }
 
 // ---------------------------------------------------------------------------
 // Exported vectorised interface.
-// I = int_0^{pi/2} sin^2(x) * N(x; mu, sigma^2) dx, length(mu) == length(sigma).
+// I = E[sin^2(t)], t ~ N(mu, sigma^2) over the real line, length(mu) == length(sigma).
 // [[Rcpp::export]]
 arma::vec fh_bc_integral_cpp(const arma::vec& mu, const arma::vec& sigma) {
   if (mu.n_elem != sigma.n_elem)
     Rcpp::stop("fh_bc_integral_cpp: mu and sigma length mismatch");
-  const std::vector<double>& gx = fh_gl_x();
-  const std::vector<double>& gw = fh_gl_w();
   arma::vec out(mu.n_elem);
   for (arma::uword i = 0; i < mu.n_elem; ++i)
-    out(i) = fh_bc_one(mu(i), sigma(i), gx, gw);
+    out(i) = fh_bc_one(mu(i), sigma(i));
   return out;
 }
 
@@ -171,8 +143,6 @@ Rcpp::List fh_boot_arcsin_cpp(double sigmau2,                  // reserved: v_bo
   arma::ivec rank_of(M); rank_of.fill(-1);
   for (arma::uword i = 0; i < m; ++i) rank_of(in_idx(i)) = (arma::sword) i;
 
-  const std::vector<double>& gx = fh_gl_x();
-  const std::vector<double>& gw = fh_gl_w();
 
   arma::vec Xbeta = predX * beta;                 // M, same every iteration
   arma::mat est(M, B), tru(M, B);
@@ -220,7 +190,7 @@ Rcpp::List fh_boot_arcsin_cpp(double sigmau2,                  // reserved: v_bo
       for (arma::uword d = 0; d < M; ++d) {
         double mud = est_trans(d);
         if (is_in(d) == 1 && bc) {
-          ev(d) = fh_bc_one(mud, std::sqrt(var_in(rank_of(d))), gx, gw);
+          ev(d) = fh_bc_one(mud, std::sqrt(var_in(rank_of(d))));
         } else {
           double s = std::sin(mud); ev(d) = s * s;
         }

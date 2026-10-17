@@ -261,34 +261,21 @@ arcsin_naive <- function(eblup) {
   return(point_backtransformed)
 }
 
+# Bias-corrected back-transformation of Hadam, Wuerz, Kreutzmann and Schmid (2023, eq. 5): E[sin^2(t)] for
+# t ~ N(mu, var), over the whole real line, in closed form. Exact for any mu and var; var -> 0 gives sin^2(mu).
+arcsin_bc_value <- function(mu, var) (1 - exp(-2 * var) * cos(2 * mu)) / 2
+
+# Areas with a variance get the expectation; an area without one (NA) keeps sin^2(mu).
 arcsin_bc <- function(framework, mu, var) {
-  obs <- framework$obs_dom == TRUE
-
-  if (.fh_use_cpp()) {
-    int_value <- (sin(mu))^2                        # OOS default
-    int_value[obs] <- fh_bc_integral_cpp(mu[obs], sqrt(as.numeric(var[obs])))
-    return(int_value)
-  }
-
-  # Use integral to solve the formula in Slud and Maiti
-  int_value <- NULL
-  for (i in seq_len(framework$M)) {
-    if (framework$obs_dom[i] == TRUE) {
-      mu_dri <- mu[i]
-      var_dri <- as.numeric(var[i])
-      int_value <- c(int_value, integrate(integrand,
-        lower = 0, upper = pi / 2, mu_dri, sqrt(var_dri)
-      )$value)
-    } else {
-      int_value <- c(int_value, (sin(mu[i]))^2)
-    }
+  var <- as.numeric(var)
+  has <- is.finite(var)
+  int_value <- (sin(mu))^2
+  int_value[has] <- if (.fh_use_cpp()) {
+    as.numeric(fh_bc_integral_cpp(mu[has], sqrt(var[has])))
+  } else {
+    arcsin_bc_value(mu[has], var[has])
   }
   return(int_value)
-}
-
-
-integrand <- function(x, mean, sd) {
-  sin(x)^2 * dnorm(x, mean = mean, sd = sd)
 }
 
 
