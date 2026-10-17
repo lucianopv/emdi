@@ -52,10 +52,19 @@ backtransformed <- function(framework, sigmau2, eblup, transformation,
     mse_data$Out[framework$obs_dom] <- 0
   }
 
+  # Bootstrap interval bounds of Hadam et al. (2023, eq. 7), returned by the arcsin bootstrap only
+  ci_data <- NULL
+  if (!is.null(backtransformed_estims$conf_int)) {
+    ci_data <- data.frame(Domain = combined_data[[framework$domains]],
+                          FH_Lower = backtransformed_estims$conf_int$Li,
+                          FH_Upper = backtransformed_estims$conf_int$Ui)
+  }
+
   back_out <- list(
     eblup_data = eblup_data,
     mse_data = mse_data,
-    MSE_method = backtransformed_estims$mse_method
+    MSE_method = backtransformed_estims$mse_method,
+    ci_data = ci_data
   )
 
   return(back_out)
@@ -186,7 +195,8 @@ arcsin_bt <- function(sigmau2 = sigmau2, combined_data = combined_data,
   arcsin_bt_out <- list(
     point_backtransformed = point_backtransformed,
     mse_backtransformed = mse_backtransformed$mse_backtransformed,
-    mse_method = mse_method
+    mse_method = mse_method,
+    conf_int = mse_backtransformed$conf_int     # eq. 7 bounds (bootstrap only), else NULL
   )
 
   return(arcsin_bt_out)
@@ -206,6 +216,7 @@ arcsin_mse <- function(sigmau2 = sigmau2, combined_data = combined_data,
       method = method, interval = interval,
       B = B, backtransformation = backtransformation, threads = threads
     )
+    conf_int <- mse_backtransformed[[1]]        # Li, Ui: eq. 7 of Hadam et al. (2023)
     mse_backtransformed <- mse_backtransformed[[2]]$MSE
     mse_method <- "bootstrap"
   } else if (mse_type == "jackknife" || mse_type == "weighted_jackknife") {
@@ -228,7 +239,8 @@ arcsin_mse <- function(sigmau2 = sigmau2, combined_data = combined_data,
 
   arcsin_mse_out <- list(
     mse_backtransformed = mse_backtransformed,
-    mse_method = mse_method
+    mse_method = mse_method,
+    conf_int = if (mse_type == "boot") conf_int
   )
 
   return(arcsin_mse_out)

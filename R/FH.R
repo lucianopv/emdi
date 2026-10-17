@@ -696,6 +696,7 @@ fh <- function(fixed, vardir, combined_data, domains = NULL, method = "reml",
       out <- list(
         ind = result_data$eblup_data,
         MSE = result_data$mse_data,
+        CI = result_data$ci_data,   # arcsin + bootstrap: bounds of Hadam et al. (2023, eq. 7)
         transform_param = NULL,
         model = list(
           coefficients = eblup$coefficients,

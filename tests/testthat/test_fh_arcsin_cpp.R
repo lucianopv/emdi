@@ -223,3 +223,20 @@ test_that("out-of-sample areas under bc take eq. 5 with gamma = 0", {
   nv <- f0("cpp", "naive")
   expect_equal(nv$ind$FH[out], sin(pmin(pmax(xb, 0), pi/2))^2, tolerance = 1e-8)   # naive: unchanged
 })
+
+test_that("fh() returns the bootstrap intervals of Hadam et al. eq. 7 for arcsin", {
+  data("eusilcA_popAgg"); data("eusilcA_smpAgg")
+  combined <- combine_data(eusilcA_popAgg, "Domain", eusilcA_smpAgg, "Domain")
+  f0 <- function(...) suppressMessages(fh(MTMED ~ cash + self_empl, vardir = "Var_MTMED", combined_data = combined,
+                                          domains = "Domain", method = "reml", eff_smpsize = "n", MSE = TRUE, ...))
+  a <- f0(transformation = "arcsin", backtransformation = "bc", mse_type = "boot", B = c(30, 0), seed = 7)
+  b <- f0(transformation = "arcsin", backtransformation = "bc", mse_type = "boot", B = c(30, 0), seed = 7)
+  expect_s3_class(a$CI, "data.frame")
+  expect_named(a$CI, c("Domain", "FH_Lower", "FH_Upper"))
+  expect_equal(nrow(a$CI), nrow(a$ind))
+  expect_equal(as.character(a$CI$Domain), as.character(a$ind$Domain))
+  expect_true(all(a$CI$FH_Lower <= a$CI$FH_Upper))
+  expect_identical(a$CI, b$CI)                                          # deterministic given the seed
+  expect_null(f0(transformation = "arcsin", backtransformation = "naive", mse_type = "jackknife")$CI)
+  expect_null(f0(transformation = "no", mse_type = "analytical")$CI)   # (a log fit here hangs on MTMED's 0: fork issue #9)
+})
