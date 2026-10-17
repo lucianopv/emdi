@@ -161,14 +161,14 @@ test_that("Do the FH logit backtransformations work?", {
                     combined_data = combined_data)
 
   set.seed(123)
-  logit_naive_boot <- arcsin_bt(sigmau2 = sigmau2, combined_data = combined_data,
+  logit_naive_boot <- logit_bt(sigmau2 = sigmau2, combined_data = combined_data,
                                  framework = framework, eblup = eblup, vardir = vardir,
                                  mse_type = 'boot',
                                  method = method, interval = interval, MSE = MSE,
                                  B = B, backtransformation = 'naive')
 
   set.seed(123)
-  logit_bc_boot <- arcsin_bt(sigmau2 = sigmau2, combined_data = combined_data,
+  logit_bc_boot <- logit_bt(sigmau2 = sigmau2, combined_data = combined_data,
                               framework = framework, eblup = eblup, vardir = vardir,
                               mse_type = 'boot',
                               method = method, interval = interval, MSE = MSE,
