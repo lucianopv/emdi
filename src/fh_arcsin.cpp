@@ -124,7 +124,6 @@ Rcpp::List fh_boot_arcsin_cpp(double sigmau2,                  // reserved: v_bo
   const arma::uword M = predX.n_rows;
   const arma::uword m = X.n_rows;
   const arma::uword B = v_boot.n_cols;
-  const double HALF_PI = M_PI / 2.0;
   const double tol = std::pow(std::numeric_limits<double>::epsilon(), 0.25);
 
   if (vardir.n_elem != m) Rcpp::stop("fh_boot_arcsin_cpp: length(vardir) != nrow(X)");
@@ -159,8 +158,8 @@ Rcpp::List fh_boot_arcsin_cpp(double sigmau2,                  // reserved: v_bo
       arma::vec vb = v_boot.col(b);
       arma::vec eb = e_boot.col(b);
 
-      arma::vec tt = arma::clamp(Xbeta + vb, 0.0, HALF_PI);
-      tru.col(b) = arma::square(arma::sin(tt));
+      // bootstrap truth of Hadam et al. (2023, p. 14): sin^2(x'beta + u*), unclipped
+      tru.col(b) = arma::square(arma::sin(Xbeta + vb));
 
       arma::vec ystar(m);
       for (arma::uword i = 0; i < m; ++i) ystar(i) = Xbeta(in_idx(i)) + vb(in_idx(i)) + eb(i);

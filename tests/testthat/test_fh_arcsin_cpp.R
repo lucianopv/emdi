@@ -60,8 +60,7 @@ boot_arcsin_mirror <- function(sigmau2, vardir, beta, X, predX, is_in,
   est <- true <- matrix(NA_real_, M, B)
   for (b in seq_len(B)) {
     vb <- v_boot[, b]; eb <- e_boot[, b]
-    tt <- pmin(pmax(Xbeta + vb, 0), pi/2)
-    true[, b] <- sin(tt)^2
+    true[, b] <- sin(Xbeta + vb)^2               # the bootstrap truth of Hadam et al. (2023, p. 14): unclipped
     ystar <- Xbeta[in_idx] + vb[in_idx] + eb
     s2b <- fh_estsigmau2_reml_cpp(ystar, X, as.numeric(vardir),
                                   interval[1], interval[2], .Machine$double.eps^0.25)
@@ -99,7 +98,7 @@ test_that("fh_boot_arcsin_cpp matches the exact R mirror (bc and naive)", {
   predX <- cbind(1, rnorm(M))
   is_in <- c(rep(1L, m), rep(0L, M - m))
   vardir <- runif(m, 1e-3, 0.02)
-  beta   <- c(0.6, 0.1)
+  beta   <- c(1.3, 0.3)          # x'beta spans pi/2, so a clipped truth would differ
   sigmau2 <- 0.01
   eblup_corr <- runif(M, 0.1, 0.6)
   interval <- c(0, 0.5)
@@ -159,8 +158,12 @@ test_that("fh() arcsin+boot: cpp deterministic; point matches R; MSE MC-equivale
   # ~sqrt(2/B) MC noise (~15-20% at B=100). Assert (a) structural agreement
   # (correlation) and (b) domain-MEAN MSE agreement (averaging cancels MC noise;
   # the closed-form integral matches integrate() so there's no systematic bias).
+  # With the paper's unclipped truth the domain MSEs are more alike than they were under the clipped one (whose
+  # outliers near 1 propped up the correlation), so at B = 100 MC noise alone keeps the correlation near 0.86
+  # (0.94 at B = 400, median per-domain ratio 1.008 at both). Systematic agreement is checked directly.
   ok <- is.finite(c1$MSE$FH) & is.finite(r1$MSE$FH) & r1$MSE$FH > 0
-  expect_gt(stats::cor(c1$MSE$FH[ok], r1$MSE$FH[ok]), 0.95)
+  expect_gt(stats::cor(c1$MSE$FH[ok], r1$MSE$FH[ok]), 0.80)
+  expect_true(abs(stats::median(c1$MSE$FH[ok] / r1$MSE$FH[ok]) - 1) < 0.10)
   expect_lt(abs(mean(c1$MSE$FH[ok]) - mean(r1$MSE$FH[ok])) / mean(r1$MSE$FH[ok]), 0.10)
   expect_true(all(c1$MSE$FH[ok] > 0))
 })

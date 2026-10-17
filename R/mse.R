@@ -591,15 +591,8 @@ boot_arcsin_2 <- function(sigmau2, vardir, combined_data, framework,
 
     Xbeta_boot <- pred_X %*% eblup$coefficients$coefficients
 
-    ## True Value for bootstraps
-    ## Truncation
-    true_value_boot_trans <- Xbeta_boot + v_boot
-    true_value_boot_trans[true_value_boot_trans < 0] <- 0
-    true_value_boot_trans[true_value_boot_trans > (pi / 2)] <- (pi / 2)
-
-    ## Back-transformation
-    ## true values without correction
-    true_value_boot[, b] <- (sin(true_value_boot_trans))^2
+    ## True value for the bootstrap: sin^2(x'beta + u*), unclipped (Hadam et al. 2023, p. 14)
+    true_value_boot[, b] <- as.numeric(sin(Xbeta_boot + v_boot))^2
 
     ystar_trans <- Xbeta_boot[in_sample] + v_boot[in_sample] + e_boot
 
@@ -637,38 +630,11 @@ boot_arcsin_2 <- function(sigmau2, vardir, combined_data, framework,
     est_value_boot_trans_var_ <- rep(0, M)
     est_value_boot_trans_var_[in_sample] <- est_value_boot_trans_var
 
-    # backtransformation
+    # backtransformation: bc is Hadam et al.'s eq. 5 over the whole real line (closed form)
     if (backtransformation == "bc") {
-      int_value <- NULL
-      for (i in seq_len(M)) {
-        if (in_sample[i] == T) {
-          mu_dri <- est_value_boot_trans
-          # Get value of first domain
-          mu_dri <- mu_dri[i]
-
-          Var_dri <- est_value_boot_trans_var_
-          Var_dri <- as.numeric(Var_dri[i])
-
-          integrand <- function(x, mean, sd) {
-            sin(x)^2 * dnorm(x, mean = mu_dri, sd = sqrt(Var_dri))
-          }
-
-          upper_bound <- min(
-            mean(framework$direct) + 10 * sd(framework$direct),
-            mu_dri + 100 * sqrt(Var_dri)
-          )
-          lower_bound <- max(
-            mean(framework$direct) - 10 * sd(framework$direct),
-            mu_dri - 100 * sqrt(Var_dri)
-          )
-
-          int_value <- c(int_value, integrate(integrand,
-                                              lower = 0, upper = pi / 2
-          )$value)
-        } else {
-          int_value <- c(int_value, (sin(est_value_boot_trans[i]))^2)
-        }
-      }
+      int_value <- (sin(est_value_boot_trans))^2
+      int_value[in_sample] <- arcsin_bc_value(est_value_boot_trans[in_sample],
+                                              est_value_boot_trans_var)
     } else if (backtransformation == "naive") {
       int_value <- NULL
       for (i in seq_len(M)) {
