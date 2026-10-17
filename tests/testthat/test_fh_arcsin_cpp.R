@@ -78,6 +78,8 @@ boot_arcsin_mirror <- function(sigmau2, vardir, beta, X, predX, is_in,
         if (bc) eb_val[d] <- fh_bc_integral_cpp(est_trans[d],
                                                 sqrt(var_in[match(d, in_idx)]))
         else    eb_val[d] <- sin(est_trans[d])^2
+      } else if (bc) {
+        eb_val[d] <- fh_bc_integral_cpp(est_trans[d], sqrt(s2b))   # out of sample: eq. 5 with gamma = 0
       } else eb_val[d] <- sin(est_trans[d])^2
     }
     est[, b] <- eb_val
@@ -202,4 +204,22 @@ test_that("fh() hands the resolved cpus budget to the arcsin bootstrap kernel", 
     .package = "emdi"
   )
   expect_identical(seen, budget)
+})
+
+test_that("out-of-sample areas under bc take eq. 5 with gamma = 0", {
+  data("eusilcA_popAgg"); data("eusilcA_smpAgg")
+  combined <- combine_data(eusilcA_popAgg, "Domain", eusilcA_smpAgg, "Domain")
+  oos <- 1:5
+  combined$MTMED[oos] <- NA; combined$Var_MTMED[oos] <- NA; combined$n[oos] <- NA
+  f0 <- function(engine, bt) suppressMessages(withr::with_options(list(emdi.fh_engine = engine),
+    fh(MTMED ~ cash + self_empl, vardir = "Var_MTMED", combined_data = combined, domains = "Domain",
+       method = "reml", transformation = "arcsin", backtransformation = bt, eff_smpsize = "n", MSE = FALSE)))
+  c1 <- f0("cpp", "bc"); r1 <- f0("r", "bc")
+  xb <- as.numeric(stats::model.matrix(~ cash + self_empl, combined[oos, ]) %*% c1$model$coefficients$coefficients)
+  out <- c1$ind$Out == 1
+  expect_equal(sum(out), length(oos))
+  expect_equal(c1$ind$FH[out], (1 - exp(-2 * c1$model$variance) * cos(2 * xb)) / 2, tolerance = 1e-8)
+  expect_equal(c1$ind$FH, r1$ind$FH, tolerance = 1e-6)
+  nv <- f0("cpp", "naive")
+  expect_equal(nv$ind$FH[out], sin(pmin(pmax(xb, 0), pi/2))^2, tolerance = 1e-8)   # naive: unchanged
 })

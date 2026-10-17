@@ -238,7 +238,8 @@ arcsin_point <- function(framework, sigmau2, eblup, backtransformation) {
   point_backtransformed <- if (backtransformation == "naive") {
     arcsin_naive(eblup)
   } else if (backtransformation == "bc") {
-    var <- rep(NA, framework$M)
+    # eq. 5 of Hadam et al. (2023): in sample with sigma_u^2 (1 - gamma); out of sample with gamma = 0
+    var <- rep(sigmau2, framework$M)
     var[framework$obs_dom] <- sigmau2 * (1 - eblup$gamma)
     mu <- eblup$eblup_data$FH
 

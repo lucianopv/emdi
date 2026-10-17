@@ -188,8 +188,8 @@ Rcpp::List fh_boot_arcsin_cpp(double sigmau2,                  // reserved: v_bo
       arma::vec ev(M);
       for (arma::uword d = 0; d < M; ++d) {
         double mud = est_trans(d);
-        if (is_in(d) == 1 && bc) {
-          ev(d) = fh_bc_one(mud, std::sqrt(var_in(rank_of(d))));
+        if (bc) {   // eq. 5: in sample with sigma_u^2 (1 - gamma); out of sample with gamma = 0, i.e. sigma_u^2
+          ev(d) = fh_bc_one(mud, std::sqrt(is_in(d) == 1 ? var_in(rank_of(d)) : s2b));
         } else {
           double s = std::sin(mud); ev(d) = s * s;
         }

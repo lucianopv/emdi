@@ -631,8 +631,8 @@ boot_arcsin_2 <- function(sigmau2, vardir, combined_data, framework,
     est_value_boot_trans_var_[in_sample] <- est_value_boot_trans_var
 
     # backtransformation: bc is Hadam et al.'s eq. 5 over the whole real line (closed form)
-    if (backtransformation == "bc") {
-      int_value <- (sin(est_value_boot_trans))^2
+    if (backtransformation == "bc") {   # out of sample: gamma = 0, so the variance is sigma_u^2
+      int_value <- arcsin_bc_value(est_value_boot_trans, sigmau2_boot)
       int_value[in_sample] <- arcsin_bc_value(est_value_boot_trans[in_sample],
                                               est_value_boot_trans_var)
     } else if (backtransformation == "naive") {
