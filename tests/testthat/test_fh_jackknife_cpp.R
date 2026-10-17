@@ -181,3 +181,25 @@ test_that("fh() hands the resolved cpus budget to the jackknife kernel", {
   )
   expect_identical(seen, budget)
 })
+
+test_that("the arcsin jackknife MSE uses the squared delta-method factor", {
+  # MSE(p) = (d sin^2(theta) / d theta)^2 mse(theta) = sin(2 theta)^2 mse(theta) (Jiang et al. 2001, p. 11)
+  data("eusilcA_popAgg"); data("eusilcA_smpAgg")
+  cd <- combine_data(eusilcA_popAgg, "Domain", eusilcA_smpAgg, "Domain")
+  cd$MTMED[cd$MTMED <= 0] <- NA; cd$Var_MTMED[is.na(cd$MTMED)] <- NA
+  fw <- framework_FH(combined_data = cd, fixed = MTMED ~ cash + self_empl, vardir = "Var_MTMED",
+                     domains = "Domain", transformation = "arcsin", eff_smpsize = "n", correlation = "no",
+                     corMatrix = NULL, Ci = NULL, tol = NULL, maxit = NULL)
+  s2 <- wrapper_estsigmau2(framework = fw, method = "reml", interval = c(0, 1))
+  eb <- eblup_FH(framework = fw, sigmau2 = s2, combined_data = cd)
+  for (mt in c("jackknife", "weighted_jackknife")) {
+    jack <- wrapper_MSE(framework = fw, combined_data = cd, sigmau2 = s2, vardir = fw$vardir, eblup = eb,
+                        transformation = "arcsin", method = "reml", interval = c(0, 1), mse_type = mt)
+    got <- arcsin_mse(sigmau2 = s2, combined_data = cd, framework = fw, eblup = eb, vardir = fw$vardir,
+                      eblup_corr = NULL, mse_type = mt, method = "reml", interval = c(0, 1), B = 0,
+                      backtransformation = "naive")
+    th <- eb$eblup_data$FH[fw$obs_dom]
+    expect_equal(got$mse_backtransformed[fw$obs_dom], sin(2 * th)^2 * jack$mse_data$FH[fw$obs_dom],
+                 tolerance = 1e-10, info = mt)
+  }
+})

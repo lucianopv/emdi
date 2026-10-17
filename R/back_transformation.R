@@ -228,10 +228,11 @@ arcsin_mse <- function(sigmau2 = sigmau2, combined_data = combined_data,
       interval = interval, mse_type = mse_type, threads = threads
     )
 
+    # Delta method: MSE(p) = (d sin^2(theta) / d theta)^2 mse(theta) = (2 sin(theta) cos(theta))^2 mse(theta)
+    # (Jiang et al. 2001, p. 11). The factor was used unsquared before, overstating the MSE by 1 / sin(2 theta).
+    theta <- eblup$eblup_data$FH[framework$obs_dom]
     mse_backtransformed <- rep(NA, framework$M)
-    mse_backtransformed[framework$obs_dom] <- 2 *
-      sin(eblup$eblup_data$FH[framework$obs_dom]) *
-      cos(eblup$eblup_data$FH[framework$obs_dom]) *
+    mse_backtransformed[framework$obs_dom] <- (2 * sin(theta) * cos(theta))^2 *
       jack_mse$mse_data$FH[framework$obs_dom]
 
     mse_method <- jack_mse$MSE_method
