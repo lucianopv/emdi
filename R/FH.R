@@ -176,6 +176,17 @@
 #' standard Fay-Herriot model with reml and ml variance estimation, the crude
 #' backtransformation in case of log transformation and the bootstrap MSE
 #' estimator for the arcsin and logit transformation. \cr \cr
+#' With the arcsin transformation and \code{mse_type = "boot"}, the returned
+#' object also has \code{CI}, the bootstrap interval bounds of Hadam et al.
+#' (2023, eq. 7): the estimate plus the 2.5\% and 97.5\% quantiles of the
+#' bootstrap errors. They are not constrained to [0, 1]. The \code{"bc"}
+#' backtransformation is the expectation of \eqn{\sin^2}{sin^2} over the whole real
+#' line (eq. 5); in-sample domains use the conditional variance
+#' \eqn{\sigma_u^2 (1 - \gamma_d)} and out-of-sample domains \eqn{\sigma_u^2}.
+#' Because \eqn{\sin^2}{sin^2} is periodic, the expectation folds back when the
+#' transformed predictor lies well beyond \eqn{\pi/2} (an out-of-sample domain
+#' with a predictor of \eqn{\pi/2 + 1} gets about 0.3 where \code{"naive"}
+#' gives 1), so check such domains. \cr \cr
 #' For a description of how to create the proximity matrix for the
 #' spatial Fay-Herriot model, see the package vignette. If the presence
 #' of out-of-sample domains, the proximity matrix needs to be
@@ -196,6 +207,9 @@
 #' Hadam, S., Wuerz, N. and Kreutzmann, A.-K. (2020), Estimating
 #' regional unemployment with mobile network data for Functional Urban Areas in
 #' Germany, Refubium - Freie Universitaet Berlin Repository, 1-28. \cr \cr
+#' Hadam, S., Wuerz, N., Kreutzmann, A.-K. and Schmid, T. (2023), Estimating
+#' regional unemployment with mobile network data for Functional Urban Areas in
+#' Germany, Statistical Methods & Applications. \cr \cr
 #' Jiang, J., Lahiri, P., Wan, S.-M. and Wu, C.-H. (2001), Jackknifing in the
 #' Fay–Herriot model with an example. In Proc. Sem. Funding Opportunity in
 #' Survey Research, Washington DC: Bureau of Labor Statistics, 75–97. \cr \cr

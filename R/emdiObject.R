@@ -28,6 +28,11 @@
 #' \item{\code{MSE}}{data frame containing MSE estimates corresponding to the
 #' point predictions in \code{ind} per indicator per domain if MSE is selected
 #' in function call. If \code{FALSE}, \code{MSE} is \code{NULL}.}
+#' \item{\code{CI}}{for class "fh" with the arcsin transformation and
+#' \code{mse_type = "boot"}, a data frame with \code{Domain}, \code{FH_Lower}
+#' and \code{FH_Upper}: the bootstrap interval bounds of Hadam et al. (2023,
+#' eq. 7), not constrained to [0, 1]. \code{NULL} otherwise; for
+#' untransformed, measurement-error and robust fits the component is absent.}
 #' \item{\code{transformation}}{character or list containing information about
 #' applied transformation and, if appropriate, backtransformation. Not filled
 #' for class "direct".}

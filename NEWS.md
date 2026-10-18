@@ -2,15 +2,25 @@
 * **Bug fix — arcsin Fay-Herriot `backtransformation = "bc"` now follows Hadam et al. (2023, eq. 5).** The bias
   correction is the expectation of `sin^2` over the whole real line, `(1 - exp(-2v) cos(2 mu)) / 2`. Before, both
   the R and C++ paths integrated over `[0, pi/2]` only and dropped the normal mass above `pi/2`, which pulled
-  estimates near 1 down (0.50 instead of 0.999 for a domain whose direct estimate is 1). Low rates are unchanged.
+  estimates near 1 down (0.50 instead of 0.999 for a domain whose direct estimate is 1). Estimates whose transformed
+  EBLUP lies several posterior standard deviations inside `[0, pi/2]` are unchanged. Rare outcomes move up, because
+  the whole-line expectation keeps the lower tail: at p = 0.001, +13% with a posterior sd of 0.05 and +37% with 0.1;
+  at p = 0.01, +3.9% with 0.1.
 * **Bug fix — arcsin bootstrap.** The bootstrap truth is `sin^2(x'beta + u*)` without clipping (Hadam et al. 2023,
   p. 14), and the bootstrap's `bc` uses the same expectation. Out-of-sample domains under `"bc"` now take the
   expectation with `gamma = 0` (variance `sigma_u^2`) in the point estimate and in the bootstrap, instead of the
-  naive back-transformation.
+  naive back-transformation. The legacy R bootstrap loop (`method = "ml"` and the R engine) also loses an
+  `integrate()` underflow at small posterior standard deviations, so its `bc` bootstrap MSEs change at moderate
+  rates too (for example 11 times smaller for a domain with a direct estimate of 0.13).
 * **Bug fix — arcsin jackknife MSE.** The delta-method factor is squared, `sin(2 theta)^2` (Jiang et al. 2001,
-  p. 11). It was used unsquared, which overstated the MSE by `1 / sin(2 theta)`.
+  p. 11). It was used unsquared, which overstated the MSE by `1 / sin(2 theta)`, and made it negative where
+  `theta > pi/2`.
 * **New:** `fh()` returns `CI`, the bootstrap interval bounds of Hadam et al. (2023, eq. 7)
-  (`Domain`, `FH_Lower`, `FH_Upper`), for the arcsin transformation with `mse_type = "boot"`.
+  (`Domain`, `FH_Lower`, `FH_Upper`), for the arcsin transformation with `mse_type = "boot"`. The bounds are not
+  constrained to `[0, 1]`.
+* **Known limitation (Hadam et al. 2023, eq. 5):** `sin^2` is periodic, so the `"bc"` expectation and the bootstrap
+  truth fold back when the transformed predictor lies well beyond `pi/2`. An out-of-sample domain with
+  `x'beta = pi/2 + 1` gets about 0.3 where `"naive"` gives 1.
 * Tests: the logit back-transformation test called `arcsin_bt`, so it now calls `logit_bt`. The benchmark columns
   these fixes change are regenerated.
 
