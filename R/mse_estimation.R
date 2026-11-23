@@ -167,11 +167,20 @@ parametric_bootstrap <- function(framework,
   # households of out-of-sample domains take the 0, on top of the domain effect
   # N(0, sigmau2) every domain draws, so sigmau2 enters them twice.
   # options(emdi.boot_census = "model") gives every household N(0, sigmae2),
-  # Molina and Rao's (2010, section 6, eqs. 18-19) census. It travels in
+  # Molina and Rao's (2010, section 6, eqs. 18-19) census; "emdi" names the
+  # default. Any other value is refused rather than read as the default, so a
+  # mis-set option cannot give emdi's census silently. The choice travels in
   # `framework`, which the R path hands to its workers, because an option set
   # here would not reach socket workers. framework$obs_dom stays the real one:
   # point_estim() and the Monte Carlo need it.
-  framework$obs_census <- if (identical(getOption("emdi.boot_census"), "model")) {
+  boot_census <- getOption("emdi.boot_census")
+  if (!is.null(boot_census) &&
+      !(is.character(boot_census) && length(boot_census) == 1L &&
+          boot_census %in% c("model", "emdi"))) {
+    stop("emdi.boot_census must be \"model\" or \"emdi\" (or unset), not ",
+         paste(deparse(boot_census), collapse = " "), ".", call. = FALSE)
+  }
+  framework$obs_census <- if (identical(boot_census, "model")) {
     rep(1L, framework$N_pop)
   } else {
     as.integer(framework$obs_dom)

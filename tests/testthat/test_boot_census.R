@@ -172,7 +172,7 @@ test_that("default engine: unset is b5712db's; 'model' moves only out-of-sample 
             sum(model_census$MSE$Head_Count[oos]))
 })
 
-test_that("R engine: unset is b5712db's; 'model' moves out-of-sample MSE", {
+test_that("R engine: unset is b5712db's; 'model' moves only out-of-sample MSE", {
   skip_on_cran()
   emdi_census <- run_boot_census(engine = "r")
   model_census <- run_boot_census(census = "model", engine = "r")
@@ -184,9 +184,27 @@ test_that("R engine: unset is b5712db's; 'model' moves out-of-sample MSE", {
 
   expect_identical(model_census$ind, emdi_census$ind)
 
+  # gen_superpop_cpp() draws in the kernel's order (in-sample errors,
+  # out-of-sample errors, effects), so here too the in-sample MSE is
+  # bit-identical.
   oos <- emdi_census$MSE$Domain %in% boot_census_oos
   expect_equal(sum(oos), 10L)
+  expect_identical(model_census$MSE[!oos, ], emdi_census$MSE[!oos, ])
   expect_gt(sum(emdi_census$MSE$Mean[oos]), sum(model_census$MSE$Mean[oos]))
   expect_lt(sum(emdi_census$MSE$Head_Count[oos]),
             sum(model_census$MSE$Head_Count[oos]))
+})
+
+test_that("emdi.boot_census refuses values other than 'model' or 'emdi'", {
+  skip_on_cran()
+  # A mis-set value must not fall back to emdi's census silently.
+  msg <- 'emdi.boot_census must be "model" or "emdi" (or unset)'
+  expect_error(run_boot_census(census = "Model"), msg, fixed = TRUE)
+  expect_error(run_boot_census(census = TRUE), msg, fixed = TRUE)
+
+  # "emdi" names the default.
+  emdi_census <- run_boot_census(census = "emdi")
+  unset <- run_boot_census()
+  expect_identical(emdi_census$ind, unset$ind)
+  expect_identical(emdi_census$MSE, unset$MSE)
 })

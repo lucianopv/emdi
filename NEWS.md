@@ -6,6 +6,8 @@
   C++ bootstrap and the R path's `superpopulation()`, including its worker processes). Point estimates are unchanged;
   in-sample domains' census is the same in distribution, so only out-of-sample domains' MSEs move systematically
   (in-sample ones change only where the random draws fall differently). Unset, results are identical to 2.2.4.9001.
+  `"emdi"` names the default; any other value is refused. `boot_type = "wild"` is unaffected: its census
+  (`superpopulation_wild()`) draws residual-based errors for every household.
 
 # emdi 2.2.4.9001 (development)
 * **Bug fix — arcsin Fay-Herriot `backtransformation = "bc"` now follows Hadam et al. (2023, eq. 5).** The bias
