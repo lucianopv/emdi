@@ -1,3 +1,12 @@
+# emdi 2.2.4.9002 (development)
+* **New (opt-in):** `options(emdi.boot_census = "model")` builds `ebp()`'s parametric bootstrap census as in Molina
+  and Rao's (2010) bootstrap (section 6, eqs. 18-19): every household's error is N(0, sigma_e^2). emdi's census, still
+  the default, gives the households of out-of-sample domains N(0, sigma_e^2 + sigma_u^2) on top of the domain effect
+  N(0, sigma_u^2) every domain draws, so sigma_u^2 enters them twice. The option reaches both census builders (the
+  C++ bootstrap and the R path's `superpopulation()`, including its worker processes). Point estimates are unchanged;
+  in-sample domains' census is the same in distribution, so only out-of-sample domains' MSEs move systematically
+  (in-sample ones change only where the random draws fall differently). Unset, results are identical to 2.2.4.9001.
+
 # emdi 2.2.4.9001 (development)
 * **Bug fix — arcsin Fay-Herriot `backtransformation = "bc"` now follows Hadam et al. (2023, eq. 5).** The bias
   correction is the expectation of `sin^2` over the whole real line, `(1 - exp(-2v) cos(2 mu)) / 2`. Before, both

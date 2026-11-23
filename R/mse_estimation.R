@@ -161,6 +161,22 @@ parametric_bootstrap <- function(framework,
     )
   }
 
+  # The bootstrap census's household errors, read by both census builders
+  # (parametric_bootstrap_cpp() below, superpopulation() on the R path): 1 draws
+  # N(0, sigmae2), 0 draws N(0, sigmae2 + sigmau2). Unset, emdi's census: the
+  # households of out-of-sample domains take the 0, on top of the domain effect
+  # N(0, sigmau2) every domain draws, so sigmau2 enters them twice.
+  # options(emdi.boot_census = "model") gives every household N(0, sigmae2),
+  # Molina and Rao's (2010, section 6, eqs. 18-19) census. It travels in
+  # `framework`, which the R path hands to its workers, because an option set
+  # here would not reach socket workers. framework$obs_dom stays the real one:
+  # point_estim() and the Monte Carlo need it.
+  framework$obs_census <- if (identical(getOption("emdi.boot_census"), "model")) {
+    rep(1L, framework$N_pop)
+  } else {
+    as.integer(framework$obs_dom)
+  }
+
   # Check if C++ fast path is available.
   # The C++ path spends the core budget on OpenMP threads, so it no longer
   # needs cpus == 1. Worker processes are used only where this path does not
@@ -256,7 +272,9 @@ parametric_bootstrap <- function(framework,
       X_pop = X_pop,
       mu_fixed_orig = as.numeric(point_estim$gen_model$mu_fixed),
       n_pop = framework$n_pop,
-      obs_dom = as.integer(framework$obs_dom),
+      # The kernel reads obs_dom only for the census errors; its Monte Carlo
+      # uses dist_obs_dom.
+      obs_dom = framework$obs_census,
       dist_obs_dom = as.integer(framework$dist_obs_dom),
       pop_weights = pop_weights_vec,
       N_pop = framework$N_pop,
@@ -607,7 +625,12 @@ superpopulation <- function(framework, model_par, gen_model, lambda, shift,
     mu_fixed = as.numeric(gen_model$mu_fixed),
     sigmae2 = model_par$sigmae2est,
     sigmau2 = model_par$sigmau2est,
-    obs_dom = as.integer(framework$obs_dom),
+    # Set by parametric_bootstrap() (see there); NULL for a direct caller.
+    obs_dom = if (is.null(framework$obs_census)) {
+      as.integer(framework$obs_dom)
+    } else {
+      framework$obs_census
+    },
     n_pop = framework$n_pop,
     N_dom_pop = framework$N_dom_pop,
     transformation = transformation,
